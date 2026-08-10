@@ -136,9 +136,13 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 
 ## Current state
 
-**Phase 0 — Foundations.** See the build plan for phase definitions and exit criteria.
+**Phase 1 — tenancy schema and RLS.** See the build plan for phase definitions and exit criteria.
 
 V1 = inbound spine + reconciliation + minimal Gate 8: Gates 0–6 and 8. Gates 7, 9, 10 and the returnable register are V2.
+
+**Web is the first delivery target** ([ADR 0014](docs/decisions/0014-web-first-via-expo-web.md)). `apps/mobile` is an Expo app with web enabled — it runs in a browser now and builds for the stores later from the same source. Native builds move to Phase 9.
+
+The consequence that cannot be deferred: **the offline outbox must sit behind a storage interface with two drivers** (SQLite on native, IndexedDB/OPFS on web) from its first commit. Retrofitting that once it has callers is the expensive version of this decision.
 
 ---
 
