@@ -93,12 +93,28 @@ pnpm dev                    # all apps
 pnpm test                   # unit tests
 pnpm test --filter domain   # domain rules only
 pnpm typecheck
-pnpm lint
-pnpm supabase start         # local stack
-pnpm supabase test db       # pgTAP — RLS + triggers
-pnpm db:migrate
-pnpm db:types               # regenerate packages/db types after a migration
+pnpm format                 # prettier write
 ```
+
+### Database
+
+**We develop cloud-first. There is no local Docker** — see [ADR 0013](docs/decisions/0013-cloud-first-development.md).
+
+```bash
+pnpm exec supabase migration new <name>   # writes a file; no container needed
+pnpm exec supabase gen types typescript --linked > packages/db/src/types.ts
+```
+
+**Migrations are applied by the GitHub integration, not by a command.** A pull request
+creates a preview branch and runs them there; **merging to `main` runs them against
+production.** There is no confirmation step. Work through pull requests so the preview
+branch fails first, and keep `main` migration-clean.
+
+`supabase start`, `db reset` and `test db` need Docker and so only run in CI. The pgTAP
+suite — including the sweep that fails on any table without RLS — therefore gates pushes
+and pull requests, but cannot be run before pushing.
+
+Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 
 ## Conventions
 
