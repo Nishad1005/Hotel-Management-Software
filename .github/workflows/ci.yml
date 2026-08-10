@@ -38,16 +38,29 @@ jobs:
       - name: Test
         run: pnpm test
 
-  # Enabled once supabase/migrations exists. These are not optional extras:
-  # an RLS gap is a silent cross-tenant data leak, so the sweep that fails on any
-  # table without a policy is the control, not the policies themselves.
-  # See docs/decisions/0001-multi-tenant-from-day-one.md.
-  #
-  # database:
-  #   name: Migrations and RLS
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - uses: supabase/setup-cli@v1
-  #     - run: supabase start
-  #     - run: supabase test db
+  # Not an optional extra. We develop cloud-first with no local Docker
+  # (docs/decisions/0013), so this job is the ONLY place the pgTAP suite runs —
+  # including the sweep that fails on any table without a policy. An RLS gap is a
+  # silent cross-tenant data leak, and this is the control that catches it.
+  database:
+    name: Migrations and RLS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.113.0
+
+      # Replays every migration from an empty database. This is also the
+      # reset-and-replay loop we gave up locally: it is how a migration ordering
+      # bug gets caught.
+      - name: Start local stack
+        run: supabase start
+
+      - name: Database tests
+        run: supabase test db
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: supabase status && supabase db lint
