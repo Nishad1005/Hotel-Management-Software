@@ -100,19 +100,28 @@ pnpm format                 # prettier write
 
 **We develop cloud-first. There is no local Docker** — see [ADR 0013](docs/decisions/0013-cloud-first-development.md).
 
+Project `dwnuxeeglkpsssissmuu` · region `ap-south-1` (Mumbai) · `https://dwnuxeeglkpsssissmuu.supabase.co`
+
 ```bash
 pnpm exec supabase migration new <name>   # writes a file; no container needed
-pnpm exec supabase gen types typescript --linked > packages/db/src/types.ts
 ```
 
-**Migrations are applied by the GitHub integration, not by a command.** A pull request
-creates a preview branch and runs them there; **merging to `main` runs them against
-production.** There is no confirmation step. Work through pull requests so the preview
-branch fails first, and keep `main` migration-clean.
+**Types are generated in CI from the migrations, not from the live project** — `supabase gen types typescript --local` against the replayed stack. That needs no access token and no database password, and it makes the committed types provably a function of the migrations rather than of whatever someone last changed by hand in the dashboard. CI fails if the committed types drift from the schema.
+
+**Migrations reach production only through CI, and only if the tests passed.** Supabase's
+own "Deploy to production" toggle is deliberately OFF, because it applies migrations on
+merge regardless of CI. The `deploy` job in [ci.yml](.github/workflows/ci.yml) `needs` the
+test jobs — that gate is the only path into the production database.
+
+**The test suite is therefore the deployment safeguard.** Never weaken the `needs`
+relationship to unblock a release.
 
 `supabase start`, `db reset` and `test db` need Docker and so only run in CI. The pgTAP
-suite — including the sweep that fails on any table without RLS — therefore gates pushes
-and pull requests, but cannot be run before pushing.
+suite — including the sweep that fails on any table without RLS — gates every push and
+pull request, but cannot be run before pushing.
+
+There are no preview databases per pull request; branching needs the Pro plan. CI's
+replayed stack substitutes for it.
 
 Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 

@@ -61,6 +61,55 @@ jobs:
       - name: Database tests
         run: supabase test db
 
+      # Generated from the replayed migrations, not from the live project, so no
+      # access token or database password is needed anywhere in CI — and the
+      # committed types are provably a function of the migrations rather than of
+      # whatever was last changed by hand in the dashboard.
+      - name: Types match the schema
+        run: |
+          mkdir -p packages/db/src
+          supabase gen types typescript --local > /tmp/types.ts
+          if [ -f packages/db/src/types.ts ] && ! diff -q /tmp/types.ts packages/db/src/types.ts; then
+            echo "::error::Generated types drift from the schema. Run the generator and commit the result."
+            diff /tmp/types.ts packages/db/src/types.ts || true
+            exit 1
+          fi
+
       - name: Diagnostics on failure
         if: failure()
         run: supabase status && supabase db lint
+
+  # Applies migrations to the production database.
+  #
+  # `needs` is the whole point of this job existing. Supabase's own "Deploy to
+  # production" toggle applies migrations on merge regardless of whether CI passed;
+  # it is deliberately left OFF so that this gate is the only path in. Never make
+  # this job independent of the test jobs to unblock a release.
+  # See docs/decisions/0013-cloud-first-development.md.
+  deploy:
+    name: Apply migrations to production
+    needs: [verify, database]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Add required reviewers to this GitHub environment to make production
+    # migrations a manual approval rather than an automatic one.
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: dwnuxeeglkpsssissmuu
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.113.0
+
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      - name: Show what will be applied
+        run: supabase db push --dry-run
+
+      - name: Apply migrations
+        run: supabase db push

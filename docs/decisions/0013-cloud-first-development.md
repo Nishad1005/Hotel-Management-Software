@@ -13,21 +13,28 @@ The repository has additionally been connected to Supabase through the **GitHub 
 
 The real question is therefore not "can we work without Docker" — we can — but **what is lost, and does it matter enough to block on.**
 
+A further constraint appeared once the project was actually connected. The Supabase plan is free, and on the free plan **branching is unavailable** — there are no preview databases per pull request. The GitHub integration's "Deploy to production" toggle is available, but it applies migrations on merge **unconditionally**: it has no view of whether CI passed.
+
+That is the deciding detail. An automatic deploy that cannot be gated on tests is worse than an explicit one that can.
+
 ## Decision
 
 Develop cloud-first. No local Docker.
 
-- Migrations are written into `supabase/migrations/` and applied by the **GitHub integration**: a pull request creates a preview branch and runs them there; merging to `main` runs them against production.
-- Types are generated from the linked project.
-- **pgTAP runs in CI**, where GitHub Actions runners provide Docker at no cost. The tenant isolation sweep therefore still gates every push and pull request.
+- Migrations are written into `supabase/migrations/`.
+- **Supabase's "Deploy to production" stays OFF.** Migrations are applied by a GitHub Actions job that `needs` the test jobs, so nothing reaches production unless the pgTAP suite passed on that exact commit.
+- **Types are generated in CI from the replayed migrations** (`gen types --local`), not from the live project. This needs no access token and no database password, and makes the committed types provably a function of the migrations rather than of whatever was last changed by hand in the dashboard.
+- **pgTAP runs in CI**, where GitHub Actions runners provide Docker at no cost, replaying every migration from an empty database.
 
-Docker can be installed later without changing anything about this setup.
+Docker can be installed later without changing any of this.
 
 ## Consequences
 
-- **Every push to `main` alters the production database.** There is no command to forget and no confirmation step. `main` must stay migration-clean, and work should reach it through pull requests so the preview branch fails first. This is the single most important thing to remember about the setup.
-- **Reset-and-replay is lost locally.** That loop is how migration _ordering_ bugs get caught, and this project treats migrations as the source of truth. Mitigations: CI replays from empty on every run by construction, and preview branches are created data-less from migration history, which is itself a replay. `supabase db reset --linked` exists but is destructive — never point it at production.
+- **The test suite is the deployment gate.** This is the main benefit and the main obligation: a weak test suite now means a weak production safeguard. Never make the deploy job independent of the test jobs to "unblock" a release.
+- Deployment needs two GitHub Actions secrets — a Supabase access token and the database password. They live in GitHub, are never committed, and are never pasted into a chat or an issue.
+- **Reset-and-replay is lost locally.** That loop is how migration _ordering_ bugs get caught, and this project treats migrations as the source of truth. Mitigation: CI replays from empty on every run by construction, which is the same check.
 - **Timestamp collisions become a live concern.** With several pull requests open, a migration whose timestamp predates one already applied to production will silently not run. Rebase and regenerate.
-- Iteration is a network round trip rather than instant. Tolerable; it is the main thing that would justify installing Docker later.
-- `supabase functions serve` is unavailable locally, so edge functions are tested by deploying to a preview branch. Worth revisiting when Phase 1 brings number leasing and the reconciliation sweep.
-- The pgTAP suite cannot be run before pushing. Expect to learn about RLS failures from CI rather than locally — an argument for keeping those tests fast and their failure messages explicit.
+- **No preview database per pull request** while on the free plan. CI's replayed stack substitutes for it — that catches schema and test failures, though not anything that depends on production data. Revisit if Pro is ever adopted; branching would then complement this rather than replace it.
+- Iteration is a network round trip rather than instant. Tolerable; the main thing that would justify installing Docker later.
+- `supabase functions serve` is unavailable locally. Worth revisiting when number leasing and the reconciliation sweep arrive.
+- The pgTAP suite cannot be run before pushing. Expect to learn about RLS failures from CI — an argument for keeping those tests fast and their failure messages explicit.
