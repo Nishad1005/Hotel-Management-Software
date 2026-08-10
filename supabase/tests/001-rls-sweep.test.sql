@@ -22,7 +22,10 @@ select is_empty(
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
-      and c.relkind = 'r'
+      -- 'p' is a partitioned table. Omitting it would exempt exactly the tables
+      -- most likely to be partitioned - the stock ledger is partitioned by
+      -- property and period under ADR 0003 - from the sweep meant to protect them.
+      and c.relkind in ('r', 'p')
       and not c.relrowsecurity
     order by 1
   $q$,
@@ -38,7 +41,7 @@ select is_empty(
     from pg_class c
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
-      and c.relkind = 'r'
+      and c.relkind in ('r', 'p')
       and c.relrowsecurity
       and not exists (select 1 from pg_policy p where p.polrelid = c.oid)
     order by 1

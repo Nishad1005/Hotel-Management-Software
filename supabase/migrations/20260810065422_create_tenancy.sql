@@ -19,7 +19,14 @@ comment on schema app is
   'Internal helpers for RLS and shared logic. Never exposed through the API.';
 
 revoke all on schema app from public;
-grant usage on schema app to authenticated, anon, service_role;
+
+-- `authenticated` needs USAGE because RLS policies call app.accessible_*().
+-- `service_role` is deliberately excluded: it bypasses RLS entirely, so it has no
+-- business calling helpers that exist to scope a user to their own properties.
+-- Privileged system work belongs in the `system` schema, in reviewed SECURITY
+-- DEFINER functions that take property_id explicitly (CLAUDE.md rule 3).
+-- `anon` is excluded because nothing unauthenticated reads tenant data.
+grant usage on schema app to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Enumerations
@@ -188,8 +195,12 @@ $$;
 
 revoke all on function app.accessible_properties() from public;
 revoke all on function app.accessible_organisations() from public;
-grant execute on function app.accessible_properties() to authenticated, service_role;
-grant execute on function app.accessible_organisations() to authenticated, service_role;
+
+-- Not granted to service_role. Both helpers resolve the *current user's* access via
+-- auth.uid(), which is null for service_role, so the grant would be meaningless as
+-- well as contrary to CLAUDE.md rule 3.
+grant execute on function app.accessible_properties() to authenticated;
+grant execute on function app.accessible_organisations() to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Row level security

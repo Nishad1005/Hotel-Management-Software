@@ -106,7 +106,7 @@ Project `dwnuxeeglkpsssissmuu` · region `ap-south-1` (Mumbai) · `https://dwnux
 pnpm exec supabase migration new <name>   # writes a file; no container needed
 ```
 
-**Types are generated in CI from the migrations, not from the live project** — `supabase gen types typescript --local` against the replayed stack. That needs no access token and no database password, and it makes the committed types provably a function of the migrations rather than of whatever someone last changed by hand in the dashboard. CI fails if the committed types drift from the schema.
+**Types will be generated in CI from the migrations, not from the live project** — `supabase gen types typescript --local` against the replayed stack. That needs no access token and no database password, and makes the committed types provably a function of the migrations rather than of whatever was last changed by hand in the dashboard. **Not yet wired**: it lands with `packages/db`, and the check must fail on a _missing_ file as well as a drifted one.
 
 **Migrations reach production only through CI, and only if the tests passed.** Supabase's
 own "Deploy to production" toggle is deliberately OFF, because it applies migrations on

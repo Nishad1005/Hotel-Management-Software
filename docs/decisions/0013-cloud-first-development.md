@@ -23,7 +23,7 @@ Develop cloud-first. No local Docker.
 
 - Migrations are written into `supabase/migrations/`.
 - **Supabase's "Deploy to production" stays OFF.** Migrations are applied by a GitHub Actions job that `needs` the test jobs, so nothing reaches production unless the pgTAP suite passed on that exact commit.
-- **Types are generated in CI from the replayed migrations** (`gen types --local`), not from the live project. This needs no access token and no database password, and makes the committed types provably a function of the migrations rather than of whatever was last changed by hand in the dashboard.
+- **Types are to be generated in CI from the replayed migrations** (`gen types --local`), not from the live project. This needs no access token and no database password, and makes the committed types provably a function of the migrations rather than of whatever was last changed by hand in the dashboard. Not yet wired — it lands with `packages/db`, and must fail on a missing file as well as a drifted one.
 - **pgTAP runs in CI**, where GitHub Actions runners provide Docker at no cost, replaying every migration from an empty database.
 
 Docker can be installed later without changing any of this.

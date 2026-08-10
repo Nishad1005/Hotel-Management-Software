@@ -15,8 +15,10 @@ started in parallel with development.
 3. Name it `github-actions-deploy` — a name tied to its purpose, so it can be revoked later without guessing what it breaks
 4. **Copy it immediately.** It is shown once and never again.
 
-> Treat this like a password. It grants full API control of the project. Do not paste
-> it into a chat, an issue, a commit, or a screenshot.
+> Treat this like a password — and note the blast radius: a personal access token
+> carries **your own privileges across every organisation and project your account can
+> reach**, not just this one. It cannot be scoped down. Do not paste it into a chat, an
+> issue, a commit, or a screenshot, and revoke it the moment it is no longer needed.
 
 ### A2. Find (or reset) the database password
 
@@ -73,6 +75,18 @@ Leave **Working directory** as `.` — it matches the repository layout.
 
 The original project was created in `ap-southeast-2`. Delete it so nothing can be
 pointed at it by mistake.
+
+**Deleting a Supabase project is irreversible** — database, storage objects, backups and
+API keys all go. Before deleting, confirm the Sydney project has:
+
+- no tables or data you need
+- no storage objects
+- no other repository or service connected to it
+- no API keys in use anywhere
+
+If any of that is unclear, **pause the project instead** and delete it later. It was
+created empty, so this should be a formality — but the check costs a minute and the
+mistake is permanent.
 
 **Sydney project → Project Settings → General → Delete project**
 
@@ -134,8 +148,17 @@ These are the only items that can block a launch that is otherwise finished.
 | Domain name        | Both consoles, deep links, privacy policy hosting |
 | Resend or Postmark | Alert emails and tenant invitations               |
 
-Supabase Pro will eventually be needed for point-in-time-recovery backups before real
-data exists, and would additionally unlock preview databases per pull request.
+**Supabase Pro** will be needed before real data exists. Two separate line items, worth
+budgeting distinctly:
+
+- **Pro** includes daily backups with seven-day retention, and unlocks preview databases
+  per pull request
+- **Point-in-time recovery is a separate paid add-on on top of Pro**, not included
+
+Seven-day daily backups may well be adequate for the pilot. PITR matters once a property
+depends on the data for FSSAI evidence, since it is the difference between losing a day
+and losing a minute. Decide it as a budget question before go-live rather than after an
+incident.
 
 ### Hardware — one property
 
