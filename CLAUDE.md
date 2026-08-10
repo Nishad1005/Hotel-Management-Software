@@ -100,19 +100,28 @@ pnpm format                 # prettier write
 
 **We develop cloud-first. There is no local Docker** — see [ADR 0013](docs/decisions/0013-cloud-first-development.md).
 
+Project `dwnuxeeglkpsssissmuu` · region `ap-south-1` (Mumbai) · `https://dwnuxeeglkpsssissmuu.supabase.co`
+
 ```bash
 pnpm exec supabase migration new <name>   # writes a file; no container needed
-pnpm exec supabase gen types typescript --linked > packages/db/src/types.ts
 ```
 
-**Migrations are applied by the GitHub integration, not by a command.** A pull request
-creates a preview branch and runs them there; **merging to `main` runs them against
-production.** There is no confirmation step. Work through pull requests so the preview
-branch fails first, and keep `main` migration-clean.
+**Types will be generated in CI from the migrations, not from the live project** — `supabase gen types typescript --local` against the replayed stack. That needs no access token and no database password, and makes the committed types provably a function of the migrations rather than of whatever was last changed by hand in the dashboard. **Not yet wired**: it lands with `packages/db`, and the check must fail on a _missing_ file as well as a drifted one.
+
+**Migrations reach production only through CI, and only if the tests passed.** Supabase's
+own "Deploy to production" toggle is deliberately OFF, because it applies migrations on
+merge regardless of CI. The `deploy` job in [ci.yml](.github/workflows/ci.yml) `needs` the
+test jobs — that gate is the only path into the production database.
+
+**The test suite is therefore the deployment safeguard.** Never weaken the `needs`
+relationship to unblock a release.
 
 `supabase start`, `db reset` and `test db` need Docker and so only run in CI. The pgTAP
-suite — including the sweep that fails on any table without RLS — therefore gates pushes
-and pull requests, but cannot be run before pushing.
+suite — including the sweep that fails on any table without RLS — gates every push and
+pull request, but cannot be run before pushing.
+
+There are no preview databases per pull request; branching needs the Pro plan. CI's
+replayed stack substitutes for it.
 
 Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 
@@ -127,9 +136,13 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 
 ## Current state
 
-**Phase 0 — Foundations.** See the build plan for phase definitions and exit criteria.
+**Phase 1 — tenancy schema and RLS.** See the build plan for phase definitions and exit criteria.
 
 V1 = inbound spine + reconciliation + minimal Gate 8: Gates 0–6 and 8. Gates 7, 9, 10 and the returnable register are V2.
+
+**Web is the first delivery target** ([ADR 0014](docs/decisions/0014-web-first-via-expo-web.md)). `apps/mobile` is an Expo app with web enabled — it runs in a browser now and builds for the stores later from the same source. Native builds move to Phase 9.
+
+The consequence that cannot be deferred: **the offline outbox must sit behind a storage interface with two drivers** (SQLite on native, IndexedDB/OPFS on web) from its first commit. Retrofitting that once it has callers is the expensive version of this decision.
 
 ---
 

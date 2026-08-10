@@ -9,6 +9,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege. Without this the GITHUB_TOKEN inherits the repository default,
+# which is frequently read/write - more than any job here needs.
+permissions:
+  contents: read
+
 env:
   TURBO_TELEMETRY_DISABLED: 1
 
@@ -38,16 +43,90 @@ jobs:
       - name: Test
         run: pnpm test
 
-  # Enabled once supabase/migrations exists. These are not optional extras:
-  # an RLS gap is a silent cross-tenant data leak, so the sweep that fails on any
-  # table without a policy is the control, not the policies themselves.
-  # See docs/decisions/0001-multi-tenant-from-day-one.md.
+  # Not an optional extra. We develop cloud-first with no local Docker
+  # (docs/decisions/0013), so this job is the ONLY place the pgTAP suite runs —
+  # including the sweep that fails on any table without a policy. An RLS gap is a
+  # silent cross-tenant data leak, and this is the control that catches it.
+  database:
+    name: Migrations and RLS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.113.0
+
+      # Replays every migration from an empty database. This is also the
+      # reset-and-replay loop we gave up locally: it is how a migration ordering
+      # bug gets caught.
+      - name: Start local stack
+        run: supabase start
+
+      - name: Database tests
+        run: |
+          set -o pipefail
+          supabase test db 2>&1 | tee "$RUNNER_TEMP/dbtest.txt"
+
+      # Raw job logs need authentication to download, even on a public repository.
+      # Check-run annotations do not. Echoing the pgTAP failures as ::error::
+      # therefore makes a red build diagnosable from the API alone, instead of
+      # requiring someone to open the browser and copy the log out.
+      - name: Surface pgTAP failures as annotations
+        if: failure()
+        run: |
+          if [ -f "$RUNNER_TEMP/dbtest.txt" ]; then
+            grep -E "not ok|# Failed|# Looks like|ERROR:|psql:|DETAIL:|HINT:|CONTEXT:" \
+              "$RUNNER_TEMP/dbtest.txt" | head -40 | while IFS= read -r line; do
+                echo "::error::${line}"
+              done
+          fi
+
+      # NOTE: the generated-types drift check belongs here and lands with
+      # packages/db. It was removed rather than left in place because the earlier
+      # version only compared when the file already existed, so with no packages/db
+      # it silently passed while CLAUDE.md claimed CI enforced drift. A check that
+      # cannot fail is worse than no check: it reads as a guarantee.
+      #
+      # When packages/db lands, add it back so that a MISSING file also fails:
+      #   supabase gen types typescript --local > /tmp/types.ts
+      #   diff /tmp/types.ts packages/db/src/types.ts    # fails if missing or drifted
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: supabase status && supabase db lint
+
+  # Applies migrations to the production database.
   #
-  # database:
-  #   name: Migrations and RLS
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - uses: supabase/setup-cli@v1
-  #     - run: supabase start
-  #     - run: supabase test db
+  # `needs` is the whole point of this job existing. Supabase's own "Deploy to
+  # production" toggle applies migrations on merge regardless of whether CI passed;
+  # it is deliberately left OFF so that this gate is the only path in. Never make
+  # this job independent of the test jobs to unblock a release.
+  # See docs/decisions/0013-cloud-first-development.md.
+  deploy:
+    name: Apply migrations to production
+    needs: [verify, database]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Add required reviewers to this GitHub environment to make production
+    # migrations a manual approval rather than an automatic one.
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: dwnuxeeglkpsssissmuu
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.113.0
+
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      - name: Show what will be applied
+        run: supabase db push --dry-run
+
+      - name: Apply migrations
+        run: supabase db push
