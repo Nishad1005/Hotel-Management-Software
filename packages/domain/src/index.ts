@@ -9,3 +9,4 @@
  */
 
 export * from "./stock/index";
+export * from "./gate/index";
