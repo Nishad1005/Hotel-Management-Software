@@ -5,5 +5,5 @@ export {
   isIssuable,
   STOCK_STATES,
   STOCK_TRIGGERS,
-} from "./state-machine.js";
-export type { StockState, StockTrigger } from "./state-machine.js";
+} from "./state-machine";
+export type { StockState, StockTrigger } from "./state-machine";

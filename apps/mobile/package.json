@@ -1,0 +1,34 @@
+{
+  "name": "@golai/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "description": "Golai gate and dock app. Runs in a browser and builds for the stores from the same source (ADR 0014).",
+  "scripts": {
+    "start": "expo start",
+    "dev": "expo start --web",
+    "web": "expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build": "expo export --platform web",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@golai/domain": "workspace:*",
+    "expo": "~57.0.11",
+    "expo-constants": "~57.0.9",
+    "expo-linking": "~57.0.5",
+    "expo-router": "~57.0.11",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.2",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@golai/tsconfig": "workspace:*",
+    "@types/react": "~19.2.2"
+  }
+}

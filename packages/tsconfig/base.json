@@ -4,8 +4,14 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+
+    // Bundler resolution, not NodeNext, because every consumer here is a bundler:
+    // Metro for the Expo app, Turbopack/webpack for Next.js, Vite for tests.
+    // NodeNext would require ".js" extensions on relative imports, and Metro does
+    // not rewrite ".js" to ".ts" the way tsc does - so those imports typecheck and
+    // then fail to bundle. Extensionless relative imports throughout.
+    "module": "Preserve",
+    "moduleResolution": "bundler",
 
     "strict": true,
     "noUncheckedIndexedAccess": true,

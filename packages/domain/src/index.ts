@@ -8,4 +8,4 @@
  * See docs/decisions/0009-domain-package-has-no-io.md.
  */
 
-export * from "./stock/index.js";
+export * from "./stock/index";
