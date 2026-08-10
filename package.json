@@ -1,0 +1,25 @@
+{
+  "name": "golai",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Material flow control for hotels and restaurants, with inbuilt FSSAI audit",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yaml,yml}\""
+  },
+  "devDependencies": {
+    "prettier": "3.7.4",
+    "turbo": "2.10.9",
+    "typescript": "7.0.2"
+  }
+}

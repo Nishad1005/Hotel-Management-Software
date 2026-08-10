@@ -1,0 +1,21 @@
+{
+  "name": "@golai/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure domain rules. Zero I/O. Runs identically on device and server. See docs/decisions/0009.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./stock": "./src/stock/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@golai/tsconfig": "workspace:*",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}

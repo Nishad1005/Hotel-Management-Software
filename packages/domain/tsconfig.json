@@ -1,0 +1,10 @@
+{
+  "extends": "@golai/tsconfig/base.json",
+  "compilerOptions": {
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*"]
+}

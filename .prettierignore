@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.next/
+.turbo/
+.expo/
+coverage/
+pnpm-lock.yaml
+
+# The PRD is a delivered document. Preserve its author's formatting.
+docs/PRD_PAR_Golai_Material_Flow_Rev02.md

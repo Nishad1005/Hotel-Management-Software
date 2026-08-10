@@ -20,7 +20,7 @@ The card is an **identifier, not a credential**. It authorises nothing. Scanning
 ## Consequences
 
 - A vendor's status can change without reissuing a single card. Revocation is server-side status, never card recall.
-- A blacklisted vendor's card scans successfully and displays as blocked. That is the desired behaviour, not a bug — the guard needs to see *who* is at the gate before being told they may not unload.
+- A blacklisted vendor's card scans successfully and displays as blocked. That is the desired behaviour, not a bug — the guard needs to see _who_ is at the gate before being told they may not unload.
 - There is no PII on a card and therefore no meaningful risk in a copied one, which matters under the DPDP Act.
 - Because a copied card still identifies correctly, the borrowed-card attack is defeated elsewhere: **the receiver's photograph displays on scan from cache** and the storekeeper confirms it (§5, criterion 18). That photo cache is therefore load-bearing, not a nicety.
 - The check digit means a manually typed code cannot be silently wrong. Manual entry is permitted for party codes and **not** for person codes — a forgotten staff card goes through supervisor override with a reason code, so accountability moves rather than disappearing.

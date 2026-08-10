@@ -56,16 +56,16 @@ Present in the schema from the first migrations, even where the UI barely touche
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Mobile | React Native + Expo, TypeScript |
-| Consoles | Next.js — `apps/admin` (tenant-facing), `apps/console` (Golai operators) |
-| Backend | Supabase — Postgres, Auth, Storage, RLS. **Region: Mumbai (`ap-south-1`)** |
-| Local store | `expo-sqlite` + Drizzle |
-| Monorepo | pnpm workspaces + Turborepo |
-| Errors | Sentry, tagged `org_id` / `property_id` / `device_id` / `app_version` |
-| E2E | Maestro |
-| DB tests | pgTAP |
+| Layer       | Choice                                                                     |
+| ----------- | -------------------------------------------------------------------------- |
+| Mobile      | React Native + Expo, TypeScript                                            |
+| Consoles    | Next.js — `apps/admin` (tenant-facing), `apps/console` (Golai operators)   |
+| Backend     | Supabase — Postgres, Auth, Storage, RLS. **Region: Mumbai (`ap-south-1`)** |
+| Local store | `expo-sqlite` + Drizzle                                                    |
+| Monorepo    | pnpm workspaces + Turborepo                                                |
+| Errors      | Sentry, tagged `org_id` / `property_id` / `device_id` / `app_version`      |
+| E2E         | Maestro                                                                    |
+| DB tests    | pgTAP                                                                      |
 
 Versions are pinned in the lockfile. **Check current library docs (Context7) before upgrading or adding a dependency** — do not rely on recalled API shapes.
 
@@ -122,6 +122,7 @@ V1 = inbound spine + reconciliation + minimal Gate 8: Gates 0–6 and 8. Gates 7
 Read this. Code written without it will be confidently wrong.
 
 **Flow points**
+
 - **Gate 0** — Security capture, inbound. The primary capture point; everything hangs off its Gate Entry Number.
 - **Gates 1–5** — Terminal 1: arrival, quantity, quality/batch, accept-reject decision, GRN posting.
 - **Gate 6** — Put-away from T1 into a storage zone. Requires a scanned bin label.
@@ -131,6 +132,7 @@ Read this. Code written without it will be confidently wrong.
 - **Zone** — a storage location (`SB-{store}-{zone}-{rack}-{shelf}`). **Bin** — the leaf.
 
 **Documents and records**
+
 - **GRN** — Goods Received Note. Immutable once posted; corrected by amendment with a full trail.
 - **Gate Entry Number** — inbound, sequential, immutable. **Gate Pass Number** — outbound, same.
 - **Dispatch Note** — the outbound counterpart of a GRN.
@@ -138,6 +140,7 @@ Read this. Code written without it will be confidently wrong.
 - **Batch** — created at Gate 3. System-generated as `SYS-{GRN}-{line}` when the vendor supplies no number.
 
 **Rules and states**
+
 - **Enforcement mode** — every check is `RECORD_ONLY` / `WARN` / `BLOCK`. Ships as `RECORD_ONLY`.
 - **Dwell** — time stock sits at T1 before put-away. Breaches are recorded permanently against the batch.
 - **FEFO** — first-expired-first-out, used for perishables. **FIFO** otherwise.
@@ -145,6 +148,7 @@ Read this. Code written without it will be confidently wrong.
 - **Quick Mode** — completes only the non-negotiable floor fields, for routine deliveries from trusted vendors. Every use is counted and reported.
 
 **Compliance and people**
+
 - **FSSAI** — Food Safety and Standards Authority of India. Hotels up to 4-star hold a **State Licence**, not Central.
 - **FSO** — Food Safety Officer. Owns inspection templates, waste and UCO records; can place a batch on `BLOCKED`.
 - **FoSTaC** — the FSSAI food-handler training certification. Tracked per person with expiry.
@@ -153,5 +157,6 @@ Read this. Code written without it will be confidently wrong.
 - **DPDP Act 2023** — India's data protection law. Relevant because we hold staff photographs and medical certificates.
 
 **Local units (Assam)**
+
 - **Bora** — sack, typically 25 or 50 kg. **Peti** — crate/carton, the usual unit for eggs.
 - Commercial LPG cylinders are 19 kg; oil tins are 15 L; fish is handled by both piece and kg.

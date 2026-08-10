@@ -13,7 +13,7 @@ Three requirements sit badly with it:
 - **Forward and backward traceability** in one screen (§7.5; criterion 13) means reconstructing where a batch went. That is a history query, not a current-state query.
 - **Offline replay.** The outbox will retry. Appending the same movement twice is caught by an idempotency key. Incrementing the same quantity twice is silent corruption that surfaces weeks later as an unexplainable discrepancy.
 
-And one product claim: §7.1 asserts the FSSAI registers are populated by the flow itself, with nothing entered twice. That is only literally true if the registers are *views over the movement history*.
+And one product claim: §7.1 asserts the FSSAI registers are populated by the flow itself, with nothing entered twice. That is only literally true if the registers are _views over the movement history_.
 
 ## Decision
 

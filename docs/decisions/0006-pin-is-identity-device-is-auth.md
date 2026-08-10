@@ -9,7 +9,7 @@
 
 A four-digit PIN is not an authentication credential. It has no meaningful entropy, it is shared and observed in practice, and it cannot be verified against a server that is not reachable.
 
-Yet the record must still say *which guard* captured each entry, and that attribution has to be trustworthy enough to support the reconciliation control — the whole point of which is that Security and the storekeeper are different people.
+Yet the record must still say _which guard_ captured each entry, and that attribution has to be trustworthy enough to support the reconciliation control — the whole point of which is that Security and the storekeeper are different people.
 
 ## Decision
 
@@ -23,7 +23,7 @@ The guard roster is cached, so PIN selection works offline. Deactivating a guard
 ## Consequences
 
 - Compromise of a PIN gets an attacker nothing without physical possession of an enrolled device. Compromise of a device is a revocation event, handled server-side, and is why enrolment is administrative rather than self-service.
-- `captured_by` is an attribution, not a cryptographic assertion. This is honest and adequate: the control it supports is *separation between Security and the storekeeper*, which a PIN preserves. Do not describe it internally or to customers as authentication.
+- `captured_by` is an attribution, not a cryptographic assertion. This is honest and adequate: the control it supports is _separation between Security and the storekeeper_, which a PIN preserves. Do not describe it internally or to customers as authentication.
 - Device enrolment state, last sync and lease depth are per-device facts and appear in the operator console.
 - The same pattern is **not** used for storekeepers, chefs or administrators, who hold real credentials.
 - Related: [0007](0007-qr-carries-id-only.md) applies the same principle to cards — identification is not authorisation.

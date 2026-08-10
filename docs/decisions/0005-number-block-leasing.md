@@ -28,7 +28,7 @@ A gate device holds at least 200 unspent numbers and refills when it drops below
 ## Consequences
 
 - **The series will contain gaps.** Numbers in an expired or abandoned lease are never reused. This is deliberate: an auditor accepts a gap with a documented reason far more readily than a renumbering, and manufacturing a gapless series would mean reassigning a number that is already written on a piece of paper somewhere — exactly the false assertion §2 warns against.
-- Gaps must therefore be *explainable*. Leases are retained and queryable so any gap resolves to a device, a shift and a reason.
+- Gaps must therefore be _explainable_. Leases are retained and queryable so any gap resolves to a device, a shift and a reason.
 - Lease exhaustion is an operational failure: a device that cannot lease and has spent its block cannot capture. Alert on low remaining lease depth well before it happens.
 - Applies to every sequential document type, not just gate entries — gate passes, GRNs, dispatch notes.
 - Never generate a document number client-side outside a lease. Never renumber an issued document.

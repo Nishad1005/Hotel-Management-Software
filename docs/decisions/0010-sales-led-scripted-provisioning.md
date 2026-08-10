@@ -5,7 +5,7 @@
 
 ## Context
 
-Two questions, often conflated. *How does a customer arrive?* and *how does a property come into existence in the system?*
+Two questions, often conflated. _How does a customer arrive?_ and _how does a property come into existence in the system?_
 
 On the first: a property in this domain does nothing useful until it has an item master, a location tree, registered vendors with printed cards and trained staff. That is roughly two weeks of the property's own work. Public self-serve signup would therefore mostly create abandoned empty tenants, and would generate support load rather than revenue.
 

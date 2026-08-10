@@ -10,11 +10,11 @@ Material is tracked from the security gate, through receiving and quality inspec
 
 ## Start here
 
-| Document | What it is |
-|---|---|
-| **[CLAUDE.md](CLAUDE.md)** | Standing context: the non-negotiables, stack, conventions, glossary. **Read this first.** |
-| [docs/PRD_PAR_Golai_Material_Flow_Rev02.md](docs/PRD_PAR_Golai_Material_Flow_Rev02.md) | The requirements. Source of truth. |
-| [docs/decisions/](docs/decisions/) | Architecture decision records — why things are the way they are. |
+| Document                                                                               | What it is                                                                                |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **[CLAUDE.md](CLAUDE.md)**                                                             | Standing context: the non-negotiables, stack, conventions, glossary. **Read this first.** |
+| [docs/PRD_PAR_Golai_Material_Flow_Rev02.md](docs/PRD_PAR_Golai_Material_Flow_Rev02.md) | The requirements. Source of truth.                                                        |
+| [docs/decisions/](docs/decisions/)                                                     | Architecture decision records — why things are the way they are.                          |
 
 ## The control this exists to provide
 
