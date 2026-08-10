@@ -15,6 +15,7 @@ Material is tracked from the security gate, through receiving and quality inspec
 | **[CLAUDE.md](CLAUDE.md)**                                                             | Standing context: the non-negotiables, stack, conventions, glossary. **Read this first.** |
 | [docs/PRD_PAR_Golai_Material_Flow_Rev02.md](docs/PRD_PAR_Golai_Material_Flow_Rev02.md) | The requirements. Source of truth.                                                        |
 | [docs/decisions/](docs/decisions/)                                                     | Architecture decision records — why things are the way they are.                          |
+| [docs/SETUP.md](docs/SETUP.md)                                                         | Everything configured outside the codebase: accounts, secrets, hardware, people.          |
 
 ## The control this exists to provide
 
