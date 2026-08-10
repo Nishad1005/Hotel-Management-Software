@@ -43,6 +43,14 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # Bundling is a SEPARATE guarantee from typechecking. A ".js" extension on a
+      # relative import inside packages/domain typechecked cleanly and passed all 23
+      # tests, then failed to bundle, because Metro does not rewrite ".js" to ".ts"
+      # the way tsc does. Green types and green tests are not evidence the app can
+      # ship. This step is that evidence.
+      - name: Build
+        run: pnpm build
+
   # Not an optional extra. We develop cloud-first with no local Docker
   # (docs/decisions/0013), so this job is the ONLY place the pgTAP suite runs —
   # including the sweep that fails on any table without a policy. An RLS gap is a

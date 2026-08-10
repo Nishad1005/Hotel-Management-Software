@@ -5,7 +5,7 @@ import {
   IllegalStockTransitionError,
   isIssuable,
   STOCK_STATES,
-} from "./state-machine.js";
+} from "./state-machine";
 
 describe("isIssuable", () => {
   test("only AVAILABLE stock can be issued", () => {

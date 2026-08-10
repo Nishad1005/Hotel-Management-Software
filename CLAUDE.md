@@ -131,6 +131,9 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 - **Every test fixture seeds two organisations with two properties each.** No test runs in a single-tenant world; cross-tenant bugs then surface by themselves.
 - Domain rules get unit tests before implementation. State transitions, check digits and shelf-life maths are the highest-value tests in the repo.
 - Tables and columns `snake_case`; TypeScript `camelCase`; the boundary is `packages/db`.
+- **Relative imports are extensionless.** Never write `./thing.js`. Everything here is bundled — Metro, Turbopack, Vite — and Metro does not rewrite `.js` to `.ts` the way `tsc` under NodeNext does, so such an import typechecks, passes tests, and then fails to bundle. `moduleResolution` is `bundler` repo-wide for this reason.
+- **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
+- Workspace packages export TypeScript source, not compiled output, so the app and server share one definition of the rules with no build step between them. Next needs `transpilePackages`; Metro handles it natively.
 - Photos: client-side compression **under 400 KB** (PRD §13), content-addressed, immutable, with `retention_until`.
 - Anything user-facing at the gate or dock needs large touch targets — cold hands, gloves, night shift, direct sun.
 

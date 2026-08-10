@@ -1,3 +1,15 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# React Native's Metro bundler does not follow pnpm's default symlinked layout, so
+# an Expo app in a pnpm workspace fails to resolve dependencies without this. It is
+# the documented Expo guidance for pnpm monorepos, not a workaround we invented.
+nodeLinker: hoisted
+
+# Build scripts are blocked by default; each one is an explicit decision, since a
+# postinstall script runs arbitrary code from a transitive dependency.
+# unrs-resolver: native module used by the ESLint import resolver. Needs its build
+# step to produce a platform binary.
+allowBuilds:
+  unrs-resolver: true
