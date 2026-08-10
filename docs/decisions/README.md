@@ -22,6 +22,7 @@ The value is in the _consequences_ section. Six months from now the question wil
 | [0012](0012-retention-vs-erasure-on-churn.md)   | On churn: erase personal data, retain de-identified material records | Accepted |
 | [0013](0013-cloud-first-development.md)         | Cloud-first development; production migrations gated on CI           | Accepted |
 | [0014](0014-web-first-via-expo-web.md)          | Web first, from the same Expo codebase                               | Accepted |
+| [0015](0015-one-app-not-two.md)                 | One app, not two — the admin console folds into it                   | Accepted |
 
 ## Template
 

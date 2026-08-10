@@ -58,8 +58,7 @@ Present in the schema from the first migrations, even where the UI barely touche
 
 | Layer       | Choice                                                                     |
 | ----------- | -------------------------------------------------------------------------- |
-| Mobile      | React Native + Expo, TypeScript                                            |
-| Consoles    | Next.js — `apps/admin` (tenant-facing), `apps/console` (Golai operators)   |
+| App         | React Native + Expo, TypeScript. One app, every surface (ADR 0015)         |
 | Backend     | Supabase — Postgres, Auth, Storage, RLS. **Region: Mumbai (`ap-south-1`)** |
 | Local store | `expo-sqlite` + Drizzle                                                    |
 | Monorepo    | pnpm workspaces + Turborepo                                                |
@@ -72,9 +71,10 @@ Versions are pinned in the lockfile. **Check current library docs (Context7) bef
 ## Layout
 
 ```
-apps/mobile      Security · Storekeeper · Chef · FSO
-apps/admin       Tenant-facing: masters, templates, dashboards
-apps/console     Golai-facing: fleet, health, provisioning, support
+apps/mobile      ★ THE app. One codebase, every surface (ADR 0015).
+                 Expo — serves web today, native later, from one source.
+                 Gate · dock · put-away · issue · admin screens.
+                 The directory name is a leftover; it is not mobile-only.
 packages/domain  ★ Pure TypeScript. Zero I/O. The rules.
 packages/db      Generated Supabase types + shared queries
 packages/ui      Design tokens + shared components
