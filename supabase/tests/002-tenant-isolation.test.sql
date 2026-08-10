@@ -69,7 +69,11 @@ select is_empty(
   'a storekeeper cannot read anyone else''s membership rows'
 );
 
--- Writes are reserved for the provisioning job; no policy grants them.
+-- Writes are reserved for the provisioning job. These are denied at the privilege
+-- layer rather than by RLS - deliberately, because a missing UPDATE *policy* alone
+-- would silently affect zero rows instead of raising, while a missing UPDATE
+-- *privilege* raises. Denial that announces itself is worth more than denial that
+-- looks like an empty table.
 select throws_ok(
   $q$ insert into public.property (org_id, code, name)
       values ('00000000-0000-0000-0000-0000000000a1', 'XX', 'Rogue Property') $q$,

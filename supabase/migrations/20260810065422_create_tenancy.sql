@@ -208,6 +208,29 @@ alter table public.organisation force row level security;
 alter table public.property     force row level security;
 alter table public.membership   force row level security;
 
+-- Table privileges are a SEPARATE layer from RLS, and they are checked FIRST.
+--
+-- RLS decides which rows a role may see. GRANT decides whether it may address the
+-- table at all. A table with RLS and policies but no GRANT does not return an empty
+-- result - it raises "permission denied for table", which is what happened the first
+-- time this migration was tested. Do not rely on Supabase's default privileges to
+-- supply these; grant them explicitly, because a security boundary should be legible
+-- in the migration that creates it.
+--
+-- SELECT only. Tenancy rows are written by the provisioning job (ADR 0010), so the
+-- absence of INSERT/UPDATE/DELETE here is the intended deny - and it is a real one:
+-- a missing UPDATE policy alone would silently affect zero rows rather than raise,
+-- whereas a missing UPDATE privilege raises. `anon` is granted nothing at all.
+
+grant select on public.organisation to authenticated;
+grant select on public.property     to authenticated;
+grant select on public.membership   to authenticated;
+
+-- service_role bypasses RLS and is what the provisioning job runs as.
+grant all on public.organisation to service_role;
+grant all on public.property     to service_role;
+grant all on public.membership   to service_role;
+
 create policy organisation_select_own on public.organisation
   for select to authenticated
   using (id in (select app.accessible_organisations()));
