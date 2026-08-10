@@ -64,7 +64,23 @@ jobs:
         run: supabase start
 
       - name: Database tests
-        run: supabase test db
+        run: |
+          set -o pipefail
+          supabase test db 2>&1 | tee "$RUNNER_TEMP/dbtest.txt"
+
+      # Raw job logs need authentication to download, even on a public repository.
+      # Check-run annotations do not. Echoing the pgTAP failures as ::error::
+      # therefore makes a red build diagnosable from the API alone, instead of
+      # requiring someone to open the browser and copy the log out.
+      - name: Surface pgTAP failures as annotations
+        if: failure()
+        run: |
+          if [ -f "$RUNNER_TEMP/dbtest.txt" ]; then
+            grep -E "not ok|# Failed|# Looks like|ERROR:|psql:|DETAIL:|HINT:|CONTEXT:" \
+              "$RUNNER_TEMP/dbtest.txt" | head -40 | while IFS= read -r line; do
+                echo "::error::${line}"
+              done
+          fi
 
       # NOTE: the generated-types drift check belongs here and lands with
       # packages/db. It was removed rather than left in place because the earlier

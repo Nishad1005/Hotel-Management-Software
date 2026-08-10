@@ -16,9 +16,16 @@ select plan(4);
 
 set local role service_role;
 
+-- updated_at is seeded to a distant past value on purpose. `now()` is
+-- transaction_timestamp(), which is CONSTANT for the whole transaction - and pgTAP
+-- runs each file inside one. So a row inserted and updated here would carry an
+-- identical created_at and updated_at no matter whether the trigger fired at all,
+-- and comparing the two would prove nothing. Seeding an old value is what makes the
+-- trigger observable inside a single transaction.
 select lives_ok(
-  $q$ insert into public.organisation (id, name)
-      values ('00000000-0000-0000-0000-0000000000c1', 'Provisioning Test Group') $q$,
+  $q$ insert into public.organisation (id, name, created_at, updated_at)
+      values ('00000000-0000-0000-0000-0000000000c1', 'Provisioning Test Group',
+              '2000-01-01T00:00:00Z', '2000-01-01T00:00:00Z') $q$,
   'service_role can create an organisation'
 );
 
@@ -37,10 +44,10 @@ select lives_ok(
   'service_role can update, and the updated_at trigger fires without app schema usage'
 );
 
-select isnt(
+select is(
   (select updated_at from public.organisation where id = '00000000-0000-0000-0000-0000000000c1'),
-  (select created_at from public.organisation where id = '00000000-0000-0000-0000-0000000000c1'),
-  'the trigger actually moved updated_at rather than silently doing nothing'
+  now(),
+  'the trigger actually moved updated_at off its seeded value rather than doing nothing'
 );
 
 reset role;
