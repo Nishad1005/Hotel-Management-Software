@@ -1,9 +1,16 @@
 name: CI
 
+# Every push on every branch, not just main and pull requests.
+#
+# The narrower version let four commits land on a feature branch with no CI at all,
+# because no pull request had been opened yet — and the last verified commit on that
+# branch was red. Work should be verified when it is pushed, not when someone
+# remembers to open a PR.
+#
+# `pull_request` is deliberately absent: in a single-repository workflow it only
+# duplicates the push run. Add it back if outside forks ever contribute.
 on:
   push:
-    branches: [main]
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
