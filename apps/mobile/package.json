@@ -28,7 +28,9 @@
     "react-native": "0.86.2",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.2",
-    "react-native-web": "^0.21.2"
+    "react-native-web": "^0.21.2",
+    "@golai/db": "workspace:*",
+    "@supabase/supabase-js": "2.112.2"
   },
   "devDependencies": {
     "@golai/tsconfig": "workspace:*",

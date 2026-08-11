@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from "react-native";
 import { radius, space, touch, type, usePalette, type Palette } from "../theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -303,3 +303,147 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
   },
 });
+
+/** Labelled text input. Labels are visible, never placeholder-only. */
+export function Field({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  keyboardType,
+  autoCapitalize = "none",
+  hint,
+  error,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: "default" | "email-address" | "numeric" | "decimal-pad";
+  autoCapitalize?: "none" | "characters" | "words" | "sentences";
+  hint?: string;
+  error?: string;
+}) {
+  const p = usePalette();
+  return (
+    <View style={{ marginBottom: space.md }}>
+      <Text
+        style={{ fontSize: type.label, fontWeight: "600", color: p.text, marginBottom: space.xs }}
+      >
+        {label}
+      </Text>
+      {hint ? (
+        <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.xs }}>
+          {hint}
+        </Text>
+      ) : null}
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder ?? ""}
+        placeholderTextColor={p.textMuted}
+        secureTextEntry={secureTextEntry ?? false}
+        keyboardType={keyboardType ?? "default"}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={false}
+        accessibilityLabel={label}
+        style={{
+          minHeight: touch.min,
+          borderWidth: 1,
+          borderRadius: radius.md,
+          paddingHorizontal: space.md,
+          fontSize: type.body,
+          backgroundColor: p.surface,
+          borderColor: error ? p.danger : p.border,
+          color: p.text,
+        }}
+      />
+      {error ? <FieldError message={error} /> : null}
+    </View>
+  );
+}
+
+/** A status pill. Carries an icon as well as colour, never colour alone. */
+export function StatusPill({
+  icon,
+  label,
+  tone,
+}: {
+  icon: IoniconName;
+  label: string;
+  tone: "neutral" | "good" | "warn" | "bad";
+}) {
+  const p = usePalette();
+  const colours = {
+    neutral: { fg: p.textMuted, bg: p.surfaceSunken },
+    good: { fg: p.success, bg: p.successSurface },
+    warn: { fg: p.warning, bg: p.warningSurface },
+    bad: { fg: p.danger, bg: p.dangerSurface },
+  }[tone];
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        alignSelf: "flex-start",
+        backgroundColor: colours.bg,
+        borderRadius: radius.pill,
+        paddingHorizontal: space.sm,
+        paddingVertical: 4,
+      }}
+    >
+      <Ionicons name={icon} size={14} color={colours.fg} />
+      <Text style={{ color: colours.fg, fontSize: type.caption, fontWeight: "700", marginLeft: 4 }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** Full-screen message. Used for loading, empty and misconfiguration states. */
+export function Notice({
+  icon,
+  title,
+  body,
+  tone = "neutral",
+}: {
+  icon: IoniconName;
+  title: string;
+  body?: string;
+  tone?: "neutral" | "bad";
+}) {
+  const p = usePalette();
+  const fg = tone === "bad" ? p.danger : p.textMuted;
+  return (
+    <View style={{ alignItems: "center", padding: space.xl }}>
+      <Ionicons name={icon} size={44} color={fg} />
+      <Text
+        style={{
+          fontSize: type.heading,
+          fontWeight: "700",
+          color: p.text,
+          marginTop: space.md,
+          textAlign: "center",
+        }}
+      >
+        {title}
+      </Text>
+      {body ? (
+        <Text
+          style={{
+            fontSize: type.label,
+            color: p.textMuted,
+            marginTop: space.sm,
+            textAlign: "center",
+            lineHeight: 22,
+          }}
+        >
+          {body}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
