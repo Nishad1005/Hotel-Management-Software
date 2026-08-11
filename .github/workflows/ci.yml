@@ -14,7 +14,12 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded runs on a feature branch are wasted work and get cancelled. Runs on
+  # main are NOT, because main can be midway through applying migrations to the
+  # production database when the next push arrives. Cancelling a deployment between
+  # two migrations would leave the schema half-applied, with no record of where it
+  # stopped - and that is far more expensive than a few wasted runner minutes.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # Least privilege. Without this the GITHUB_TOKEN inherits the repository default,
 # which is frequently read/write - more than any job here needs.
