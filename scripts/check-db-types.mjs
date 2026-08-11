@@ -23,32 +23,79 @@ if (!generatedPath || !committedPath) {
   process.exit(2);
 }
 
-/** Pull the table names out of the `Tables: { ... }` block of a Database type. */
-function tableNames(source, label) {
-  const start = source.indexOf("Tables:");
-  if (start === -1) {
-    console.error(`::error::Could not find a Tables block in ${label}. Parser needs updating.`);
+/**
+ * Returns the body of the `{ ... }` that begins at or after `from`, by counting
+ * braces.
+ *
+ * The first version of this matched on indentation and picked the wrong block: the
+ * generator emits `graphql_public` before `public`, and graphql_public's Tables is
+ * `{ [_ in never]: never }` — empty. Searching for the first "Tables:" therefore found
+ * an empty one and reported that the schema had no tables at all. Brace matching does
+ * not care about ordering or indentation.
+ */
+function blockAfter(source, from) {
+  const open = source.indexOf("{", from);
+  if (open === -1) return null;
+  let depth = 0;
+  for (let i = open; i < source.length; i += 1) {
+    const ch = source[i];
+    if (ch === "{") depth += 1;
+    else if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) return source.slice(open + 1, i);
+    }
+  }
+  return null;
+}
+
+function publicTableNames(source, label) {
+  // Anchor on the public schema specifically, not on whichever schema appears first.
+  const schemaAt = source.search(/\bpublic\s*:\s*\{/);
+  if (schemaAt === -1) {
+    console.error(`::error::No 'public' schema block found in ${label}.`);
+    console.error(`::error::First 400 characters were: ${source.slice(0, 400).replace(/\n/g, " ")}`);
     process.exit(2);
   }
-  // The Tables block ends where the next sibling key begins.
-  const rest = source.slice(start);
-  const endMarker = rest.search(/\n\s{4,6}(Views|Functions|Enums|CompositeTypes)\s*:/);
-  const block = endMarker === -1 ? rest : rest.slice(0, endMarker);
 
+  const schemaBody = blockAfter(source, schemaAt);
+  if (schemaBody === null) {
+    console.error(`::error::Unbalanced braces in the public schema block of ${label}.`);
+    process.exit(2);
+  }
+
+  const tablesAt = schemaBody.search(/\bTables\s*:\s*\{/);
+  if (tablesAt === -1) {
+    console.error(`::error::No Tables block inside the public schema of ${label}.`);
+    process.exit(2);
+  }
+
+  const tablesBody = blockAfter(schemaBody, tablesAt);
+  if (tablesBody === null) {
+    console.error(`::error::Unbalanced braces in the Tables block of ${label}.`);
+    process.exit(2);
+  }
+
+  // Table entries are the keys at depth 0 of the Tables block.
   const names = new Set();
-  for (const match of block.matchAll(/^\s+([a-z_][a-z0-9_]*)\s*:\s*\{/gim)) {
-    const name = match[1];
-    if (["Row", "Insert", "Update", "Relationships", "Tables"].includes(name)) continue;
-    names.add(name);
+  let depth = 0;
+  for (const line of tablesBody.split("\n")) {
+    if (depth === 0) {
+      const match = line.match(/^\s*([a-z_][a-z0-9_]*)\s*:\s*\{/i);
+      if (match?.[1]) names.add(match[1]);
+    }
+    for (const ch of line) {
+      if (ch === "{") depth += 1;
+      else if (ch === "}") depth -= 1;
+    }
   }
   return names;
 }
 
-const generated = tableNames(readFileSync(generatedPath, "utf8"), "generated types");
-const committed = tableNames(readFileSync(committedPath, "utf8"), "committed types");
+const generated = publicTableNames(readFileSync(generatedPath, "utf8"), "generated types");
+const committed = publicTableNames(readFileSync(committedPath, "utf8"), "committed types");
 
 if (generated.size === 0) {
-  console.error("::error::No tables found in the generated types. The generator likely failed.");
+  console.error("::error::The public schema reports no tables. The generator likely failed.");
   process.exit(2);
 }
 
@@ -65,13 +112,15 @@ for (const table of missing) {
 for (const table of extra) {
   console.error(
     `::error::Table '${table}' is declared in packages/db/src/types.ts but does not ` +
-      `exist in the database. Remove it, or the migration that created it is missing.`,
+      `exist in the database. Remove it, or its migration is missing.`,
   );
 }
 
 if (missing.length || extra.length) {
-  console.error(`::error::Database types are out of step: ${missing.length} missing, ${extra.length} extra.`);
+  console.error(
+    `::error::Database types are out of step: ${missing.length} missing, ${extra.length} extra.`,
+  );
   process.exit(1);
 }
 
-console.log(`Database types cover all ${generated.size} tables.`);
+console.log(`Database types cover all ${generated.size} tables: ${[...generated].sort().join(", ")}`);
