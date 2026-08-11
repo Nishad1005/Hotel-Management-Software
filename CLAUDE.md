@@ -24,6 +24,7 @@ These are prohibitions, not preferences. If a change requires breaking one, stop
 2. **The tenant key is `property_id`, never `org_id`.** Group-wide access comes from extra `membership` rows, never from a wider RLS predicate.
 3. **No service-role key on tenant data.** This — not badly-written policies — is how cross-tenant leaks actually happen. System work goes through the reviewed `SECURITY DEFINER` functions in the `system` schema, which take `property_id` explicitly.
 4. **Never one row spanning two properties.** Cross-property flows (sister-property transfer) use two records and an explicit `inter_property_link` bridge.
+   4b. **Treat "zero rows affected" as a permission failure.** RLS denies `INSERT` by raising, but denies `UPDATE` and `DELETE` _silently_ — the rows are simply invisible, so the statement succeeds having changed nothing. Table privileges belong to the `authenticated` database role and cannot tell an admin from a storekeeper; only policies can, and policy denial on update is quiet. Any write path must check the affected count.
 5. **Never assume a single database or a single Supabase project.** Tenancy is a column, not a code path — that is what makes a dedicated deployment possible later.
 
 ### Cannot be retrofitted (PRD §9)

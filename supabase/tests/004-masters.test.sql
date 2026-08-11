@@ -5,7 +5,7 @@
 -- proves the policies say what they are meant to say — which the sweep cannot know.
 
 begin;
-select plan(12);
+select plan(13);
 
 -- ---------------------------------------------------------------------------
 -- Fixture: two organisations, two properties, three users with different authority
@@ -118,11 +118,24 @@ select throws_ok(
   'a storekeeper cannot create an item'
 );
 
-select throws_ok(
+-- An UPDATE filtered out by a policy does NOT raise. It matches no rows and reports
+-- success, because the rows simply are not visible to it. Only INSERT raises, since a
+-- new row failing WITH CHECK is a violation rather than an empty match.
+--
+-- This is a property of the system, not a quirk of the test. Table privileges are held
+-- by the `authenticated` database role and cannot tell an administrator from a
+-- storekeeper; only the policy can, and policy denial on UPDATE is silent. Anything
+-- writing master data must therefore treat "zero rows affected" as a permission
+-- failure rather than as success.
+select lives_ok(
   $q$ update public.item set name = 'Renamed' where code = 'MILK-1L' $q$,
-  '42501',
-  null,
-  'a storekeeper cannot edit the item master'
+  'a storekeeper''s edit raises nothing - the policy filters the rows instead'
+);
+
+select is(
+  (select name from public.item where code = 'MILK-1L'),
+  'Toned Milk 1L',
+  'and the item is unchanged, so the silent denial is still a denial'
 );
 
 reset role;
