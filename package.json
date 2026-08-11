@@ -22,5 +22,8 @@
     "supabase": "2.113.0",
     "turbo": "2.10.9",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "all": "^0.0.0"
   }
 }

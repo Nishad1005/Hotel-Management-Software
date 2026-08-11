@@ -1,6 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View, type ViewStyle } from "react-native";
+import { useState, type ReactNode } from "react";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { radius, space, touch, type, usePalette, type Palette } from "../theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -444,6 +454,204 @@ export function Notice({
           {body}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+/** A labelled on/off row. Explains itself, since several of these carry real rules. */
+export function Toggle({
+  label,
+  hint,
+  value,
+  onValueChange,
+  disabled,
+}: {
+  label: string;
+  hint?: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+  disabled?: boolean;
+}) {
+  const p = usePalette();
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        minHeight: touch.min,
+        paddingHorizontal: space.md,
+        paddingVertical: space.sm,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: p.border,
+        backgroundColor: p.surface,
+        marginBottom: space.sm,
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <View style={{ flex: 1, marginRight: space.md }}>
+        <Text style={{ fontSize: type.body, fontWeight: "600", color: p.text }}>{label}</Text>
+        {hint ? (
+          <Text
+            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2, lineHeight: 18 }}
+          >
+            {hint}
+          </Text>
+        ) : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled ?? false}
+        accessibilityLabel={label}
+        trackColor={{ true: p.accent, false: p.borderStrong }}
+      />
+    </View>
+  );
+}
+
+export interface Choice {
+  id: string;
+  label: string;
+  sublabel?: string;
+}
+
+/** A row that opens a searchable list. Used wherever a foreign key is chosen. */
+export function SelectRow({
+  label,
+  value,
+  placeholder,
+  choices,
+  onSelect,
+  error,
+}: {
+  label: string;
+  value: string | null;
+  placeholder: string;
+  choices: Choice[];
+  onSelect: (id: string) => void;
+  error?: string;
+}) {
+  const p = usePalette();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = choices.find((c) => c.id === value);
+  const filtered = query.trim()
+    ? choices.filter((c) =>
+        (c.label + " " + (c.sublabel ?? "")).toLowerCase().includes(query.toLowerCase()),
+      )
+    : choices;
+
+  return (
+    <View style={{ marginBottom: space.md }}>
+      <Text
+        style={{ fontSize: type.label, fontWeight: "600", color: p.text, marginBottom: space.xs }}
+      >
+        {label}
+      </Text>
+      <Pressable
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}. ${selected ? selected.label : placeholder}`}
+        style={({ pressed }) => [
+          {
+            flexDirection: "row",
+            alignItems: "center",
+            minHeight: touch.min,
+            paddingHorizontal: space.md,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: error ? p.danger : p.border,
+            backgroundColor: p.surface,
+          },
+          pressedStyle(pressed, p),
+        ]}
+      >
+        <Text
+          style={{
+            flex: 1,
+            fontSize: type.body,
+            color: selected ? p.text : p.textMuted,
+          }}
+        >
+          {selected ? selected.label : placeholder}
+        </Text>
+        <Ionicons name="chevron-down" size={22} color={p.borderStrong} />
+      </Pressable>
+      {error ? <FieldError message={error} /> : null}
+
+      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: p.background, paddingTop: space.xxl }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: space.md,
+              paddingBottom: space.sm,
+              borderBottomWidth: 1,
+              borderBottomColor: p.border,
+            }}
+          >
+            <Text style={{ fontSize: type.heading, fontWeight: "700", color: p.text }}>
+              {label}
+            </Text>
+            <Pressable
+              onPress={() => setOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={12}
+              style={{
+                minWidth: touch.min,
+                minHeight: touch.min,
+                alignItems: "flex-end",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="close" size={30} color={p.text} />
+            </Pressable>
+          </View>
+          <ScrollView
+            contentContainerStyle={{ padding: space.md }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {choices.length > 8 ? (
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search"
+                placeholderTextColor={p.textMuted}
+                accessibilityLabel="Search options"
+                style={{
+                  minHeight: touch.min,
+                  borderWidth: 1,
+                  borderRadius: radius.md,
+                  paddingHorizontal: space.md,
+                  fontSize: type.body,
+                  backgroundColor: p.surface,
+                  borderColor: p.border,
+                  color: p.text,
+                  marginBottom: space.sm,
+                }}
+              />
+            ) : null}
+            {filtered.map((c) => (
+              <BigRow
+                key={c.id}
+                icon={c.id === value ? "checkmark-circle" : "ellipse-outline"}
+                label={c.label}
+                {...(c.sublabel ? { value: c.sublabel } : {})}
+                tone={c.id === value ? "selected" : "default"}
+                onPress={() => {
+                  onSelect(c.id);
+                  setQuery("");
+                  setOpen(false);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }

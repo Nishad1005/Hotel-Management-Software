@@ -1,40 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BigRow, PrimaryButton } from "../components/ui";
+import { BigRow } from "../components/ui";
 import { outbox } from "../lib/outbox";
-import { radius, space, type, usePalette } from "../theme";
+import { useSession } from "../lib/session";
+import { radius, space, touch, type, usePalette } from "../theme";
 
-/**
- * The security post's home screen.
- *
- * One primary action, sized so it can be hit without looking. Everything else is a
- * status the guard needs at handover: what is waiting to sync, and what is stuck.
- */
 export default function Home() {
   const p = usePalette();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { activeProperty, properties, setActiveProperty, signOut, canEditMasters } = useSession();
 
   const [pending, setPending] = useState(0);
   const [blocked, setBlocked] = useState(0);
-  const [oldestMs, setOldestMs] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
       void (async () => {
-        const [p1, b1, age] = await Promise.all([
-          outbox.pendingCount(),
-          outbox.blockedCount(),
-          outbox.oldestPendingAgeMs(),
-        ]);
+        const [p1, b1] = await Promise.all([outbox.pendingCount(), outbox.blockedCount()]);
         if (!alive) return;
         setPending(p1);
         setBlocked(b1);
-        setOldestMs(age);
       })();
       return () => {
         alive = false;
@@ -51,95 +41,147 @@ export default function Home() {
         paddingBottom: insets.bottom + space.xl,
       }}
     >
-      <Text style={{ fontSize: type.title, fontWeight: "800", color: p.text }}>Golai</Text>
-      <Text style={{ fontSize: type.label, color: p.textMuted, marginBottom: space.lg }}>
-        Security gate · Voyage The Solitaire Bliss
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: type.title, fontWeight: "800", color: p.text }}>Golai</Text>
+          <Text style={{ fontSize: type.label, color: p.textMuted }}>
+            {activeProperty ? activeProperty.propertyName : "No property"}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => void signOut()}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          hitSlop={12}
+          style={{
+            minWidth: touch.min,
+            minHeight: touch.min,
+            alignItems: "flex-end",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="log-out-outline" size={26} color={p.textMuted} />
+        </Pressable>
+      </View>
 
-      <PrimaryButton
-        label="New arrival"
-        icon="add-circle"
-        onPress={() => router.push("/gate/new")}
-      />
+      {properties.length > 1 ? (
+        <Pressable
+          onPress={() => setActiveProperty("")}
+          accessibilityRole="button"
+          accessibilityLabel="Switch property"
+          style={{ marginTop: space.sm }}
+        >
+          <Text style={{ fontSize: type.caption, color: p.accent, fontWeight: "600" }}>
+            Switch property
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <View style={{ marginTop: space.xl }}>
+        <Text
+          style={{
+            fontSize: type.caption,
+            fontWeight: "700",
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: p.textMuted,
+            marginBottom: space.sm,
+          }}
+        >
+          Master data
+        </Text>
+        <BigRow
+          icon="cube-outline"
+          label="Items"
+          value={canEditMasters ? "Add and edit the item master" : "View the item master"}
+          onPress={() => router.push("/items")}
+        />
+      </View>
+
+      <View style={{ marginTop: space.lg }}>
+        <Text
+          style={{
+            fontSize: type.caption,
+            fontWeight: "700",
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: p.textMuted,
+            marginBottom: space.sm,
+          }}
+        >
+          Stock
+        </Text>
+        <BigRow
+          icon="hourglass-outline"
+          label="Expiring soon"
+          value="Coming next"
+          onPress={() => {}}
+        />
+        <BigRow
+          icon="download-outline"
+          label="Opening stock"
+          value="Coming next"
+          onPress={() => {}}
+        />
+      </View>
+
+      <View style={{ marginTop: space.lg }}>
+        <Text
+          style={{
+            fontSize: type.caption,
+            fontWeight: "700",
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: p.textMuted,
+            marginBottom: space.sm,
+          }}
+        >
+          Gate
+        </Text>
+        <BigRow
+          icon="car-outline"
+          label="New arrival"
+          value="Security capture"
+          onPress={() => router.push("/gate/new")}
+        />
+      </View>
 
       {/*
-        Backlog depth, shown to the guard rather than only to an operator dashboard.
-        A queue that stops draining is the earliest signal that a device is failing
-        silently, and silent failure at the gate is what this product exists to
-        prevent (ADR 0004). The person standing at the gate should be able to see it.
+        Backlog depth, shown to the person using the app rather than only to a future
+        operator dashboard. A queue that stops draining is the earliest sign a device
+        is failing silently (ADR 0004).
       */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          backgroundColor: blocked > 0 ? p.dangerSurface : p.surface,
-          borderColor: blocked > 0 ? p.danger : p.border,
-          borderWidth: 1,
-          borderRadius: radius.md,
-          padding: space.md,
-          marginTop: space.lg,
-        }}
-      >
-        <Ionicons
-          name={blocked > 0 ? "warning" : pending > 0 ? "cloud-upload-outline" : "checkmark-circle"}
-          size={24}
-          color={blocked > 0 ? p.danger : pending > 0 ? p.warning : p.success}
-        />
-        <View style={{ marginLeft: space.sm, flex: 1 }}>
+      {pending > 0 || blocked > 0 ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: blocked > 0 ? p.dangerSurface : p.warningSurface,
+            borderRadius: radius.md,
+            padding: space.md,
+            marginTop: space.xl,
+          }}
+        >
+          <Ionicons
+            name={blocked > 0 ? "warning" : "cloud-upload-outline"}
+            size={24}
+            color={blocked > 0 ? p.danger : p.warning}
+          />
           <Text
             style={{
               fontSize: type.label,
               fontWeight: "600",
-              color: blocked > 0 ? p.danger : p.text,
+              color: blocked > 0 ? p.danger : p.warning,
+              marginLeft: space.sm,
+              flex: 1,
             }}
           >
             {blocked > 0
-              ? `${blocked} entr${blocked === 1 ? "y" : "ies"} stuck — tell the storekeeper`
-              : pending > 0
-                ? `${pending} waiting to sync`
-                : "Everything synced"}
+              ? `${blocked} record${blocked === 1 ? "" : "s"} stuck and need attention`
+              : `${pending} waiting to sync`}
           </Text>
-          {pending > 0 && oldestMs !== null ? (
-            <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}>
-              Oldest {formatAge(oldestMs)}
-            </Text>
-          ) : null}
         </View>
-      </View>
-
-      <Text
-        style={{
-          fontSize: type.caption,
-          fontWeight: "700",
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          color: p.textMuted,
-          marginTop: space.xl,
-          marginBottom: space.sm,
-        }}
-      >
-        Shift handover
-      </Text>
-      <BigRow
-        icon="time-outline"
-        label="Open gate entries"
-        value="Not yet available"
-        onPress={() => {}}
-      />
-      <BigRow
-        icon="repeat-outline"
-        label="Outstanding returnables"
-        value="Not yet available"
-        onPress={() => {}}
-      />
+      ) : null}
     </ScrollView>
   );
-}
-
-function formatAge(ms: number): string {
-  const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return "less than a minute old";
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} old`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours} hour${hours === 1 ? "" : "s"} old`;
 }

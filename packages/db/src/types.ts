@@ -16,6 +16,16 @@
  * of the CI check is that forgetting is caught, not that forgetting is impossible.
  */
 
+/**
+ * NOTE ON `type` VERSUS `interface` — IMPLICIT INDEX SIGNATURE
+ *
+ * Every row shape below is a type ALIAS, deliberately. supabase-js constrains a
+ * schema to Record<string, unknown>, and TypeScript only gives an implicit index
+ * signature to type aliases, never to interfaces. Declaring these as interfaces makes
+ * the schema fail that constraint, whereupon every insert and update builder silently
+ * resolves to `never` while reads keep working - which is a genuinely confusing way
+ * to spend an afternoon. Do not convert these to interfaces.
+ */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type OrganisationLifecycle =
@@ -51,7 +61,7 @@ export type StorageRegime = "AMBIENT" | "CHILLED" | "FROZEN";
 export type LocationKind = "SECURITY" | "RECEIVING" | "REJECT" | "ZONE" | "DISPATCH";
 export type EnforcementMode = "RECORD_ONLY" | "WARN" | "BLOCK";
 
-export interface OrganisationRow {
+export type OrganisationRow = {
   id: string;
   name: string;
   gstin: string | null;
@@ -60,9 +70,9 @@ export interface OrganisationRow {
   dpa_signed_at: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface PropertyRow {
+export type PropertyRow = {
   id: string;
   org_id: string;
   code: string;
@@ -72,18 +82,18 @@ export interface PropertyRow {
   went_live_at: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface MembershipRow {
+export type MembershipRow = {
   id: string;
   user_id: string;
   org_id: string;
   property_id: string | null;
   role: MembershipRole;
   created_at: string;
-}
+};
 
-export interface UomRow {
+export type UomRow = {
   id: string;
   property_id: string;
   code: string;
@@ -91,9 +101,9 @@ export interface UomRow {
   kind: UomKind;
   is_active: boolean;
   created_at: string;
-}
+};
 
-export interface ItemCategoryRow {
+export type ItemCategoryRow = {
   id: string;
   property_id: string;
   code: string;
@@ -103,9 +113,9 @@ export interface ItemCategoryRow {
   default_storage_regime: StorageRegime;
   is_active: boolean;
   created_at: string;
-}
+};
 
-export interface LocationRow {
+export type LocationRow = {
   id: string;
   property_id: string;
   code: string;
@@ -115,9 +125,9 @@ export interface LocationRow {
   regime: StorageRegime;
   is_active: boolean;
   created_at: string;
-}
+};
 
-export interface ItemRow {
+export type ItemRow = {
   id: string;
   property_id: string;
   code: string;
@@ -136,18 +146,18 @@ export interface ItemRow {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface ItemPackRow {
+export type ItemPackRow = {
   id: string;
   property_id: string;
   item_id: string;
   uom_id: string;
   factor_to_base: number;
   created_at: string;
-}
+};
 
-export interface RuleConfigRow {
+export type RuleConfigRow = {
   id: string;
   property_id: string;
   rule_key: string;
@@ -157,7 +167,7 @@ export interface RuleConfigRow {
   reason: string | null;
   changed_by: string | null;
   changed_at: string;
-}
+};
 
 /**
  * Columns the database fills in. Modelled explicitly rather than making everything
@@ -169,7 +179,7 @@ type Generated = "id" | "created_at" | "updated_at";
 type InsertOf<T, Optional extends keyof T = never> = Omit<T, Generated | Optional> &
   Partial<Pick<T, Extract<Generated | Optional, keyof T>>>;
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       organisation: {
@@ -258,4 +268,4 @@ export interface Database {
     };
     CompositeTypes: Record<never, never>;
   };
-}
+};

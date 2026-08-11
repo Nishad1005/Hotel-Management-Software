@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      all:
+        specifier: ^0.0.0
+        version: 0.0.0
     devDependencies:
       prettier:
         specifier: 3.7.4
@@ -1510,6 +1514,9 @@ packages:
     resolution: {integrity: sha512-6xvLw0EGPuxoYGZeqyMV4AK+WoZ31jsqb7a5pln1BTf6oDFsrgvfCJT7E7y9oAqifJZhJ3fZ0J36H7o6JzrB0Q==}
     engines: {node: '>=18.18'}
     hasBin: true
+
+  all@0.0.0:
+    resolution: {integrity: sha512-0oKlfNVv2d+d7c1gwjGspzgbwot47PGQ4b3v1ccx4mR8l9P/Y6E6Dr/yE8lNT63EcAKEbHo6UG3odDpC/NQcKw==}
 
   anser@1.4.10:
     resolution: {integrity: sha512-hCv9AqTQ8ycjpSd3upOJd7vFwW1JaoYQ7tpham03GJ1ca8/65rqn0RpaWpItOAd6ylW9wAw6luXYPJIyPFVOww==}
@@ -4971,6 +4978,8 @@ snapshots:
   agent-base@7.1.4: {}
 
   agent-cli-detector@0.1.5: {}
+
+  all@0.0.0: {}
 
   anser@1.4.10: {}
 
