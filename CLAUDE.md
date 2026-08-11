@@ -24,6 +24,7 @@ These are prohibitions, not preferences. If a change requires breaking one, stop
 2. **The tenant key is `property_id`, never `org_id`.** Group-wide access comes from extra `membership` rows, never from a wider RLS predicate.
 3. **No service-role key on tenant data.** This — not badly-written policies — is how cross-tenant leaks actually happen. System work goes through the reviewed `SECURITY DEFINER` functions in the `system` schema, which take `property_id` explicitly.
 4. **Never one row spanning two properties.** Cross-property flows (sister-property transfer) use two records and an explicit `inter_property_link` bridge.
+   4b. **Treat "zero rows affected" as a permission failure.** RLS denies `INSERT` by raising, but denies `UPDATE` and `DELETE` _silently_ — the rows are simply invisible, so the statement succeeds having changed nothing. Table privileges belong to the `authenticated` database role and cannot tell an admin from a storekeeper; only policies can, and policy denial on update is quiet. Any write path must check the affected count.
 5. **Never assume a single database or a single Supabase project.** Tenancy is a column, not a code path — that is what makes a dedicated deployment possible later.
 
 ### Cannot be retrofitted (PRD §9)
@@ -58,8 +59,7 @@ Present in the schema from the first migrations, even where the UI barely touche
 
 | Layer       | Choice                                                                     |
 | ----------- | -------------------------------------------------------------------------- |
-| Mobile      | React Native + Expo, TypeScript                                            |
-| Consoles    | Next.js — `apps/admin` (tenant-facing), `apps/console` (Golai operators)   |
+| App         | React Native + Expo, TypeScript. One app, every surface (ADR 0015)         |
 | Backend     | Supabase — Postgres, Auth, Storage, RLS. **Region: Mumbai (`ap-south-1`)** |
 | Local store | `expo-sqlite` + Drizzle                                                    |
 | Monorepo    | pnpm workspaces + Turborepo                                                |
@@ -72,9 +72,10 @@ Versions are pinned in the lockfile. **Check current library docs (Context7) bef
 ## Layout
 
 ```
-apps/mobile      Security · Storekeeper · Chef · FSO
-apps/admin       Tenant-facing: masters, templates, dashboards
-apps/console     Golai-facing: fleet, health, provisioning, support
+apps/mobile      ★ THE app. One codebase, every surface (ADR 0015).
+                 Expo — serves web today, native later, from one source.
+                 Gate · dock · put-away · issue · admin screens.
+                 The directory name is a leftover; it is not mobile-only.
 packages/domain  ★ Pure TypeScript. Zero I/O. The rules.
 packages/db      Generated Supabase types + shared queries
 packages/ui      Design tokens + shared components
