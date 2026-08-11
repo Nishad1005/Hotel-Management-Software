@@ -19,6 +19,7 @@ import {
   Section,
   Stepper,
 } from "../../components/ui";
+import { outbox } from "../../lib/outbox";
 import { radius, space, touch, type, usePalette } from "../../theme";
 
 /**
@@ -89,13 +90,27 @@ export default function NewGateEntry() {
   const shown = submitted ? result.errors : [];
   const has = (e: GateEntryError) => shown.includes(e);
 
-  function record() {
+  async function record() {
     setSubmitted(true);
     if (!validateGateEntryDraft(draft).ok) return;
+
     // Placeholder until number leasing lands (ADR 0005). Sequence is local and
     // meaningless; it exists so the confirmation screen can be walked.
     const sequence = Math.floor((Date.now() / 1000) % 999999) + 1;
-    router.push(`/gate/recorded?number=${formatDocumentNumber("SB", "GE", sequence)}`);
+    const gateEntryNumber = formatDocumentNumber("SB", "GE", sequence);
+
+    // The capture is queued before the guard sees the number. If this throws, the
+    // number must not be shown: an officer writing a number onto a challan for an
+    // arrival that was never recorded is the one failure this whole flow exists to
+    // prevent. The idempotency key is the number itself, so a retry after a crash
+    // cannot produce a second arrival.
+    await outbox.enqueue({
+      type: "GATE_ENTRY",
+      idempotencyKey: gateEntryNumber,
+      payload: { ...draft, gateEntryNumber, capturedAt: Date.now() },
+    });
+
+    router.push(`/gate/recorded?number=${gateEntryNumber}`);
   }
 
   return (
