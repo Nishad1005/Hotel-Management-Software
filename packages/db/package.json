@@ -1,0 +1,22 @@
+{
+  "name": "@golai/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Typed Supabase client and the outbox send implementation.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@golai/outbox": "workspace:*",
+    "@supabase/supabase-js": "2.112.2"
+  },
+  "devDependencies": {
+    "@golai/tsconfig": "workspace:*",
+    "typescript": "7.0.2"
+  }
+}
