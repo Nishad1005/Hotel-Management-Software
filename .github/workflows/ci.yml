@@ -97,15 +97,23 @@ jobs:
               done
           fi
 
-      # NOTE: the generated-types drift check belongs here and lands with
-      # packages/db. It was removed rather than left in place because the earlier
-      # version only compared when the file already existed, so with no packages/db
-      # it silently passed while CLAUDE.md claimed CI enforced drift. A check that
-      # cannot fail is worse than no check: it reads as a guarantee.
+      # packages/db/src/types.ts is hand-maintained, because generation cannot be
+      # bootstrapped from a machine without Docker or a database password. A
+      # byte-exact diff against the generator would therefore be permanently red,
+      # and a permanently red check gets disabled - which is worse than no check.
       #
-      # When packages/db lands, add it back so that a MISSING file also fails:
-      #   supabase gen types typescript --local > /tmp/types.ts
-      #   diff /tmp/types.ts packages/db/src/types.ts    # fails if missing or drifted
+      # So this compares the SET OF TABLES instead. That catches the failure that
+      # actually happens: a migration adds a table and the types forget it. A
+      # missing file fails here too, which was the specific defect in the earlier
+      # version of this step.
+      - name: Types cover the schema
+        run: |
+          if [ ! -f packages/db/src/types.ts ]; then
+            echo "::error::packages/db/src/types.ts is missing."
+            exit 1
+          fi
+          supabase gen types typescript --local > "$RUNNER_TEMP/generated-types.ts"
+          node scripts/check-db-types.mjs "$RUNNER_TEMP/generated-types.ts" packages/db/src/types.ts
 
       - name: Diagnostics on failure
         if: failure()
