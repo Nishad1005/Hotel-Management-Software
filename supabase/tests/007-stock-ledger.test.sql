@@ -25,24 +25,24 @@ create temporary table ctx as
 select
   (select id from public.property where code = 'AA')                                  as prop_a,
   (select id from public.property where code = 'BB')                                  as prop_b,
-  (select id from public.item_category c join public.property p on p.id = c.property_id
+  (select c.id from public.item_category c join public.property p on p.id = c.property_id
      where p.code = 'AA' and c.code = 'DAIRY')                                        as cat_a,
-  (select id from public.uom u join public.property p on p.id = u.property_id
+  (select u.id from public.uom u join public.property p on p.id = u.property_id
      where p.code = 'AA' and u.code = 'L')                                            as uom_a,
-  (select id from public.location l join public.property p on p.id = l.property_id
+  (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'AA' and l.code = 'AA-CHILL')                                     as chill_a,
-  (select id from public.location l join public.property p on p.id = l.property_id
+  (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'AA' and l.code = 'AA-T1-REJ')                                    as rej_a,
-  (select id from public.location l join public.property p on p.id = l.property_id
+  (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'AA' and l.code = 'AA-DRY')                                       as dry_a;
 
 insert into public.item (id, property_id, code, name, category_id, base_uom_id,
                          is_perishable, is_batch_controlled, shelf_life_days, storage_regime)
-select '00000000-0000-0000-0000-0000000i0001', prop_a, 'MILK-1L', 'Toned Milk 1L',
+select '00000000-0000-0000-0000-0000000a0001', prop_a, 'MILK-1L', 'Toned Milk 1L',
        cat_a, uom_a, true, true, 5, 'CHILLED' from ctx;
 
 insert into public.batch (id, property_id, item_id, batch_no, best_before, shelf_life_total_days, source)
-select '00000000-0000-0000-0000-0000000b0001', prop_a, '00000000-0000-0000-0000-0000000i0001',
+select '00000000-0000-0000-0000-0000000b0001', prop_a, '00000000-0000-0000-0000-0000000a0001',
        'OPEN-1', current_date + 3, 5, 'OPENING_STOCK' from ctx;
 
 -- ---------------------------------------------------------------------------
@@ -51,7 +51,7 @@ select '00000000-0000-0000-0000-0000000b0001', prop_a, '00000000-0000-0000-0000-
 
 insert into public.stock_movement
   (property_id, batch_id, item_id, to_location_id, to_state, qty, uom_id, reason, idempotency_key)
-select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
        chill_a, 'AVAILABLE', 100, uom_a, 'OPENING_STOCK', 'open-1' from ctx;
 
 select is(
@@ -64,7 +64,7 @@ select is(
 insert into public.stock_movement
   (property_id, batch_id, item_id, from_location_id, from_state, to_location_id, to_state,
    qty, uom_id, reason, idempotency_key)
-select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
        chill_a, 'AVAILABLE', chill_a, 'ISSUED', 30, uom_a, 'ISSUE', 'issue-1' from ctx;
 
 select is(
@@ -88,12 +88,12 @@ select is(
 insert into public.stock_movement
   (property_id, batch_id, item_id, from_location_id, from_state, to_location_id, to_state,
    qty, uom_id, reason, idempotency_key)
-select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
        chill_a, 'AVAILABLE', dry_a, 'AVAILABLE', 20, uom_a, 'ZONE_TRANSFER', 'move-1' from ctx;
 
 insert into public.stock_movement
   (property_id, batch_id, item_id, from_location_id, from_state, qty, uom_id, reason, idempotency_key)
-select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
        chill_a, 'AVAILABLE', 5, uom_a, 'WRITE_OFF_EXPIRED', 'writeoff-1' from ctx;
 
 select is_empty(
@@ -141,7 +141,7 @@ select throws_ok(
 select throws_ok(
   $q$ insert into public.stock_movement
         (property_id, batch_id, item_id, to_location_id, to_state, qty, uom_id, reason, idempotency_key)
-      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
              chill_a, 'AVAILABLE', 100, uom_a, 'OPENING_STOCK', 'open-1' from ctx $q$,
   '23505',
   null,
@@ -156,7 +156,7 @@ select throws_ok(
   $q$ insert into public.stock_movement
         (property_id, batch_id, item_id, from_location_id, from_state, to_location_id, to_state,
          qty, uom_id, reason, idempotency_key)
-      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
              rej_a, 'REJECT_HOLD', chill_a, 'AVAILABLE', 1, uom_a, 'PUT_AWAY', 'illegal-1' from ctx $q$,
   '23514',
   null,
@@ -167,7 +167,7 @@ select lives_ok(
   $q$ insert into public.stock_movement
         (property_id, batch_id, item_id, from_location_id, from_state, to_location_id, to_state,
          qty, uom_id, reason, idempotency_key)
-      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000i0001',
+      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
              rej_a, 'REJECT_HOLD', rej_a, 'STAGED_OUT', 1, uom_a, 'DISPATCH_STAGING', 'legal-1' from ctx $q$,
   'but it can be staged for dispatch, which is how it leaves'
 );
@@ -177,7 +177,7 @@ select lives_ok(
 -- ---------------------------------------------------------------------------
 
 insert into public.grn (id, property_id, grn_no)
-select '00000000-0000-0000-0000-0000000g0001', prop_a, 'AA-GRN-000001' from ctx;
+select '00000000-0000-0000-0000-0000000c0001', prop_a, 'AA-GRN-000001' from ctx;
 
 select throws_ok(
   $q$ update public.grn set grn_no = 'TAMPERED' where grn_no = 'AA-GRN-000001' $q$,
@@ -195,14 +195,14 @@ select throws_ok(
 
 select lives_ok(
   $q$ insert into public.grn (property_id, grn_no, amendment_of, amendment_reason)
-      select prop_a, 'AA-GRN-000002', '00000000-0000-0000-0000-0000000g0001',
+      select prop_a, 'AA-GRN-000002', '00000000-0000-0000-0000-0000000c0001',
              'Quantity miscounted at receipt' from ctx $q$,
   'it is corrected by amendment, which leaves the original standing'
 );
 
 select throws_ok(
   $q$ insert into public.grn (property_id, grn_no, amendment_of)
-      select prop_a, 'AA-GRN-000003', '00000000-0000-0000-0000-0000000g0001' from ctx $q$,
+      select prop_a, 'AA-GRN-000003', '00000000-0000-0000-0000-0000000c0001' from ctx $q$,
   '23514',
   null,
   'and an amendment without a reason is refused'
