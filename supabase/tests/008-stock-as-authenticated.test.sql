@@ -35,6 +35,13 @@ select
   (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'P1' and l.code = 'P1-CHILL')                                      as chill;
 
+-- The fixture table is owned by postgres, and the tests below run as `authenticated`.
+-- Without this the statements fail on the FIXTURE rather than on what they are meant to
+-- test — and worse, the throws_ok cases still pass, because a denied read of ctx raises
+-- 42501 exactly like the denial they are looking for. A test passing for the wrong
+-- reason is worse than one that fails.
+grant select on ctx to authenticated;
+
 insert into public.item (id, property_id, code, name, category_id, base_uom_id,
                          is_perishable, is_batch_controlled, shelf_life_days, storage_regime)
 select '00000000-0000-0000-0000-0000000a2001', prop, 'MILK-1L', 'Toned Milk 1L',
