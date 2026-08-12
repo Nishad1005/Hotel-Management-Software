@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessionProvider, useSession } from "../lib/session";
+import { useSyncEngine } from "../lib/sync";
 import { usePalette } from "../theme";
 
 export default function RootLayout() {
@@ -56,6 +57,10 @@ function Guard({ fontsLoaded }: { fontsLoaded: boolean }) {
   const route = segments[0];
   const onSignIn = route === "sign-in";
   const onChooser = route === "choose-property";
+
+  // Mounted here rather than on the capture screen: a guard records an arrival and
+  // walks away from it, so the queue has to drain from wherever the app happens to be.
+  useSyncEngine(!!session);
 
   useEffect(() => {
     if (loading || !fontsLoaded) return;

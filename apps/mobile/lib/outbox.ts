@@ -22,3 +22,25 @@ export const outbox = new Outbox({
   store: storeOrMemory(),
   now: () => Date.now(),
 });
+
+/**
+ * The queue changed — something was captured, sent, or parked.
+ *
+ * The counts are read straight from the store rather than mirrored into React state,
+ * so screens need a nudge to re-read. Without one, a "3 waiting to sync" banner sits
+ * there unchanged while the records are draining behind it, and the guard cannot tell
+ * a working queue from a stuck one. That distinction is the entire point of showing
+ * the number.
+ */
+const listeners = new Set<() => void>();
+
+export function onOutboxChange(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function notifyOutboxChanged(): void {
+  for (const listener of listeners) listener();
+}
