@@ -15,13 +15,19 @@ select plan(9);
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
   ('00000000-0000-0000-0000-00000000f201', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'store.one@example.test', '', now(), now()),
-  ('00000000-0000-0000-0000-00000000f202', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'outsider@example.test', '', now(), now());
+  ('00000000-0000-0000-0000-00000000f202', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'outsider@example.test', '', now(), now()),
+  ('00000000-0000-0000-0000-00000000f203', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin.one@example.test', '', now(), now());
 
-select system.provision_property('store.one@example.test', 'Group One', 'P1', 'Property One');
+-- The property is provisioned by an ADMIN, who is a different person from the
+-- storekeeper. provision_property makes whoever it is given OWNER and ADMIN, so
+-- provisioning as the storekeeper and then granting STOREKEEPER on top would produce
+-- an "storekeeper" who is also an owner — and the authority tests below would pass
+-- while proving nothing.
+select system.provision_property('admin.one@example.test', 'Group One', 'P1', 'Property One');
 select system.provision_property('outsider@example.test', 'Group Two', 'P2', 'Property Two');
 
--- A storekeeper, not an administrator: recording stock is the job of the person doing
--- the work, and must not require the authority to edit the item master.
+-- Recording stock is the job of the person doing the work, and must not require the
+-- authority to edit the master it is recorded against.
 select system.grant_property_role('store.one@example.test', 'P1', 'STOREKEEPER');
 
 create temporary table ctx as
