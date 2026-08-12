@@ -35,6 +35,7 @@ export interface ItemListRow {
   isActive: boolean;
   categoryName: string;
   uomCode: string;
+  uomId: string;
 }
 
 export async function listCategories(): Promise<CategoryOption[]> {
@@ -69,7 +70,7 @@ export async function listItems(search: string, categoryId: string | null): Prom
   let query = requireSupabase()
     .from("item")
     .select(
-      "id, code, name, is_perishable, is_cold_chain, shelf_life_days, storage_regime, is_active, category:category_id(name), uom:base_uom_id(code)",
+      "id, code, name, is_perishable, is_cold_chain, shelf_life_days, storage_regime, is_active, base_uom_id, category:category_id(name), uom:base_uom_id(code)",
     )
     .order("name")
     .limit(200);
@@ -99,6 +100,7 @@ export async function listItems(search: string, categoryId: string | null): Prom
       isActive: row.is_active,
       categoryName: row.category?.name ?? "",
       uomCode: row.uom?.code ?? "",
+      uomId: row.base_uom_id,
     };
   });
 }

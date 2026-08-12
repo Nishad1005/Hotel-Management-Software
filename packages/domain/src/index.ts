@@ -11,3 +11,4 @@
 export * from "./stock/index";
 export * from "./gate/index";
 export * from "./items/index";
+export * from "./perishables/index";

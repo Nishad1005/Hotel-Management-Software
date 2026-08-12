@@ -175,15 +175,15 @@ export default function Home() {
               <Row
                 icon="hourglass-outline"
                 label="Expiring soon"
-                value="Not built yet"
+                value="What to use first, and what has gone"
                 divider
-                onPress={() => {}}
+                onPress={() => router.push("/perishables")}
               />
               <Row
                 icon="download-outline"
                 label="Opening stock"
-                value="Not built yet"
-                onPress={() => {}}
+                value="Record what is already in the store"
+                onPress={() => router.push("/stock/opening")}
               />
             </Card>
           </Section>
