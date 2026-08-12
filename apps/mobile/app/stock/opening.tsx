@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   SelectRow,
 } from "../../components/ui";
+import { DateField } from "../../components/date-field";
 import { listItems, type ItemListRow } from "../../lib/masters";
 import { useSession } from "../../lib/session";
 import { listLocations, type LocationOption } from "../../lib/locations";
@@ -66,7 +67,9 @@ export default function OpeningStock() {
 
   const item = items.find((i) => i.id === itemId);
   const quantity = Number(qty);
-  const dateLooksValid = /^\d{4}-\d{2}-\d{2}$/.test(bestBefore.trim());
+  // The picker only ever emits YYYY-MM-DD, so a format check would be testing
+  // something a person cannot get wrong. Presence is the only question left.
+  const hasDate = bestBefore.trim().length > 0;
 
   // A perishable without an expiry date would sit in the watchlist forever showing
   // nothing useful, which is worse than refusing the entry.
@@ -76,9 +79,8 @@ export default function OpeningStock() {
   if (!locationId) problems.push("Choose where it is stored.");
   if (!qty.trim() || !Number.isFinite(quantity) || quantity <= 0)
     problems.push("Enter a quantity greater than zero.");
-  if (needsDate && !dateLooksValid)
-    problems.push("This item is perishable, so it needs a best-before date (YYYY-MM-DD).");
-  if (bestBefore.trim() && !dateLooksValid) problems.push("Write the date as YYYY-MM-DD.");
+  if (needsDate && !hasDate)
+    problems.push("This item is perishable, so it needs a best-before date.");
 
   async function save() {
     if (!activeProperty || !item || problems.length > 0) return;
@@ -92,12 +94,12 @@ export default function OpeningStock() {
         locationId,
         qty: quantity,
         batchNo: batchNo.trim() || null,
-        bestBefore: dateLooksValid ? bestBefore.trim() : null,
+        bestBefore: hasDate ? bestBefore.trim() : null,
         shelfLifeTotalDays: item.shelfLifeDays,
       });
       setSaved(`${quantity} ${item.uomCode} of ${item.name} recorded.`);
-      // Item and location stay put: opening stock is entered in runs, usually many
-      // batches of the same thing into the same cold room.
+      setItemId("");
+      setLocationId("");
       setQty("");
       setBatchNo("");
       setBestBefore("");
@@ -212,12 +214,11 @@ export default function OpeningStock() {
               hint="A generated number is marked as such, so a trace can tell it from a supplier's."
             />
 
-            <Field
+            <DateField
               label={needsDate ? "Best before" : "Best before (optional)"}
               value={bestBefore}
-              onChangeText={setBestBefore}
-              placeholder="2026-09-30"
-              keyboardType="numeric"
+              onChange={setBestBefore}
+              optional={!needsDate}
               {...(needsDate
                 ? { hint: "Required: this item is marked perishable." }
                 : { hint: "Leave blank if it does not expire." })}
