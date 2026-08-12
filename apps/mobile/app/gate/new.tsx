@@ -13,6 +13,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Row, ChoiceTile, FieldError, PrimaryButton, Section, Stepper } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
+import { useSession } from "../../lib/session";
+import { drainOnce } from "../../lib/sync";
 import { font, radius, space, touch, type, usePalette } from "../../theme";
 
 /**
@@ -56,6 +58,7 @@ export default function NewGateEntry() {
   const p = usePalette();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { activeProperty, session } = useSession();
 
   const [vendor, setVendor] = useState<VendorRef | null>(null);
   const [vendorLabel, setVendorLabel] = useState<string>("");
@@ -100,8 +103,22 @@ export default function NewGateEntry() {
     await outbox.enqueue({
       type: "GATE_ENTRY",
       idempotencyKey: gateEntryNumber,
-      payload: { ...draft, gateEntryNumber, capturedAt: Date.now() },
+      payload: {
+        ...draft,
+        gateEntryNumber,
+        capturedAt: Date.now(),
+        // The capture carries its own property rather than resolving one at sync time.
+        // A storekeeper covering two hotels can switch properties between capturing and
+        // syncing, and the arrival belongs to where it happened.
+        propertyId: activeProperty?.propertyId,
+        capturedBy: session?.user.id,
+      },
     });
+
+    // Send it now if the network is there. The queue would pick it up within the
+    // minute anyway, but at the gate the guard is standing next to the vehicle, and a
+    // pending count that clears while they watch is what tells them it worked.
+    void drainOnce();
 
     router.push(`/gate/recorded?number=${gateEntryNumber}`);
   }
@@ -276,7 +293,13 @@ function VendorPicker({
               icon="business"
               label={v.name}
               value={v.code}
-              onPress={() => onPick({ kind: "REGISTERED", partyId: v.id }, v.name)}
+              // Captured by name, not as a party reference. There is no party master
+              // yet, and now that these entries actually reach the server, picking one
+              // of these would write a fabricated UUID into gate_entry.party_id — a
+              // column with no foreign key to catch it. An unregistered vendor by name
+              // is what the schema is for, and it leaves nothing to clean up when the
+              // real master lands.
+              onPress={() => onPick({ kind: "UNREGISTERED", name: v.name }, v.name)}
             />
           ))}
 

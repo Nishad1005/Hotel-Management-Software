@@ -92,7 +92,7 @@ docs/decisions        ADRs — read the index before proposing an architecture c
 pnpm install
 pnpm dev                    # all apps
 pnpm test                   # unit tests
-pnpm test --filter domain   # domain rules only
+pnpm test --filter @golai/domain   # domain rules only (workspace names are scoped)
 pnpm typecheck
 pnpm format                 # prettier write
 ```

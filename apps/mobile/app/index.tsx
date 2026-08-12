@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, Page, Row, Section } from "../components/ui";
-import { outbox } from "../lib/outbox";
+import { onOutboxChange, outbox } from "../lib/outbox";
 import { useSession } from "../lib/session";
 import { elevation, font, radius, space, touch, type, usePalette } from "../theme";
 
@@ -20,14 +20,23 @@ export default function Home() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      void (async () => {
+
+      const refresh = async () => {
         const [a, b] = await Promise.all([outbox.pendingCount(), outbox.blockedCount()]);
         if (!alive) return;
         setPending(a);
         setBlocked(b);
-      })();
+      };
+
+      void refresh();
+      // Also whenever the queue moves, so the count falls as records drain instead of
+      // sitting still until the screen is next focused. A number that never changes
+      // reads as a stuck queue whether or not it is one.
+      const unsubscribe = onOutboxChange(() => void refresh());
+
       return () => {
         alive = false;
+        unsubscribe();
       };
     }, []),
   );

@@ -254,6 +254,8 @@ export type GateEntryRow = {
   vehicle_mode: VehicleMode | null;
   vehicle_number: string | null;
   captured_by: string | null;
+  /** What the capturing device believed the time was. Never authoritative. */
+  captured_at_device: string | null;
   created_at: string;
 };
 
@@ -472,6 +474,7 @@ export type Database = {
           | "vehicle_mode"
           | "vehicle_number"
           | "captured_by"
+          | "captured_at_device"
         >;
         Update: Partial<GateEntryRow>;
         Relationships: [];
