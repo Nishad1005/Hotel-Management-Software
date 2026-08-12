@@ -130,6 +130,7 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 
 - **Migrations are forward-only and expand/contract.** Backwards-compatible for at least one release — offline devices are running older code.
 - **Every test fixture seeds two organisations with two properties each.** No test runs in a single-tenant world; cross-tenant bugs then surface by themselves.
+- **Test writes as `authenticated`, not as `postgres`.** pgTAP runs as the superuser by default, which holds every grant — so a test can prove the logic and say nothing about whether a real user is permitted to do it. Anything a user is meant to do gets a `set local role authenticated` test. This is not hypothetical: the `stock_lot` trigger passed every test and then failed for the first real storekeeper.
 - Domain rules get unit tests before implementation. State transitions, check digits and shelf-life maths are the highest-value tests in the repo.
 - Tables and columns `snake_case`; TypeScript `camelCase`; the boundary is `packages/db`.
 - **Relative imports are extensionless.** Never write `./thing.js`. Everything here is bundled — Metro, Turbopack, Vite — and Metro does not rewrite `.js` to `.ts` the way `tsc` under NodeNext does, so such an import typechecks, passes tests, and then fails to bundle. `moduleResolution` is `bundler` repo-wide for this reason.
