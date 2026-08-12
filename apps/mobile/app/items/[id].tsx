@@ -235,7 +235,7 @@ export default function ItemForm() {
             accessibilityRole="button"
             accessibilityLabel="Back"
             hitSlop={12}
-            style={{ minWidth: touch.min, minHeight: touch.min, justifyContent: "center" }}
+            style={{ minWidth: touch.desk, minHeight: touch.desk, justifyContent: "center" }}
           >
             <Ionicons name="chevron-back" size={30} color={p.text} />
           </Pressable>

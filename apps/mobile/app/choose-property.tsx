@@ -1,6 +1,6 @@
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BigRow, Notice, PrimaryButton } from "../components/ui";
+import { Notice, PrimaryButton, Row } from "../components/ui";
 import { useSession } from "../lib/session";
 import { space, type, usePalette } from "../theme";
 
@@ -51,7 +51,7 @@ export default function ChooseProperty() {
       </Text>
 
       {properties.map((prop) => (
-        <BigRow
+        <Row
           key={prop.propertyId}
           icon="business"
           label={prop.propertyName}

@@ -1,9 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Notice, PrimaryButton, StatusPill } from "../../components/ui";
+import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../../components/ui";
 import {
   listCategories,
   listItems,
@@ -11,15 +19,14 @@ import {
   type ItemListRow,
 } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { radius, space, touch, type, usePalette } from "../../theme";
+import { elevation, radius, space, touch, type, usePalette, weight } from "../../theme";
 
 /**
  * The item master.
  *
  * Nothing can be received against an item that is not here — PRD section 4 Gate 2, one
- * of the four hard rules. So this list is not a convenience screen; it is the gate on
- * everything downstream, which is why building it early lets the property start
- * entering real items while the rest is still being written.
+ * of the four hard rules. Desk density throughout: this is used at a desk to enter
+ * hundreds of rows, not at a gate in the dark, so it should show many at once.
  */
 export default function ItemsList() {
   const p = usePalette();
@@ -59,165 +66,133 @@ export default function ItemsList() {
 
   return (
     <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View style={{ padding: space.md, paddingTop: insets.top + space.md }}>
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.sm }}>
-          <Pressable
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Back"
-            hitSlop={12}
-            style={{ minWidth: touch.min, minHeight: touch.min, justifyContent: "center" }}
-          >
-            <Ionicons name="chevron-back" size={30} color={p.text} />
-          </Pressable>
-          <Text style={{ fontSize: type.title, fontWeight: "700", color: p.text, flex: 1 }}>
-            Items
-          </Text>
-        </View>
-
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search by name or code"
-          placeholderTextColor={p.textMuted}
-          accessibilityLabel="Search items"
-          style={{
-            minHeight: touch.min,
-            borderWidth: 1,
-            borderRadius: radius.md,
-            paddingHorizontal: space.md,
-            fontSize: type.body,
+      <View
+        style={[
+          {
             backgroundColor: p.surface,
-            borderColor: p.border,
-            color: p.text,
-          }}
-        />
+            paddingTop: insets.top + space.lg,
+            paddingHorizontal: space.lg,
+            paddingBottom: space.md,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: p.border,
+          },
+          elevation(1, p),
+        ]}
+      >
+        <Page>
+          <Header
+            title="Items"
+            {...(loading
+              ? {}
+              : { subtitle: `${items.length} item${items.length === 1 ? "" : "s"}` })}
+            onBack={() => router.back()}
+          />
 
-        {categories.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingVertical: space.sm, gap: space.sm }}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: p.border,
+              borderRadius: radius.md,
+              backgroundColor: p.surfaceSunken,
+              paddingHorizontal: space.md,
+            }}
           >
-            <FilterChip
-              label="All"
-              active={categoryId === null}
-              onPress={() => setCategoryId(null)}
+            <Ionicons name="search" size={16} color={p.textFaint} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search by name or code"
+              placeholderTextColor={p.textFaint}
+              accessibilityLabel="Search items"
+              style={
+                {
+                  flex: 1,
+                  minHeight: touch.desk,
+                  paddingHorizontal: space.sm,
+                  fontSize: type.body,
+                  color: p.text,
+                  outlineStyle: "none",
+                } as never
+              }
             />
-            {categories.map((c) => (
-              <FilterChip
-                key={c.id}
-                label={c.name}
-                active={categoryId === c.id}
-                onPress={() => setCategoryId(categoryId === c.id ? null : c.id)}
-              />
-            ))}
-          </ScrollView>
-        ) : null}
+            {search ? (
+              <Pressable
+                onPress={() => setSearch("")}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                hitSlop={10}
+              >
+                <Ionicons name="close-circle" size={16} color={p.textFaint} />
+              </Pressable>
+            ) : null}
+          </View>
+
+          {categories.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingTop: space.md, gap: space.xs }}
+            >
+              <Chip label="All" active={categoryId === null} onPress={() => setCategoryId(null)} />
+              {categories.map((c) => (
+                <Chip
+                  key={c.id}
+                  label={c.name}
+                  active={categoryId === c.id}
+                  onPress={() => setCategoryId(categoryId === c.id ? null : c.id)}
+                />
+              ))}
+            </ScrollView>
+          ) : null}
+        </Page>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space.md, paddingBottom: space.xxl * 2 }}
-      >
-        {loading ? (
-          <ActivityIndicator style={{ marginTop: space.xl }} color={p.accent} />
-        ) : error ? (
-          <Notice
-            icon="alert-circle-outline"
-            tone="bad"
-            title="Could not load items"
-            body={error}
-          />
-        ) : items.length === 0 ? (
-          <Notice
-            icon="cube-outline"
-            title={search || categoryId ? "Nothing matches" : "No items yet"}
-            body={
-              search || categoryId
-                ? "Try a different search or clear the category filter."
-                : canEditMasters
-                  ? "Add the items this property receives. Nothing can be received against an item that does not exist here."
-                  : "An administrator needs to add items before anything can be received."
-            }
-          />
-        ) : (
-          items.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => router.push(`/items/${item.id}`)}
-              accessibilityRole="button"
-              accessibilityLabel={`${item.name}, ${item.code}`}
-              style={({ pressed }) => ({
-                minHeight: touch.min,
-                padding: space.md,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: p.border,
-                backgroundColor: pressed ? p.surfaceSunken : p.surface,
-                marginBottom: space.sm,
-                opacity: item.isActive ? 1 : 0.55,
-              })}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: type.body, fontWeight: "600", color: p.text }}>
-                    {item.name}
-                  </Text>
-                  <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}>
-                    {item.code} · {item.categoryName} · {item.uomCode}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={22} color={p.borderStrong} />
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  gap: space.sm,
-                  marginTop: space.sm,
-                  flexWrap: "wrap",
-                }}
-              >
-                {item.isPerishable ? (
-                  <StatusPill
-                    icon="hourglass-outline"
-                    label={
-                      item.shelfLifeDays ? `${item.shelfLifeDays} day shelf life` : "Perishable"
-                    }
-                    tone="warn"
-                  />
-                ) : null}
-                {item.isColdChain ? (
-                  <StatusPill icon="snow-outline" label="Cold chain" tone="neutral" />
-                ) : null}
-                {item.storageRegime !== "AMBIENT" ? (
-                  <StatusPill
-                    icon="thermometer-outline"
-                    label={item.storageRegime}
-                    tone="neutral"
-                  />
-                ) : null}
-                {!item.isActive ? (
-                  <StatusPill icon="eye-off-outline" label="Inactive" tone="bad" />
-                ) : null}
-              </View>
-            </Pressable>
-          ))
-        )}
+      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}>
+        <Page>
+          {loading ? (
+            <ActivityIndicator style={{ marginTop: space.xxl }} color={p.accent} />
+          ) : error ? (
+            <Notice
+              icon="alert-circle-outline"
+              tone="bad"
+              title="Could not load items"
+              body={error}
+            />
+          ) : items.length === 0 ? (
+            <Notice
+              icon="cube-outline"
+              title={search || categoryId ? "Nothing matches" : "No items yet"}
+              body={
+                search || categoryId
+                  ? "Try a different search, or clear the category filter."
+                  : canEditMasters
+                    ? "Add the items this property receives. Nothing can be received against an item that does not exist here."
+                    : "An administrator needs to add items before anything can be received."
+              }
+            />
+          ) : (
+            <Card padded={false}>
+              {items.map((item, i) => (
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  divider={i < items.length - 1}
+                  onPress={() => router.push(`/items/${item.id}`)}
+                />
+              ))}
+            </Card>
+          )}
+        </Page>
       </ScrollView>
 
       {canEditMasters ? (
         <View
           style={{
             position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: space.md,
-            paddingBottom: insets.bottom + space.md,
-            backgroundColor: p.surface,
-            borderTopWidth: 1,
-            borderTopColor: p.border,
+            right: space.lg,
+            bottom: insets.bottom + space.lg,
           }}
         >
           <PrimaryButton label="Add item" icon="add" onPress={() => router.push("/items/new")} />
@@ -227,15 +202,81 @@ export default function ItemsList() {
   );
 }
 
-function FilterChip({
-  label,
-  active,
+function ItemRow({
+  item,
+  divider,
   onPress,
 }: {
-  label: string;
-  active: boolean;
+  item: ItemListRow;
+  divider: boolean;
   onPress: () => void;
 }) {
+  const p = usePalette();
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, ${item.code}`}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) => ({
+        paddingHorizontal: space.lg,
+        paddingVertical: space.md,
+        borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
+        borderBottomColor: p.border,
+        backgroundColor: pressed ? p.surfaceSunken : "transparent",
+        borderWidth: focused ? 2 : 0,
+        borderColor: p.focus,
+        opacity: item.isActive ? 1 : 0.5,
+      })}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: type.body, fontWeight: weight.semibold, color: p.text }}
+          >
+            {item.name}
+          </Text>
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
+          >
+            <Text style={{ fontVariant: ["tabular-nums"] }}>{item.code}</Text>
+            {"  ·  "}
+            {item.categoryName}
+            {"  ·  "}
+            {item.uomCode}
+          </Text>
+        </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.xs,
+            marginLeft: space.sm,
+          }}
+        >
+          {item.isPerishable ? (
+            <StatusPill
+              icon="hourglass-outline"
+              label={item.shelfLifeDays ? `${item.shelfLifeDays}d` : "Perishable"}
+              tone="warn"
+            />
+          ) : null}
+          {item.isColdChain ? <StatusPill icon="snow-outline" label="Cold" tone="neutral" /> : null}
+          {!item.isActive ? <StatusPill label="Inactive" tone="bad" /> : null}
+          <Ionicons name="chevron-forward" size={16} color={p.textFaint} />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const p = usePalette();
   return (
     <Pressable
@@ -245,18 +286,18 @@ function FilterChip({
       accessibilityLabel={label}
       style={({ pressed }) => ({
         paddingHorizontal: space.md,
-        paddingVertical: space.sm,
+        paddingVertical: space.xs + 2,
         borderRadius: radius.pill,
-        borderWidth: 1,
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: active ? p.accent : p.border,
-        backgroundColor: active ? p.accent : pressed ? p.surfaceSunken : p.surface,
+        backgroundColor: active ? p.accentSurface : pressed ? p.surfaceSunken : "transparent",
       })}
     >
       <Text
         style={{
-          fontSize: type.label,
-          fontWeight: "600",
-          color: active ? p.accentText : p.text,
+          fontSize: type.caption,
+          fontWeight: weight.semibold,
+          color: active ? p.accent : p.textMuted,
         }}
       >
         {label}

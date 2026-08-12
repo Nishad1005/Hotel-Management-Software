@@ -11,14 +11,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  BigRow,
-  ChoiceTile,
-  FieldError,
-  PrimaryButton,
-  Section,
-  Stepper,
-} from "../../components/ui";
+import { Row, ChoiceTile, FieldError, PrimaryButton, Section, Stepper } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
 import { radius, space, touch, type, usePalette } from "../../theme";
 
@@ -129,15 +122,14 @@ export default function NewGateEntry() {
         </Text>
 
         <Section title="Vendor">
-          <BigRow
+          <Row
             icon={vendor ? "business" : "qr-code-outline"}
             label={vendor ? vendorLabel : "Scan card or choose vendor"}
             {...(vendor
               ? { value: vendor.kind === "REGISTERED" ? "Registered" : "Not registered" }
               : {})}
-            tone={vendor ? "selected" : "default"}
+            selected={!!vendor}
             onPress={() => setPickerOpen(true)}
-            accessibilityHint="Opens the vendor list"
           />
           {has("VENDOR_REQUIRED") ? <FieldError message={ERROR_TEXT.VENDOR_REQUIRED} /> : null}
         </Section>
@@ -264,8 +256,8 @@ function VendorPicker({
             accessibilityLabel="Close vendor list"
             hitSlop={12}
             style={{
-              minWidth: touch.min,
-              minHeight: touch.min,
+              minWidth: touch.field,
+              minHeight: touch.field,
               alignItems: "flex-end",
               justifyContent: "center",
             }}
@@ -279,7 +271,7 @@ function VendorPicker({
           keyboardShouldPersistTaps="handled"
         >
           {PLACEHOLDER_VENDORS.map((v) => (
-            <BigRow
+            <Row
               key={v.id}
               icon="business"
               label={v.name}
@@ -329,7 +321,7 @@ function VendorPicker({
 
 const styles = StyleSheet.create({
   input: {
-    minHeight: touch.min,
+    minHeight: touch.field,
     borderWidth: 1,
     borderRadius: radius.md,
     paddingHorizontal: space.md,

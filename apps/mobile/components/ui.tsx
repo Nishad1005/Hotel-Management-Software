@@ -11,16 +11,87 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { radius, space, touch, type, usePalette, type Palette } from "../theme";
+import { elevation, radius, space, touch, type, usePalette, weight, type Palette } from "../theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
+export type Density = "field" | "desk";
+
+const heightFor = (d: Density) => (d === "field" ? touch.field : touch.desk);
 
 /**
- * Press feedback is opacity + background only — never a transform that changes
- * layout bounds. A card that shifts under a gloved thumb reads as a mis-tap.
+ * Press feedback changes colour only — never a transform that moves layout bounds. A
+ * control that shifts under a thumb reads as a mis-tap.
+ *
+ * The focus ring is separate and must never be dropped: on web this app is driven by
+ * keyboard at least as often as by touch, and an invisible focus state makes it
+ * unusable without a mouse.
  */
-function pressedStyle(pressed: boolean, palette: Palette): ViewStyle {
-  return pressed ? { backgroundColor: palette.surfaceSunken, opacity: 0.9 } : {};
+function interactive(pressed: boolean, focused: boolean, p: Palette): ViewStyle {
+  return {
+    ...(pressed ? { backgroundColor: p.surfaceSunken } : {}),
+    ...(focused ? { borderColor: p.focus, borderWidth: 2 } : {}),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Structure
+// ---------------------------------------------------------------------------
+
+export function Header({
+  title,
+  subtitle,
+  onBack,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  right?: ReactNode;
+}) {
+  const p = usePalette();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.lg }}>
+      {onBack ? (
+        <Pressable
+          onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={10}
+          style={({ pressed }) => ({
+            width: touch.desk,
+            height: touch.desk,
+            marginLeft: -space.sm,
+            marginRight: space.xs,
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: radius.md,
+            backgroundColor: pressed ? p.surfaceSunken : "transparent",
+          })}
+        >
+          <Ionicons name="chevron-back" size={24} color={p.text} />
+        </Pressable>
+      ) : null}
+      <View style={{ flex: 1 }}>
+        <Text
+          accessibilityRole="header"
+          style={{
+            fontSize: type.title,
+            fontWeight: weight.bold,
+            color: p.text,
+            letterSpacing: -0.4,
+          }}
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={{ fontSize: type.label, color: p.textMuted, marginTop: space.xxs }}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {right}
+    </View>
+  );
 }
 
 export function Section({
@@ -28,28 +99,37 @@ export function Section({
   hint,
   children,
 }: {
-  title: string;
+  title?: string;
   hint?: string;
   children: ReactNode;
 }) {
   const p = usePalette();
   return (
-    <View style={{ marginBottom: space.lg }}>
-      <Text
-        accessibilityRole="header"
-        style={{
-          fontSize: type.caption,
-          fontWeight: "700",
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          color: p.textMuted,
-          marginBottom: hint ? space.xs : space.sm,
-        }}
-      >
-        {title}
-      </Text>
+    <View style={{ marginBottom: space.xl }}>
+      {title ? (
+        <Text
+          accessibilityRole="header"
+          style={{
+            fontSize: type.micro,
+            fontWeight: weight.bold,
+            letterSpacing: 0.9,
+            textTransform: "uppercase",
+            color: p.textFaint,
+            marginBottom: hint ? space.xxs : space.sm,
+          }}
+        >
+          {title}
+        </Text>
+      ) : null}
       {hint ? (
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.sm }}>
+        <Text
+          style={{
+            fontSize: type.caption,
+            color: p.textMuted,
+            marginBottom: space.sm,
+            lineHeight: 17,
+          }}
+        >
           {hint}
         </Text>
       ) : null}
@@ -58,58 +138,195 @@ export function Section({
   );
 }
 
-/** A large tappable row. The default control of this app. */
-export function BigRow({
+/** A raised container. Groups rows into one object rather than scattered cards. */
+export function Card({ children, padded = true }: { children: ReactNode; padded?: boolean }) {
+  const p = usePalette();
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: p.surfaceRaised,
+          borderRadius: radius.lg,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: p.border,
+          overflow: "hidden",
+          ...(padded ? { padding: space.lg } : {}),
+        },
+        elevation(1, p),
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Constrains content on wide screens. Full-width text is unreadable on a laptop. */
+export function Page({ children }: { children: ReactNode }) {
+  return <View style={{ width: "100%", maxWidth: 720, alignSelf: "center" }}>{children}</View>;
+}
+
+// ---------------------------------------------------------------------------
+// Rows and actions
+// ---------------------------------------------------------------------------
+
+export function Row({
   icon,
   label,
   value,
   onPress,
-  tone = "default",
-  accessibilityHint,
+  density = "desk",
+  selected,
+  trailing,
+  divider,
+  tint,
 }: {
-  icon: IoniconName;
+  icon?: IoniconName;
   label: string;
   value?: string;
-  onPress: () => void;
-  tone?: "default" | "selected";
-  accessibilityHint?: string;
+  onPress?: () => void;
+  density?: Density;
+  selected?: boolean;
+  trailing?: ReactNode;
+  divider?: boolean;
+  tint?: "accent" | "danger";
 }) {
   const p = usePalette();
-  const selected = tone === "selected";
+  const [focused, setFocused] = useState(false);
+  const iconColour = selected ? p.accent : tint === "danger" ? p.danger : p.textMuted;
+
+  const body = (
+    <>
+      {icon ? (
+        <View
+          style={{
+            width: density === "field" ? 40 : 32,
+            height: density === "field" ? 40 : 32,
+            borderRadius: radius.sm,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: selected ? p.accentSurface : p.surfaceSunken,
+            marginRight: space.md,
+          }}
+        >
+          <Ionicons name={icon} size={density === "field" ? 22 : 18} color={iconColour} />
+        </View>
+      ) : null}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontSize: density === "field" ? type.subheading : type.body,
+            fontWeight: weight.semibold,
+            color: tint === "danger" ? p.danger : p.text,
+          }}
+        >
+          {label}
+        </Text>
+        {value ? (
+          <Text
+            numberOfLines={1}
+            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
+          >
+            {value}
+          </Text>
+        ) : null}
+      </View>
+      {trailing ??
+        (selected ? (
+          <Ionicons name="checkmark" size={20} color={p.accent} />
+        ) : onPress ? (
+          <Ionicons name="chevron-forward" size={18} color={p.textFaint} />
+        ) : null)}
+    </>
+  );
+
+  const style: ViewStyle = {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: heightFor(density),
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
+    borderBottomColor: p.border,
+  };
+
+  if (!onPress) return <View style={style}>{body}</View>;
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={value ? `${label}. ${value}` : label}
-      {...(accessibilityHint ? { accessibilityHint } : {})}
-      style={({ pressed }) => [
-        styles.row,
-        {
-          minHeight: touch.min,
-          backgroundColor: selected ? p.successSurface : p.surface,
-          borderColor: selected ? p.success : p.border,
-          borderWidth: selected ? 2 : 1,
-        },
-        pressedStyle(pressed, p),
-      ]}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) => [style, interactive(pressed, focused, p)]}
     >
-      <Ionicons name={icon} size={26} color={selected ? p.success : p.textMuted} />
-      <View style={{ flex: 1, marginLeft: space.md }}>
-        <Text style={{ fontSize: type.body, fontWeight: "600", color: p.text }}>{label}</Text>
-        {value ? (
-          <Text style={{ fontSize: type.label, color: p.textMuted, marginTop: 2 }}>{value}</Text>
-        ) : null}
-      </View>
-      {selected ? (
-        <Ionicons name="checkmark-circle" size={26} color={p.success} />
-      ) : (
-        <Ionicons name="chevron-forward" size={22} color={p.borderStrong} />
-      )}
+      {body}
     </Pressable>
   );
 }
 
-/** Two-up choice tiles. Used where the answer is binary and must be stated, not skipped. */
+export function PrimaryButton({
+  label,
+  icon,
+  onPress,
+  disabled,
+  tone = "accent",
+  density = "desk",
+}: {
+  label: string;
+  icon?: IoniconName;
+  onPress: () => void;
+  disabled?: boolean;
+  tone?: "accent" | "neutral" | "danger";
+  density?: Density;
+}) {
+  const p = usePalette();
+  const [focused, setFocused] = useState(false);
+  const bg = tone === "accent" ? p.accent : tone === "danger" ? p.danger : p.surfaceSunken;
+  const fg = tone === "neutral" ? p.text : p.onAccent;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) => [
+        {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: heightFor(density),
+          borderRadius: radius.md,
+          paddingHorizontal: space.xl,
+          backgroundColor: bg,
+          opacity: disabled ? 0.4 : pressed ? 0.88 : 1,
+          borderWidth: focused ? 2 : 0,
+          borderColor: p.focus,
+        },
+        tone === "accent" && !disabled ? elevation(1, p) : {},
+      ]}
+    >
+      {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
+      <Text
+        style={{
+          color: fg,
+          fontSize: type.body,
+          fontWeight: weight.semibold,
+          marginLeft: icon ? space.sm : 0,
+          letterSpacing: 0.1,
+        }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function ChoiceTile({
   icon,
   label,
@@ -122,30 +339,34 @@ export function ChoiceTile({
   onPress: () => void;
 }) {
   const p = usePalette();
+  const [focused, setFocused] = useState(false);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.tile,
-        {
-          minHeight: touch.large,
-          backgroundColor: selected ? p.successSurface : p.surface,
-          borderColor: selected ? p.success : p.border,
-          borderWidth: selected ? 2 : 1,
-        },
-        pressedStyle(pressed, p),
-      ]}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) => ({
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: space.lg,
+        paddingHorizontal: space.sm,
+        borderRadius: radius.md,
+        borderWidth: selected || focused ? 2 : StyleSheet.hairlineWidth,
+        borderColor: focused ? p.focus : selected ? p.accent : p.border,
+        backgroundColor: selected ? p.accentSurface : pressed ? p.surfaceSunken : p.surface,
+      })}
     >
-      <Ionicons name={icon} size={30} color={selected ? p.success : p.textMuted} />
+      <Ionicons name={icon} size={22} color={selected ? p.accent : p.textMuted} />
       <Text
         style={{
-          fontSize: type.label,
-          fontWeight: "600",
-          color: selected ? p.success : p.text,
-          marginTop: space.sm,
+          fontSize: type.caption,
+          fontWeight: weight.semibold,
+          color: selected ? p.accent : p.text,
+          marginTop: space.xs,
           textAlign: "center",
         }}
       >
@@ -155,12 +376,12 @@ export function ChoiceTile({
   );
 }
 
-/** Package count. Steppers beat a keyboard when the user is wearing gloves. */
+/** Large stepper — a gloved-hands control, so it keeps field sizing everywhere. */
 export function Stepper({
   value,
   onChange,
   min = 0,
-  max = 999,
+  max = 9999,
 }: {
   value: number;
   onChange: (next: number) => void;
@@ -178,143 +399,56 @@ export function Stepper({
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityState={{ disabled }}
-        style={({ pressed }) => [
-          styles.stepButton,
-          {
-            backgroundColor: p.surfaceSunken,
-            borderColor: p.border,
-            opacity: disabled ? 0.4 : 1,
-          },
-          !disabled && pressedStyle(pressed, p),
-        ]}
+        style={({ pressed }) => ({
+          width: touch.field,
+          height: touch.field,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radius.md,
+          backgroundColor: pressed ? p.surfaceSunken : p.surface,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: p.border,
+          opacity: disabled ? 0.35 : 1,
+        })}
       >
-        <Ionicons name={icon} size={32} color={p.text} />
+        <Ionicons name={icon} size={26} color={p.text} />
       </Pressable>
     );
   };
 
   return (
-    <View style={[styles.stepper, { backgroundColor: p.surface, borderColor: p.border }]}>
-      {button(-1, "remove", "One fewer package")}
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: p.surfaceSunken,
+        borderRadius: radius.lg,
+        padding: space.xs,
+      }}
+    >
+      {button(-1, "remove", "One fewer")}
       <Text
         accessibilityLiveRegion="polite"
-        accessibilityLabel={`${value} packages`}
         style={{
           flex: 1,
           textAlign: "center",
           fontSize: type.display,
-          fontWeight: "700",
+          fontWeight: weight.bold,
           color: p.text,
-          // Tabular figures so the number does not jog sideways as digits change.
           fontVariant: ["tabular-nums"],
         }}
       >
         {value}
       </Text>
-      {button(1, "add", "One more package")}
+      {button(1, "add", "One more")}
     </View>
   );
 }
 
-/** Errors sit beside the field they belong to, with an icon so colour is not the only signal. */
-export function FieldError({ message }: { message: string }) {
-  const p = usePalette();
-  return (
-    <View style={styles.error} accessibilityRole="alert">
-      <Ionicons name="alert-circle" size={18} color={p.danger} />
-      <Text style={{ color: p.danger, fontSize: type.label, marginLeft: space.sm, flex: 1 }}>
-        {message}
-      </Text>
-    </View>
-  );
-}
+// ---------------------------------------------------------------------------
+// Inputs
+// ---------------------------------------------------------------------------
 
-export function PrimaryButton({
-  label,
-  icon,
-  onPress,
-  disabled,
-}: {
-  label: string;
-  icon?: IoniconName;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  const p = usePalette();
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled: !!disabled }}
-      style={({ pressed }) => [
-        styles.primary,
-        { backgroundColor: p.accent, opacity: disabled ? 0.45 : pressed ? 0.85 : 1 },
-      ]}
-    >
-      {icon ? <Ionicons name={icon} size={24} color={p.accentText} /> : null}
-      <Text
-        style={{
-          color: p.accentText,
-          fontSize: type.heading,
-          fontWeight: "700",
-          marginLeft: icon ? space.sm : 0,
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: space.md,
-    paddingVertical: space.md,
-    borderRadius: radius.md,
-    marginBottom: space.sm,
-  },
-  tile: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: space.md,
-    borderRadius: radius.md,
-  },
-  stepper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: radius.md,
-    borderWidth: 1,
-    padding: space.sm,
-  },
-  stepButton: {
-    width: touch.min,
-    height: touch.min,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: radius.sm,
-    borderWidth: 1,
-  },
-  error: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: space.sm,
-  },
-  primary: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: touch.min,
-    borderRadius: radius.md,
-    paddingHorizontal: space.lg,
-  },
-});
-
-/** Labelled text input. Labels are visible, never placeholder-only. */
 export function Field({
   label,
   value,
@@ -325,6 +459,7 @@ export function Field({
   autoCapitalize = "none",
   hint,
   error,
+  suffix,
 }: {
   label: string;
   value: string;
@@ -335,130 +470,80 @@ export function Field({
   autoCapitalize?: "none" | "characters" | "words" | "sentences";
   hint?: string;
   error?: string;
+  suffix?: string;
 }) {
   const p = usePalette();
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={{ marginBottom: space.md }}>
+    <View style={{ marginBottom: space.lg }}>
       <Text
-        style={{ fontSize: type.label, fontWeight: "600", color: p.text, marginBottom: space.xs }}
+        style={{
+          fontSize: type.label,
+          fontWeight: weight.semibold,
+          color: p.text,
+          marginBottom: space.xs,
+        }}
       >
         {label}
       </Text>
-      {hint ? (
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.xs }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          borderWidth: focused || error ? 2 : StyleSheet.hairlineWidth,
+          borderColor: error ? p.danger : focused ? p.focus : p.border,
+          borderRadius: radius.md,
+          backgroundColor: p.surface,
+          paddingRight: suffix ? space.md : 0,
+        }}
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder ?? ""}
+          placeholderTextColor={p.textFaint}
+          secureTextEntry={secureTextEntry ?? false}
+          keyboardType={keyboardType ?? "default"}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={false}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          accessibilityLabel={label}
+          style={
+            {
+              flex: 1,
+              minHeight: touch.desk,
+              paddingHorizontal: space.md,
+              fontSize: type.body,
+              color: p.text,
+              // Web only: the browser's own outline would sit outside our border.
+              outlineStyle: "none",
+            } as never
+          }
+        />
+        {suffix ? (
+          <Text style={{ fontSize: type.caption, color: p.textMuted, fontWeight: weight.medium }}>
+            {suffix}
+          </Text>
+        ) : null}
+      </View>
+      {hint && !error ? (
+        <Text
+          style={{
+            fontSize: type.caption,
+            color: p.textMuted,
+            marginTop: space.xs,
+            lineHeight: 17,
+          }}
+        >
           {hint}
         </Text>
       ) : null}
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder ?? ""}
-        placeholderTextColor={p.textMuted}
-        secureTextEntry={secureTextEntry ?? false}
-        keyboardType={keyboardType ?? "default"}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        accessibilityLabel={label}
-        style={{
-          minHeight: touch.min,
-          borderWidth: 1,
-          borderRadius: radius.md,
-          paddingHorizontal: space.md,
-          fontSize: type.body,
-          backgroundColor: p.surface,
-          borderColor: error ? p.danger : p.border,
-          color: p.text,
-        }}
-      />
       {error ? <FieldError message={error} /> : null}
     </View>
   );
 }
 
-/** A status pill. Carries an icon as well as colour, never colour alone. */
-export function StatusPill({
-  icon,
-  label,
-  tone,
-}: {
-  icon: IoniconName;
-  label: string;
-  tone: "neutral" | "good" | "warn" | "bad";
-}) {
-  const p = usePalette();
-  const colours = {
-    neutral: { fg: p.textMuted, bg: p.surfaceSunken },
-    good: { fg: p.success, bg: p.successSurface },
-    warn: { fg: p.warning, bg: p.warningSurface },
-    bad: { fg: p.danger, bg: p.dangerSurface },
-  }[tone];
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        alignSelf: "flex-start",
-        backgroundColor: colours.bg,
-        borderRadius: radius.pill,
-        paddingHorizontal: space.sm,
-        paddingVertical: 4,
-      }}
-    >
-      <Ionicons name={icon} size={14} color={colours.fg} />
-      <Text style={{ color: colours.fg, fontSize: type.caption, fontWeight: "700", marginLeft: 4 }}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-/** Full-screen message. Used for loading, empty and misconfiguration states. */
-export function Notice({
-  icon,
-  title,
-  body,
-  tone = "neutral",
-}: {
-  icon: IoniconName;
-  title: string;
-  body?: string;
-  tone?: "neutral" | "bad";
-}) {
-  const p = usePalette();
-  const fg = tone === "bad" ? p.danger : p.textMuted;
-  return (
-    <View style={{ alignItems: "center", padding: space.xl }}>
-      <Ionicons name={icon} size={44} color={fg} />
-      <Text
-        style={{
-          fontSize: type.heading,
-          fontWeight: "700",
-          color: p.text,
-          marginTop: space.md,
-          textAlign: "center",
-        }}
-      >
-        {title}
-      </Text>
-      {body ? (
-        <Text
-          style={{
-            fontSize: type.label,
-            color: p.textMuted,
-            marginTop: space.sm,
-            textAlign: "center",
-            lineHeight: 22,
-          }}
-        >
-          {body}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-/** A labelled on/off row. Explains itself, since several of these carry real rules. */
 export function Toggle({
   label,
   hint,
@@ -478,22 +563,29 @@ export function Toggle({
       style={{
         flexDirection: "row",
         alignItems: "center",
-        minHeight: touch.min,
-        paddingHorizontal: space.md,
-        paddingVertical: space.sm,
+        minHeight: touch.desk,
+        paddingHorizontal: space.lg,
+        paddingVertical: space.md,
         borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: p.border,
-        backgroundColor: p.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: value ? p.accent : p.border,
+        backgroundColor: value ? p.accentSurface : p.surface,
         marginBottom: space.sm,
-        opacity: disabled ? 0.6 : 1,
+        opacity: disabled ? 0.65 : 1,
       }}
     >
       <View style={{ flex: 1, marginRight: space.md }}>
-        <Text style={{ fontSize: type.body, fontWeight: "600", color: p.text }}>{label}</Text>
+        <Text style={{ fontSize: type.body, fontWeight: weight.semibold, color: p.text }}>
+          {label}
+        </Text>
         {hint ? (
           <Text
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2, lineHeight: 18 }}
+            style={{
+              fontSize: type.caption,
+              color: p.textMuted,
+              marginTop: space.xxs,
+              lineHeight: 17,
+            }}
           >
             {hint}
           </Text>
@@ -516,7 +608,6 @@ export interface Choice {
   sublabel?: string;
 }
 
-/** A row that opens a searchable list. Used wherever a foreign key is chosen. */
 export function SelectRow({
   label,
   value,
@@ -535,6 +626,7 @@ export function SelectRow({
   const p = usePalette();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
   const selected = choices.find((c) => c.id === value);
   const filtered = query.trim()
     ? choices.filter((c) =>
@@ -543,9 +635,14 @@ export function SelectRow({
     : choices;
 
   return (
-    <View style={{ marginBottom: space.md }}>
+    <View style={{ marginBottom: space.lg }}>
       <Text
-        style={{ fontSize: type.label, fontWeight: "600", color: p.text, marginBottom: space.xs }}
+        style={{
+          fontSize: type.label,
+          fontWeight: weight.semibold,
+          color: p.text,
+          marginBottom: space.xs,
+        }}
       >
         {label}
       </Text>
@@ -553,105 +650,247 @@ export function SelectRow({
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={`${label}. ${selected ? selected.label : placeholder}`}
-        style={({ pressed }) => [
-          {
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: touch.min,
-            paddingHorizontal: space.md,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: error ? p.danger : p.border,
-            backgroundColor: p.surface,
-          },
-          pressedStyle(pressed, p),
-        ]}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={({ pressed }) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          minHeight: touch.desk,
+          paddingHorizontal: space.md,
+          borderRadius: radius.md,
+          borderWidth: focused || error ? 2 : StyleSheet.hairlineWidth,
+          borderColor: error ? p.danger : focused ? p.focus : p.border,
+          backgroundColor: pressed ? p.surfaceSunken : p.surface,
+        })}
       >
-        <Text
-          style={{
-            flex: 1,
-            fontSize: type.body,
-            color: selected ? p.text : p.textMuted,
-          }}
-        >
+        <Text style={{ flex: 1, fontSize: type.body, color: selected ? p.text : p.textFaint }}>
           {selected ? selected.label : placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={22} color={p.borderStrong} />
+        {selected?.sublabel ? (
+          <Text style={{ fontSize: type.caption, color: p.textMuted, marginRight: space.sm }}>
+            {selected.sublabel}
+          </Text>
+        ) : null}
+        <Ionicons name="chevron-down" size={18} color={p.textFaint} />
       </Pressable>
       {error ? <FieldError message={error} /> : null}
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: p.background, paddingTop: space.xxl }}>
+        <View style={{ flex: 1, backgroundColor: p.background }}>
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingHorizontal: space.md,
-              paddingBottom: space.sm,
-              borderBottomWidth: 1,
+              paddingTop: space.xxxl,
+              paddingHorizontal: space.lg,
+              paddingBottom: space.md,
+              backgroundColor: p.surface,
+              borderBottomWidth: StyleSheet.hairlineWidth,
               borderBottomColor: p.border,
             }}
           >
-            <Text style={{ fontSize: type.heading, fontWeight: "700", color: p.text }}>
-              {label}
-            </Text>
-            <Pressable
-              onPress={() => setOpen(false)}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              hitSlop={12}
-              style={{
-                minWidth: touch.min,
-                minHeight: touch.min,
-                alignItems: "flex-end",
-                justifyContent: "center",
-              }}
-            >
-              <Ionicons name="close" size={30} color={p.text} />
-            </Pressable>
-          </View>
-          <ScrollView
-            contentContainerStyle={{ padding: space.md }}
-            keyboardShouldPersistTaps="handled"
-          >
+            <Header title={label} right={<CloseButton onPress={() => setOpen(false)} />} />
             {choices.length > 8 ? (
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search"
-                placeholderTextColor={p.textMuted}
+                placeholderTextColor={p.textFaint}
                 accessibilityLabel="Search options"
-                style={{
-                  minHeight: touch.min,
-                  borderWidth: 1,
-                  borderRadius: radius.md,
-                  paddingHorizontal: space.md,
-                  fontSize: type.body,
-                  backgroundColor: p.surface,
-                  borderColor: p.border,
-                  color: p.text,
-                  marginBottom: space.sm,
-                }}
+                style={
+                  {
+                    minHeight: touch.desk,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderRadius: radius.md,
+                    paddingHorizontal: space.md,
+                    fontSize: type.body,
+                    backgroundColor: p.surfaceSunken,
+                    borderColor: p.border,
+                    color: p.text,
+                    outlineStyle: "none",
+                  } as never
+                }
               />
             ) : null}
-            {filtered.map((c) => (
-              <BigRow
-                key={c.id}
-                icon={c.id === value ? "checkmark-circle" : "ellipse-outline"}
-                label={c.label}
-                {...(c.sublabel ? { value: c.sublabel } : {})}
-                tone={c.id === value ? "selected" : "default"}
-                onPress={() => {
-                  onSelect(c.id);
-                  setQuery("");
-                  setOpen(false);
-                }}
-              />
-            ))}
+          </View>
+          <ScrollView
+            contentContainerStyle={{ padding: space.lg }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Page>
+              <Card padded={false}>
+                {filtered.map((c, i) => (
+                  <Row
+                    key={c.id}
+                    label={c.label}
+                    {...(c.sublabel ? { value: c.sublabel } : {})}
+                    selected={c.id === value}
+                    divider={i < filtered.length - 1}
+                    onPress={() => {
+                      onSelect(c.id);
+                      setQuery("");
+                      setOpen(false);
+                    }}
+                  />
+                ))}
+              </Card>
+            </Page>
           </ScrollView>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+export function CloseButton({ onPress }: { onPress: () => void }) {
+  const p = usePalette();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Close"
+      hitSlop={10}
+      style={({ pressed }) => ({
+        width: touch.desk,
+        height: touch.desk,
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: radius.md,
+        backgroundColor: pressed ? p.surfaceSunken : "transparent",
+      })}
+    >
+      <Ionicons name="close" size={22} color={p.text} />
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Feedback
+// ---------------------------------------------------------------------------
+
+export function FieldError({ message }: { message: string }) {
+  const p = usePalette();
+  return (
+    <View
+      style={{ flexDirection: "row", alignItems: "flex-start", marginTop: space.xs }}
+      accessibilityRole="alert"
+    >
+      <Ionicons name="alert-circle" size={15} color={p.danger} style={{ marginTop: 1 }} />
+      <Text
+        style={{
+          color: p.danger,
+          fontSize: type.caption,
+          marginLeft: space.xs,
+          flex: 1,
+          lineHeight: 17,
+        }}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
+
+export function StatusPill({
+  icon,
+  label,
+  tone,
+}: {
+  icon?: IoniconName;
+  label: string;
+  tone: "neutral" | "good" | "warn" | "bad";
+}) {
+  const p = usePalette();
+  const c = {
+    neutral: { fg: p.textMuted, bg: p.surfaceSunken },
+    good: { fg: p.success, bg: p.successSurface },
+    warn: { fg: p.warning, bg: p.warningSurface },
+    bad: { fg: p.danger, bg: p.dangerSurface },
+  }[tone];
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        alignSelf: "flex-start",
+        backgroundColor: c.bg,
+        borderRadius: radius.sm,
+        paddingHorizontal: space.sm,
+        paddingVertical: 3,
+      }}
+    >
+      {icon ? <Ionicons name={icon} size={12} color={c.fg} /> : null}
+      <Text
+        style={{
+          color: c.fg,
+          fontSize: type.micro,
+          fontWeight: weight.semibold,
+          marginLeft: icon ? space.xs : 0,
+          letterSpacing: 0.2,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+export function Notice({
+  icon,
+  title,
+  body,
+  tone = "neutral",
+  action,
+}: {
+  icon: IoniconName;
+  title: string;
+  body?: string;
+  tone?: "neutral" | "bad";
+  action?: ReactNode;
+}) {
+  const p = usePalette();
+  const fg = tone === "bad" ? p.danger : p.textFaint;
+  return (
+    <View
+      style={{ alignItems: "center", paddingVertical: space.xxxl, paddingHorizontal: space.xl }}
+    >
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: radius.xl,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: tone === "bad" ? p.dangerSurface : p.surfaceSunken,
+        }}
+      >
+        <Ionicons name={icon} size={26} color={fg} />
+      </View>
+      <Text
+        style={{
+          fontSize: type.subheading,
+          fontWeight: weight.semibold,
+          color: p.text,
+          marginTop: space.lg,
+          textAlign: "center",
+        }}
+      >
+        {title}
+      </Text>
+      {body ? (
+        <Text
+          style={{
+            fontSize: type.label,
+            color: p.textMuted,
+            marginTop: space.sm,
+            textAlign: "center",
+            lineHeight: 21,
+            maxWidth: 380,
+          }}
+        >
+          {body}
+        </Text>
+      ) : null}
+      {action ? <View style={{ marginTop: space.xl }}>{action}</View> : null}
     </View>
   );
 }
