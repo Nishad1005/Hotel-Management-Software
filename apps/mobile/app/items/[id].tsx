@@ -28,7 +28,7 @@ import {
   type UomOption,
 } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { space, touch, type, usePalette } from "../../theme";
+import { font, space, touch, type, usePalette } from "../../theme";
 
 const ERROR_TEXT: Record<ItemError, string> = {
   CODE_REQUIRED: "Give the item a code.",
@@ -239,7 +239,7 @@ export default function ItemForm() {
           >
             <Ionicons name="chevron-back" size={30} color={p.text} />
           </Pressable>
-          <Text style={{ fontSize: type.title, fontWeight: "700", color: p.text, flex: 1 }}>
+          <Text style={{ fontSize: type.title, ...font("bold"), color: p.text, flex: 1 }}>
             {isNew ? "New item" : "Edit item"}
           </Text>
         </View>
@@ -280,7 +280,12 @@ export default function ItemForm() {
         />
 
         <Text
-          style={{ fontSize: type.label, fontWeight: "600", color: p.text, marginBottom: space.xs }}
+          style={{
+            fontSize: type.label,
+            ...font("semibold"),
+            color: p.text,
+            marginBottom: space.xs,
+          }}
         >
           Stored at
         </Text>

@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, Field, FieldError, Notice, PrimaryButton } from "../components/ui";
 import { useSession } from "../lib/session";
-import { radius, space, type, usePalette, weight } from "../theme";
+import { font, radius, space, type, usePalette } from "../theme";
 
 export default function SignIn() {
   const p = usePalette();
@@ -77,7 +77,7 @@ export default function SignIn() {
           <Text
             style={{
               fontSize: type.display,
-              fontWeight: weight.heavy,
+              ...font("heavy"),
               color: p.text,
               marginTop: space.lg,
               letterSpacing: -1,

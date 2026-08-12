@@ -1,3 +1,11 @@
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  useFonts,
+} from "@expo-google-fonts/inter";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -7,25 +15,39 @@ import { SessionProvider, useSession } from "../lib/session";
 import { usePalette } from "../theme";
 
 export default function RootLayout() {
+  /**
+   * Fonts are loaded before anything renders.
+   *
+   * Rendering first and swapping later causes every label to reflow once the real face
+   * arrives, which on a list of two hundred items is a visible lurch. The wait is a
+   * few hundred milliseconds against a local cache.
+   */
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
+
   return (
     <SafeAreaProvider>
       <SessionProvider>
         <StatusBar style="auto" />
-        <Guard />
+        <Guard fontsLoaded={fontsLoaded} />
       </SessionProvider>
     </SafeAreaProvider>
   );
 }
 
 /**
- * Route guard.
+ * Route guard: signed in, then a property chosen, then the app.
  *
- * Three gates, in order: signed in, a property chosen, then the app. Redirects happen
- * in an effect rather than during render, because navigating mid-render is what
- * produces the "cannot update a component while rendering another" warning and, on
- * web, a history stack that traps the back button.
+ * Redirects run in an effect rather than during render — navigating mid-render causes
+ * the "cannot update a component while rendering another" warning and, on web, a
+ * history stack that traps the back button.
  */
-function Guard() {
+function Guard({ fontsLoaded }: { fontsLoaded: boolean }) {
   const { loading, session, activeProperty, properties } = useSession();
   const segments = useSegments();
   const router = useRouter();
@@ -36,24 +58,31 @@ function Guard() {
   const onChooser = route === "choose-property";
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !fontsLoaded) return;
 
     if (!session) {
       if (!onSignIn) router.replace("/sign-in");
       return;
     }
 
-    // Signed in but no property selected. A single property is chosen automatically
-    // by the session provider, so reaching here means there are none or several.
     if (!activeProperty) {
       if (!onChooser) router.replace("/choose-property");
       return;
     }
 
     if (onSignIn || onChooser) router.replace("/");
-  }, [loading, session, activeProperty, properties.length, onSignIn, onChooser, router]);
+  }, [
+    loading,
+    fontsLoaded,
+    session,
+    activeProperty,
+    properties.length,
+    onSignIn,
+    onChooser,
+    router,
+  ]);
 
-  if (loading) {
+  if (loading || !fontsLoaded) {
     return (
       <View
         style={{
@@ -68,5 +97,5 @@ function Guard() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />;
 }

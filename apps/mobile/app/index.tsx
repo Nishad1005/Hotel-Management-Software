@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, Page, Row, Section } from "../components/ui";
 import { outbox } from "../lib/outbox";
 import { useSession } from "../lib/session";
-import { elevation, radius, space, touch, type, usePalette, weight } from "../theme";
+import { elevation, font, radius, space, touch, type, usePalette } from "../theme";
 
 export default function Home() {
   const p = usePalette();
@@ -67,7 +67,7 @@ export default function Home() {
               <Text
                 style={{
                   fontSize: type.subheading,
-                  fontWeight: weight.bold,
+                  ...font("bold"),
                   color: p.text,
                   letterSpacing: -0.3,
                 }}
@@ -146,7 +146,7 @@ export default function Home() {
               <Text
                 style={{
                   fontSize: type.caption,
-                  fontWeight: weight.semibold,
+                  ...font("semibold"),
                   color: blocked > 0 ? p.danger : p.warning,
                   marginLeft: space.sm,
                   flex: 1,

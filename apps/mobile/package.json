@@ -15,12 +15,16 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
+    "@golai/db": "workspace:*",
     "@golai/domain": "workspace:*",
     "@golai/outbox": "workspace:*",
+    "@supabase/supabase-js": "2.112.2",
     "expo": "~57.0.11",
     "expo-constants": "~57.0.9",
+    "expo-font": "~14.0.9",
     "expo-linking": "~57.0.5",
     "expo-router": "~57.0.11",
+    "expo-splash-screen": "~57.0.6",
     "expo-sqlite": "~57.0.1",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
@@ -29,8 +33,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.2",
     "react-native-web": "^0.21.2",
-    "@golai/db": "workspace:*",
-    "@supabase/supabase-js": "2.112.2"
+    "@expo-google-fonts/inter": "^0.4.2"
   },
   "devDependencies": {
     "@golai/tsconfig": "workspace:*",

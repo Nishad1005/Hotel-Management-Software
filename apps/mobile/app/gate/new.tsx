@@ -13,7 +13,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Row, ChoiceTile, FieldError, PrimaryButton, Section, Stepper } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
-import { radius, space, touch, type, usePalette } from "../../theme";
+import { font, radius, space, touch, type, usePalette } from "../../theme";
 
 /**
  * Gate 0 — Security capture. PRD section 4.
@@ -116,7 +116,7 @@ export default function NewGateEntry() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={{ fontSize: type.title, fontWeight: "700", color: p.text }}>New arrival</Text>
+        <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>New arrival</Text>
         <Text style={{ fontSize: type.label, color: p.textMuted, marginBottom: space.lg }}>
           Record what arrived before anything is unloaded.
         </Text>
@@ -247,7 +247,7 @@ function VendorPicker({
     <Modal visible={open} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View style={{ flex: 1, backgroundColor: p.background, paddingTop: insets.top }}>
         <View style={[styles.modalBar, { borderBottomColor: p.border }]}>
-          <Text style={{ fontSize: type.heading, fontWeight: "700", color: p.text }}>
+          <Text style={{ fontSize: type.heading, ...font("bold"), color: p.text }}>
             Choose vendor
           </Text>
           <Pressable
@@ -283,7 +283,7 @@ function VendorPicker({
           <Text
             style={{
               fontSize: type.caption,
-              fontWeight: "700",
+              ...font("bold"),
               letterSpacing: 1.2,
               textTransform: "uppercase",
               color: p.textMuted,

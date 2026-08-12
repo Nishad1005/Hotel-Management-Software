@@ -69,6 +69,36 @@ export const weight = {
   heavy: "800",
 } as const;
 
+/**
+ * Typography — Inter, one family across every weight.
+ *
+ * It was drawn for user interfaces at small sizes: tall x-height, unambiguous 1/l/I,
+ * and genuine tabular figures. That last one matters more here than it sounds, because
+ * this app is mostly numbers in columns — quantities, temperatures, days remaining,
+ * item codes.
+ *
+ * `font()` returns fontWeight alongside fontFamily deliberately. If the font has not
+ * loaded — slow first paint, a cache miss, a native build without the asset — the
+ * weight still applies and the screen degrades to the system face, instead of
+ * flattening to a single undifferentiated weight.
+ */
+export const fontFamily = {
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
+  heavy: "Inter_800ExtraBold",
+} as const;
+
+export type WeightName = keyof typeof fontFamily;
+
+export function font(w: WeightName) {
+  return { fontFamily: fontFamily[w], fontWeight: weight[w] } as const;
+}
+
+/** Numbers in columns must not jog sideways as digits change. */
+export const tabular = { fontVariant: ["tabular-nums"] } as const;
+
 export interface Palette {
   background: string;
   surface: string;

@@ -19,7 +19,7 @@ import {
   type ItemListRow,
 } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { elevation, radius, space, touch, type, usePalette, weight } from "../../theme";
+import { elevation, font, radius, space, touch, type, usePalette } from "../../theme";
 
 /**
  * The item master.
@@ -236,7 +236,7 @@ function ItemRow({
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}
-            style={{ fontSize: type.body, fontWeight: weight.semibold, color: p.text }}
+            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
           >
             {item.name}
           </Text>
@@ -296,7 +296,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
       <Text
         style={{
           fontSize: type.caption,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           color: active ? p.accent : p.textMuted,
         }}
       >

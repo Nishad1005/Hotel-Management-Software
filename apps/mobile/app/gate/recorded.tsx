@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "../../components/ui";
-import { radius, space, type, usePalette } from "../../theme";
+import { font, radius, space, type, usePalette } from "../../theme";
 
 /**
  * The gate entry number, immediately after capture.
@@ -34,7 +34,7 @@ export default function GateEntryRecorded() {
           <Text
             style={{
               fontSize: type.heading,
-              fontWeight: "700",
+              ...font("bold"),
               color: p.text,
               marginTop: space.sm,
             }}
@@ -56,7 +56,7 @@ export default function GateEntryRecorded() {
           <Text
             style={{
               fontSize: type.caption,
-              fontWeight: "700",
+              ...font("bold"),
               letterSpacing: 1.2,
               textTransform: "uppercase",
               color: p.textMuted,
@@ -69,7 +69,7 @@ export default function GateEntryRecorded() {
             accessibilityLabel={`Gate entry number ${number ?? "unknown"}`}
             style={{
               fontSize: type.display,
-              fontWeight: "800",
+              ...font("heavy"),
               color: p.text,
               marginTop: space.sm,
               letterSpacing: 1,

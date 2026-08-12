@@ -11,7 +11,7 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { elevation, radius, space, touch, type, usePalette, weight, type Palette } from "../theme";
+import { elevation, font, radius, space, touch, type, type Palette, usePalette } from "../theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 export type Density = "field" | "desk";
@@ -26,10 +26,30 @@ const heightFor = (d: Density) => (d === "field" ? touch.field : touch.desk);
  * keyboard at least as often as by touch, and an invisible focus state makes it
  * unusable without a mouse.
  */
-function interactive(pressed: boolean, focused: boolean, p: Palette): ViewStyle {
+function interactive(pressed: boolean, focused: boolean, hovered: boolean, p: Palette): ViewStyle {
   return {
-    ...(pressed ? { backgroundColor: p.surfaceSunken } : {}),
+    // Hover is weaker than press: it says "this responds", press says "you hit it".
+    ...(hovered && !pressed ? { backgroundColor: p.surfaceSunken } : {}),
+    ...(pressed ? { backgroundColor: p.border } : {}),
     ...(focused ? { borderColor: p.focus, borderWidth: 2 } : {}),
+    // react-native-web does not set a pointer cursor from onPress alone.
+    cursor: "pointer",
+  } as ViewStyle;
+}
+
+/** Shared hover/focus plumbing, so no interactive component forgets either. */
+function useInteractionState() {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  return {
+    hovered,
+    focused,
+    handlers: {
+      onHoverIn: () => setHovered(true),
+      onHoverOut: () => setHovered(false),
+      onFocus: () => setFocused(true),
+      onBlur: () => setFocused(false),
+    },
   };
 }
 
@@ -76,7 +96,7 @@ export function Header({
           accessibilityRole="header"
           style={{
             fontSize: type.title,
-            fontWeight: weight.bold,
+            ...font("bold"),
             color: p.text,
             letterSpacing: -0.4,
           }}
@@ -111,7 +131,7 @@ export function Section({
           accessibilityRole="header"
           style={{
             fontSize: type.micro,
-            fontWeight: weight.bold,
+            ...font("bold"),
             letterSpacing: 0.9,
             textTransform: "uppercase",
             color: p.textFaint,
@@ -191,7 +211,7 @@ export function Row({
   tint?: "accent" | "danger";
 }) {
   const p = usePalette();
-  const [focused, setFocused] = useState(false);
+  const { hovered, focused, handlers } = useInteractionState();
   const iconColour = selected ? p.accent : tint === "danger" ? p.danger : p.textMuted;
 
   const body = (
@@ -216,7 +236,7 @@ export function Row({
           numberOfLines={1}
           style={{
             fontSize: density === "field" ? type.subheading : type.body,
-            fontWeight: weight.semibold,
+            ...font("semibold"),
             color: tint === "danger" ? p.danger : p.text,
           }}
         >
@@ -257,9 +277,8 @@ export function Row({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={value ? `${label}. ${value}` : label}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={({ pressed }) => [style, interactive(pressed, focused, p)]}
+      {...handlers}
+      style={({ pressed }) => [style, interactive(pressed, focused, hovered, p)]}
     >
       {body}
     </Pressable>
@@ -282,7 +301,7 @@ export function PrimaryButton({
   density?: Density;
 }) {
   const p = usePalette();
-  const [focused, setFocused] = useState(false);
+  const { hovered, focused, handlers } = useInteractionState();
   const bg = tone === "accent" ? p.accent : tone === "danger" ? p.danger : p.surfaceSunken;
   const fg = tone === "neutral" ? p.text : p.onAccent;
 
@@ -293,8 +312,7 @@ export function PrimaryButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      {...handlers}
       style={({ pressed }) => [
         {
           flexDirection: "row",
@@ -304,10 +322,11 @@ export function PrimaryButton({
           borderRadius: radius.md,
           paddingHorizontal: space.xl,
           backgroundColor: bg,
-          opacity: disabled ? 0.4 : pressed ? 0.88 : 1,
+          opacity: disabled ? 0.4 : pressed ? 0.85 : hovered ? 0.94 : 1,
           borderWidth: focused ? 2 : 0,
           borderColor: p.focus,
-        },
+          cursor: disabled ? "not-allowed" : "pointer",
+        } as ViewStyle,
         tone === "accent" && !disabled ? elevation(1, p) : {},
       ]}
     >
@@ -316,7 +335,7 @@ export function PrimaryButton({
         style={{
           color: fg,
           fontSize: type.body,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           marginLeft: icon ? space.sm : 0,
           letterSpacing: 0.1,
         }}
@@ -339,32 +358,44 @@ export function ChoiceTile({
   onPress: () => void;
 }) {
   const p = usePalette();
-  const [focused, setFocused] = useState(false);
+  const { hovered, focused, handlers } = useInteractionState();
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={({ pressed }) => ({
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: space.lg,
-        paddingHorizontal: space.sm,
-        borderRadius: radius.md,
-        borderWidth: selected || focused ? 2 : StyleSheet.hairlineWidth,
-        borderColor: focused ? p.focus : selected ? p.accent : p.border,
-        backgroundColor: selected ? p.accentSurface : pressed ? p.surfaceSunken : p.surface,
-      })}
+      {...handlers}
+      style={({ pressed }) =>
+        ({
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          paddingVertical: space.lg,
+          paddingHorizontal: space.sm,
+          borderRadius: radius.md,
+          borderWidth: selected || focused ? 2 : StyleSheet.hairlineWidth,
+          borderColor: focused
+            ? p.focus
+            : selected
+              ? p.accent
+              : hovered
+                ? p.borderStrong
+                : p.border,
+          backgroundColor: selected
+            ? p.accentSurface
+            : pressed || hovered
+              ? p.surfaceSunken
+              : p.surface,
+          cursor: "pointer",
+        }) as ViewStyle
+      }
     >
       <Ionicons name={icon} size={22} color={selected ? p.accent : p.textMuted} />
       <Text
         style={{
           fontSize: type.caption,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           color: selected ? p.accent : p.text,
           marginTop: space.xs,
           textAlign: "center",
@@ -433,7 +464,7 @@ export function Stepper({
           flex: 1,
           textAlign: "center",
           fontSize: type.display,
-          fontWeight: weight.bold,
+          ...font("bold"),
           color: p.text,
           fontVariant: ["tabular-nums"],
         }}
@@ -479,7 +510,7 @@ export function Field({
       <Text
         style={{
           fontSize: type.label,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           color: p.text,
           marginBottom: space.xs,
         }}
@@ -522,7 +553,7 @@ export function Field({
           }
         />
         {suffix ? (
-          <Text style={{ fontSize: type.caption, color: p.textMuted, fontWeight: weight.medium }}>
+          <Text style={{ fontSize: type.caption, color: p.textMuted, ...font("medium") }}>
             {suffix}
           </Text>
         ) : null}
@@ -575,9 +606,7 @@ export function Toggle({
       }}
     >
       <View style={{ flex: 1, marginRight: space.md }}>
-        <Text style={{ fontSize: type.body, fontWeight: weight.semibold, color: p.text }}>
-          {label}
-        </Text>
+        <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>{label}</Text>
         {hint ? (
           <Text
             style={{
@@ -639,7 +668,7 @@ export function SelectRow({
       <Text
         style={{
           fontSize: type.label,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           color: p.text,
           marginBottom: space.xs,
         }}
@@ -823,7 +852,7 @@ export function StatusPill({
         style={{
           color: c.fg,
           fontSize: type.micro,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           marginLeft: icon ? space.xs : 0,
           letterSpacing: 0.2,
         }}
@@ -868,7 +897,7 @@ export function Notice({
       <Text
         style={{
           fontSize: type.subheading,
-          fontWeight: weight.semibold,
+          ...font("semibold"),
           color: p.text,
           marginTop: space.lg,
           textAlign: "center",

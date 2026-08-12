@@ -2,7 +2,7 @@ import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Notice, PrimaryButton, Row } from "../components/ui";
 import { useSession } from "../lib/session";
-import { space, type, usePalette } from "../theme";
+import { font, space, type, usePalette } from "../theme";
 
 /**
  * Which property am I working in?
@@ -43,9 +43,7 @@ export default function ChooseProperty() {
       style={{ backgroundColor: p.background }}
       contentContainerStyle={{ padding: space.md, paddingTop: insets.top + space.xl }}
     >
-      <Text style={{ fontSize: type.title, fontWeight: "700", color: p.text }}>
-        Choose property
-      </Text>
+      <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>Choose property</Text>
       <Text style={{ fontSize: type.label, color: p.textMuted, marginBottom: space.lg }}>
         Everything you see and record belongs to the property you pick.
       </Text>
