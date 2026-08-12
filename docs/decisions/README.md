@@ -23,6 +23,7 @@ The value is in the _consequences_ section. Six months from now the question wil
 | [0013](0013-cloud-first-development.md)         | Cloud-first development; production migrations gated on CI           | Accepted |
 | [0014](0014-web-first-via-expo-web.md)          | Web first, from the same Expo codebase                               | Accepted |
 | [0015](0015-one-app-not-two.md)                 | One app, not two — the admin console folds into it                   | Accepted |
+| [0016](0016-hosting-on-cloudflare-pages.md)     | The web app is hosted on Cloudflare Pages                            | Accepted |
 
 ## Template
 
