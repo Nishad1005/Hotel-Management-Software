@@ -49,6 +49,12 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      # A pgTAP plan count that disagrees with the file fails inside the database
+      # container, which is an expensive place to learn you cannot count. Same check,
+      # a job earlier, no Docker.
+      - name: pgTAP plan counts
+        run: node scripts/check-test-plans.mjs
+
       - name: Typecheck
         run: pnpm typecheck
 
