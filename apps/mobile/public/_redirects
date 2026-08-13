@@ -1,6 +1,0 @@
-# Expo Router with web.output "single" serves one HTML file and routes on the client.
-# Without this, a refresh or a direct hit on /items or /perishables is a 404 from the
-# host, because no such file exists. The 200 is a rewrite rather than a redirect, so
-# real files under /_expo/ and /assets/ are still served first and only genuine
-# client routes fall through to the shell.
-/*    /index.html   200

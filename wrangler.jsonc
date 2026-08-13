@@ -20,20 +20,29 @@
 
   "compatibility_date": "2026-08-13",
 
+  // Explicit rather than relying on the default, because the dashboard had this off
+  // and a deploy silently flipping it is the kind of surprise worth spelling out.
+  // This is what gives the site its <name>.<account>.workers.dev address.
+  "workers_dev": true,
+
   // No `main`. There is no Worker script and there should not be one: this is a static
   // single-page app (ADR 0014, ADR 0016), and giving it a server would quietly create a
   // second place where behaviour can live.
   "assets": {
     "directory": "./apps/mobile/dist",
 
-    // The SPA fallback. `web.output` is "single", so there is one HTML file and routing
-    // happens on the client — a refresh on /items or /perishables asks for a file that
-    // does not exist. This serves index.html for any unmatched path, with a 200, while
-    // real files under /_expo/ and /assets/ are still matched first.
+    // The SPA fallback, and the ONLY one. `web.output` is "single", so there is one
+    // HTML file and routing happens on the client — a refresh on /items or
+    // /perishables asks for a file that does not exist. This serves index.html for any
+    // unmatched path while real files under /_expo/ and /assets/ still match first.
     //
-    // apps/mobile/public/_redirects expresses the same rule in the portable form that
-    // Netlify and others read. It is kept deliberately: this setting is Cloudflare's
-    // mechanism, that file is the one that travels if the host ever changes.
+    // Do not add a `_redirects` file alongside this. The obvious rule for a SPA,
+    // `/* /index.html 200`, is rejected outright by the Workers assets API:
+    //
+    //   Invalid _redirects configuration: Line 6: Infinite loop detected in this rule.
+    //
+    // Workers already strips `.html` and `/index` when matching, so a rewrite back to
+    // /index.html re-triggers itself. It failed a deploy once; the file is gone.
     "not_found_handling": "single-page-application"
   }
 }
