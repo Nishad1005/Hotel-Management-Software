@@ -7,7 +7,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../components/ui";
 import { useSession } from "../lib/session";
-import { listStockOnHand, moveStockOut, type StockLine } from "../lib/stock";
+import { listStockOnHand, moveStockOut, newSubmissionId, type StockLine } from "../lib/stock";
 import { elevation, font, radius, space, touch, type, usePalette } from "../theme";
 
 /**
@@ -110,6 +110,10 @@ export default function Perishables() {
         // separately entered (PRD section 7.2).
         toState: null,
         note: "Expired",
+        // One id per press. The button disables while this runs, but a lost response
+        // followed by a retry must not write the stock off twice — and the ledger is
+        // append-only, so a duplicate is not something anyone can tidy up afterwards.
+        submissionId: newSubmissionId(),
       });
       await load();
     } catch (e) {

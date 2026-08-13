@@ -351,21 +351,34 @@ export function ChoiceTile({
   label,
   selected,
   onPress,
+  disabled = false,
+  hint,
 }: {
   icon: IoniconName;
   label: string;
   selected: boolean;
   onPress: () => void;
+  /**
+   * Shown, but not offered.
+   *
+   * Hiding an unbuilt option would be tidier and worse: the guard cannot tell whether
+   * the app lacks the feature or they have missed it, and the first thing they do is
+   * look for it again. Greyed out with a reason answers the question once.
+   */
+  disabled?: boolean;
+  hint?: string;
 }) {
   const p = usePalette();
   const { hovered, focused, handlers } = useInteractionState();
+  const live = !disabled;
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-      {...handlers}
+      accessibilityState={{ selected, disabled }}
+      accessibilityLabel={hint ? `${label}. ${hint}` : label}
+      {...(live ? handlers : {})}
       style={({ pressed }) =>
         ({
           flex: 1,
@@ -374,20 +387,22 @@ export function ChoiceTile({
           paddingVertical: space.lg,
           paddingHorizontal: space.sm,
           borderRadius: radius.md,
-          borderWidth: selected || focused ? 2 : StyleSheet.hairlineWidth,
-          borderColor: focused
-            ? p.focus
-            : selected
-              ? p.accent
-              : hovered
-                ? p.borderStrong
-                : p.border,
+          borderWidth: selected || (focused && live) ? 2 : StyleSheet.hairlineWidth,
+          borderColor:
+            focused && live
+              ? p.focus
+              : selected
+                ? p.accent
+                : hovered && live
+                  ? p.borderStrong
+                  : p.border,
           backgroundColor: selected
             ? p.accentSurface
-            : pressed || hovered
+            : (pressed || hovered) && live
               ? p.surfaceSunken
               : p.surface,
-          cursor: "pointer",
+          opacity: live ? 1 : 0.45,
+          cursor: live ? "pointer" : "not-allowed",
         }) as ViewStyle
       }
     >
@@ -403,6 +418,18 @@ export function ChoiceTile({
       >
         {label}
       </Text>
+      {hint ? (
+        <Text
+          style={{
+            fontSize: type.micro,
+            color: p.textFaint,
+            marginTop: 2,
+            textAlign: "center",
+          }}
+        >
+          {hint}
+        </Text>
+      ) : null}
     </Pressable>
   );
 }
