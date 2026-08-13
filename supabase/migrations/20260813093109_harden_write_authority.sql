@@ -114,7 +114,11 @@ begin
       using errcode = 'P0001';
   end if;
 
-  if old.timestamp_out is not null and new.timestamp_out is distinct from old.timestamp_out then
+  -- Closed is closed. Deliberately not "the value changed": inside one transaction
+  -- now() does not advance, so a second `set timestamp_out = now()` writes an identical
+  -- value and a value comparison sees no change at all. The departure is a fact
+  -- recorded once, not a field kept up to date.
+  if old.timestamp_out is not null then
     raise exception 'The vehicle has already been recorded as leaving.'
       using errcode = 'P0001';
   end if;
@@ -141,6 +145,60 @@ create trigger gate_entry_append_only
 -- from inside a trigger. The real fix is `app.move_stock` taking a row lock and
 -- checking sufficiency before it writes, so the user gets "only 3 kg on CHILL-01"
 -- instead. That lands with the flow RPCs; this lands now because the hole is open now.
+
+-- The projection maintainer has to stop proposing a negative row before the constraint
+-- can exist at all.
+--
+-- It handled the outbound side as `insert ... values (-qty) on conflict do update set
+-- qty = qty - new.qty`. Postgres evaluates CHECK constraints on the tuple being
+-- inserted BEFORE it resolves the conflict, so `qty >= 0` rejects the speculative
+-- -qty row and every outbound movement fails — even one leaving a healthy positive
+-- balance. Writing off 10 from a lot of 40 raised, which is how CI found this.
+--
+-- Update first, insert only where there is genuinely nothing yet. Taking stock from a
+-- lot that does not exist is now a raised error rather than a negative row invented on
+-- the spot, which is the same defect this whole section is about (CLAUDE.md 4b: zero
+-- rows affected is a failure, not a no-op).
+create or replace function app.apply_stock_movement()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_touched integer;
+begin
+  if new.from_location_id is not null and new.from_state is not null then
+    update public.stock_lot
+       set qty = qty - new.qty, updated_at = now()
+     where batch_id = new.batch_id
+       and location_id = new.from_location_id
+       and state = new.from_state;
+
+    get diagnostics v_touched = row_count;
+
+    if v_touched = 0 then
+      raise exception
+        'No stock of this batch is held at that location in that state, so none can be moved out of it.'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  if new.to_location_id is not null and new.to_state is not null then
+    -- Always an increase, so the speculative row is never negative and the constraint
+    -- has nothing to object to.
+    insert into public.stock_lot (property_id, batch_id, location_id, state, qty, updated_at)
+    values (new.property_id, new.batch_id, new.to_location_id, new.to_state, new.qty, now())
+    on conflict (batch_id, location_id, state)
+    do update set qty = public.stock_lot.qty + new.qty, updated_at = now();
+  end if;
+
+  return new;
+end;
+$$;
+
+comment on function app.apply_stock_movement() is
+  'Maintains stock_lot from the ledger. Updates the source before inserting the destination, so a negative row is never proposed and stock_lot_never_negative can hold. SECURITY DEFINER because the projection is derived by the system, not written by the user.';
 
 alter table public.stock_lot
   add constraint stock_lot_never_negative check (qty >= 0);
