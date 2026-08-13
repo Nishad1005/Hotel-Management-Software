@@ -11,7 +11,11 @@
 
 ## Decision
 
-**Cloudflare Pages**, on a `pages.dev` subdomain until a domain is chosen.
+**Cloudflare**, on a `workers.dev` subdomain until a domain is chosen.
+
+Cloudflare has folded Pages into Workers, so connecting a Git repository now produces a **Worker serving static assets** rather than a Pages project — the deploy step runs `wrangler deploy` against `wrangler.jsonc` at the repo root. The first attempt failed for exactly this reason: with no config file, wrangler tried to detect the application, found a pnpm workspace, and refused to guess. The build itself succeeded.
+
+The Worker has **no `main` and no script**, deliberately. This is a static SPA; giving it a server would quietly create a second place where behaviour can live.
 
 The deciding factor is licensing, not performance:
 
@@ -23,7 +27,8 @@ The deciding factor is licensing, not performance:
 
 - Cost stays at zero from the pilot through several properties, and there is no tier at which the site silently stops serving.
 - **Cloudflare runs the build**, because `dist/` is git-ignored. That is the behaviour we want: `EXPO_PUBLIC_*` values are inlined by Metro at export time, so they must be present in the build environment rather than at runtime. Pointing the app at a different Supabase project is a rebuild, not a settings change.
-- `apps/mobile/public/_redirects` is required and is now part of the build. Without `/* /index.html 200`, a refresh on any client route is a 404 from the host, because no such file exists. It is a rewrite rather than a redirect, so real assets under `/_expo/` and `/assets/` still win.
+- **The SPA fallback is `not_found_handling: "single-page-application"`** in `wrangler.jsonc`. Without it, a refresh on any client route is a 404 from the host, because no such file exists. `apps/mobile/public/_redirects` states the same rule in the portable form Netlify and others read, and is kept on purpose: the wrangler setting is Cloudflare's mechanism, that file is what travels if the host ever changes.
+- **`wrangler.jsonc` must live at the repo root** and its `name` must match the Worker in the dashboard, or wrangler deploys a differently-named Worker and the project points at nothing.
 - **The app must be served from the domain root.** Every asset path in the export is root-absolute, so a sub-path deployment breaks all of them.
 - Preview deployments come per branch, which is worth having given there are no Supabase preview databases on the free plan (ADR 0013) — the web preview is the only per-branch environment we get.
 - Moving hosts later is cheap. `_redirects` is the same file Netlify uses, and nothing else here is host-specific. That is a property of having chosen a static SPA, and it is worth keeping: no build step should acquire a dependency on one host's runtime.

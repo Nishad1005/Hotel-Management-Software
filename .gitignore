@@ -56,3 +56,6 @@ pnpm-debug.log*
 # Local scratch
 /tmp/
 /scratch/
+
+# Wrangler build/state cache, written by any local `wrangler` invocation.
+.wrangler/
