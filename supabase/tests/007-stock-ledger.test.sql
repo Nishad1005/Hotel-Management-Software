@@ -7,7 +7,7 @@
 -- is what stops it.
 
 begin;
-select plan(14);
+select plan(16);
 
 -- ---------------------------------------------------------------------------
 -- Fixture: two properties, so isolation is exercised alongside everything else
@@ -152,6 +152,19 @@ select throws_ok(
 -- Rejected stock can never reach a zone (PRD section 8, hard rule)
 -- ---------------------------------------------------------------------------
 
+-- Stock has to reach the reject hold before anything can be tested leaving it. This
+-- was missing: the staging test below moved a unit out of REJECT_HOLD that had never
+-- been put in, and the projection quietly went to -1. Nothing failed, because nothing
+-- checked — which is what `stock_lot_never_negative` now does.
+select lives_ok(
+  $q$ insert into public.stock_movement
+        (property_id, batch_id, item_id, to_location_id, to_state, qty, uom_id, reason,
+         idempotency_key)
+      select prop_a, '00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-0000000a0001',
+             rej_a, 'REJECT_HOLD', 1, uom_a, 'GRN_POSTING', 'reject-1' from ctx $q$,
+  'a rejected line posts to the reject hold'
+);
+
 select throws_ok(
   $q$ insert into public.stock_movement
         (property_id, batch_id, item_id, from_location_id, from_state, to_location_id, to_state,
@@ -218,6 +231,38 @@ select throws_ok(
   '23514',
   null,
   'a returnable dispatch must carry an expected return date'
+);
+
+-- ---------------------------------------------------------------------------
+-- The replay identity again, over everything
+-- ---------------------------------------------------------------------------
+--
+-- The check above runs a third of the way down this file, so every movement after it
+-- was unverified. That is how a unit left REJECT_HOLD that had never entered it and
+-- nothing noticed. The identity is the most valuable assertion here; it should hold
+-- after the last movement, not only after the third.
+
+select is_empty(
+  $q$
+    with replay as (
+      select batch_id, location_id, state, sum(delta) as qty from (
+        select batch_id, from_location_id as location_id, from_state as state, -qty as delta
+          from public.stock_movement
+         where from_location_id is not null and from_state is not null
+        union all
+        select batch_id, to_location_id, to_state, qty
+          from public.stock_movement
+         where to_location_id is not null and to_state is not null
+      ) parts
+      group by batch_id, location_id, state
+    )
+    select coalesce(r.batch_id, l.batch_id)::text
+      from replay r
+      full outer join public.stock_lot l
+        on l.batch_id = r.batch_id and l.location_id = r.location_id and l.state = r.state
+     where coalesce(r.qty, 0) <> coalesce(l.qty, 0)
+  $q$,
+  'and still equals a full replay after every movement in this file'
 );
 
 select * from finish();
