@@ -153,12 +153,21 @@ export default function NewGateEntry() {
 
         <Section title="Bill" hint="A missing bill is normal. Say so rather than leaving it blank.">
           <View style={{ flexDirection: "row", gap: space.sm }}>
+            {/*
+              Disabled until the camera is wired, rather than standing in for it.
+              It previously wrote the literal string "placeholder://bill.jpg", which
+              satisfies gate_entry_photo_matches_bill_state — so every synced record
+              asserted a photograph that does not exist. PRD section 8 is explicit that
+              a record carrying a false assertion is worse than an honest gap, and a
+              compliance record is exactly where that matters.
+            */}
             <ChoiceTile
               icon="camera"
               label="Photograph bill"
+              disabled
+              hint="Coming soon"
               selected={bill.kind === "PHOTOGRAPHED"}
-              // Camera is not wired yet; this stands in for the capture result.
-              onPress={() => setBill({ kind: "PHOTOGRAPHED", photoRef: "placeholder://bill.jpg" })}
+              onPress={() => {}}
             />
             <ChoiceTile
               icon="document-outline"

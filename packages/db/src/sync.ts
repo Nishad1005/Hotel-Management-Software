@@ -22,15 +22,26 @@ const PERMANENT_CODES = new Set([
   "PGRST204", // column not found in schema cache
 ]);
 
-/**
- * Unique violation is deliberately treated as SUCCESS, not as an error.
- *
- * Every capture carries an idempotency key written into the row. If the server already
- * holds it, a previous attempt landed and the acknowledgement was what got lost. The
- * record is done. Treating this as a failure is how a retry turns into a phantom
- * duplicate — the exact thing the idempotency key exists to prevent.
- */
-const ALREADY_APPLIED = "23505";
+const UNIQUE_VIOLATION = "23505";
+
+export interface SyncTarget {
+  table: string;
+  row: Record<string, unknown>;
+  /**
+   * The unique constraint that means "this exact capture already landed".
+   *
+   * Naming it is what makes a unique violation safe to treat as success. Without it a
+   * `23505` is ambiguous, and the ambiguity is not academic: a gate entry's uniqueness
+   * is on the entry NUMBER, and two devices can mint the same number in the same
+   * second. Treating that as success deletes the record — and the second vehicle's
+   * arrival is gone with no error anywhere, which is precisely the failure the
+   * reconciliation control exists to catch.
+   *
+   * So: omit it unless the constraint identifies the capture itself rather than
+   * something the capture happens to contain.
+   */
+  idempotentOn?: string;
+}
 
 export interface SyncOptions {
   client: GolaiClient;
@@ -38,7 +49,7 @@ export interface SyncOptions {
    * Maps a queued capture onto the table and row to insert. Kept out of this module so
    * the queue stays ignorant of what it is transporting.
    */
-  route: (record: OutboxRecord) => { table: string; row: Record<string, unknown> } | null;
+  route: (record: OutboxRecord) => SyncTarget | null;
 }
 
 export function createSender({ client, route }: SyncOptions) {
@@ -58,7 +69,23 @@ export function createSender({ client, route }: SyncOptions) {
 
     if (!error) return { ok: true };
 
-    if (error.code === ALREADY_APPLIED) return { ok: true };
+    if (error.code === UNIQUE_VIOLATION) {
+      // Only when the route has named the constraint AND the server says that is the
+      // one that fired. Postgres puts the constraint name in the message; on the rare
+      // driver that does not, `details` carries the key.
+      const named = target.idempotentOn;
+      const blamed = `${error.message} ${error.details ?? ""}`;
+
+      if (named && blamed.includes(named)) return { ok: true };
+
+      // Otherwise something genuinely clashed. Park it: a record that needs a human
+      // has lost nothing, and a record that was deleted on a guess has lost an arrival.
+      return {
+        ok: false,
+        retryable: false,
+        reason: `${UNIQUE_VIOLATION}:${error.message}`,
+      };
+    }
 
     if (error.code && PERMANENT_CODES.has(error.code)) {
       return { ok: false, retryable: false, reason: `${error.code}:${error.message}` };
