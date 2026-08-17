@@ -11,7 +11,7 @@
 -- module rests on stops existing while continuing to look like it works.
 
 begin;
-select plan(14);
+select plan(15);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
