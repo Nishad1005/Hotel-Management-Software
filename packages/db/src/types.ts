@@ -611,6 +611,17 @@ export type Database = {
         Args: { p_property_id: string; p_location_id: string };
         Returns: undefined;
       };
+      list_team: {
+        Args: { p_property_id: string };
+        Returns: {
+          user_id: string;
+          full_name: string;
+          email: string | null;
+          phone: string | null;
+          roles: MembershipRole[];
+          is_self: boolean;
+        }[];
+      };
       can_manage_users: {
         Args: { p_property_id: string };
         Returns: boolean;

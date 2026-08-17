@@ -268,7 +268,14 @@ export default function Home() {
                 icon="map-outline"
                 label="Zones & locations"
                 value="Build the bin tree and print the stickers"
+                divider
                 onPress={() => router.push("/admin/locations")}
+              />
+              <Row
+                icon="people-outline"
+                label="People"
+                value="Who works here, and what they may do"
+                onPress={() => router.push("/admin/users")}
               />
             </Card>
           </Section>
