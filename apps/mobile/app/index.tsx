@@ -261,7 +261,14 @@ export default function Home() {
                 icon="cube-outline"
                 label="Items"
                 value={canEditMasters ? "Add and edit the item master" : "View the item master"}
+                divider
                 onPress={() => router.push("/items")}
+              />
+              <Row
+                icon="map-outline"
+                label="Zones & locations"
+                value="Build the bin tree and print the stickers"
+                onPress={() => router.push("/admin/locations")}
               />
             </Card>
           </Section>

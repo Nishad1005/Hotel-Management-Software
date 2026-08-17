@@ -58,7 +58,18 @@ export type MembershipRole =
 
 export type UomKind = "WEIGHT" | "VOLUME" | "COUNT";
 export type StorageRegime = "AMBIENT" | "CHILLED" | "FROZEN";
-export type LocationKind = "SECURITY" | "RECEIVING" | "REJECT" | "ZONE" | "DISPATCH";
+/**
+ * RACK groups; BIN is the leaf that carries a scannable label and is the only lawful
+ * put-away destination (PRD section 4 Gate 6, hard rule 13).
+ */
+export type LocationKind =
+  | "SECURITY"
+  | "RECEIVING"
+  | "REJECT"
+  | "ZONE"
+  | "RACK"
+  | "BIN"
+  | "DISPATCH";
 export type EnforcementMode = "RECORD_ONLY" | "WARN" | "BLOCK";
 
 export type OrganisationRow = {
@@ -124,6 +135,14 @@ export type LocationRow = {
   parent_id: string | null;
   regime: StorageRegime;
   is_active: boolean;
+  /** What this property calls this kind of place — Shelf, Rack, Ghoda, Peti stack. */
+  fixture_type: string;
+  /** Set together or not at all, for positions found by coordinate rather than label. */
+  grid_block: number | null;
+  grid_row: number | null;
+  grid_col: number | null;
+  /** Explicit walking order within a parent; null falls back to code order. */
+  sort_key: number | null;
   created_at: string;
 };
 
@@ -408,7 +427,17 @@ export type Database = {
       };
       location: {
         Row: LocationRow;
-        Insert: InsertOf<LocationRow, "parent_id" | "regime" | "is_active">;
+        Insert: InsertOf<
+          LocationRow,
+          | "parent_id"
+          | "regime"
+          | "is_active"
+          | "fixture_type"
+          | "grid_block"
+          | "grid_row"
+          | "grid_col"
+          | "sort_key"
+        >;
         Update: Partial<LocationRow>;
         Relationships: [];
       };
@@ -570,7 +599,19 @@ export type Database = {
       };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    /**
+     * Callable functions in `public`.
+     *
+     * Only what the client may call. `system` is service-role only and `app` is not
+     * exposed to PostgREST at all, so neither appears here — and neither should, or the
+     * types would start describing a surface the app cannot reach.
+     */
+    Functions: {
+      deactivate_location: {
+        Args: { p_property_id: string; p_location_id: string };
+        Returns: undefined;
+      };
+    };
     Enums: {
       organisation_lifecycle: OrganisationLifecycle;
       property_lifecycle: PropertyLifecycle;
