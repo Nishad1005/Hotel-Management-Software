@@ -308,6 +308,11 @@ export type GrnRow = {
   posted_by: string | null;
   amendment_of: string | null;
   amendment_reason: string | null;
+  /**
+   * Identifies the submission, so an outbox retry returns the original receipt rather
+   * than posting a second one. Set by `post_grn`; never written from a client.
+   */
+  idempotency_key: string | null;
   created_at: string;
 };
 
@@ -325,6 +330,33 @@ export type GrnLineRow = {
   decision: GrnLineDecision;
   reject_reason: RejectReason | null;
   created_at: string;
+};
+
+/**
+ * One line handed to `post_grn`.
+ *
+ * Not a `GrnLineRow`: the caller supplies neither ids the server allocates nor the batch,
+ * which is created or matched during posting. `best_before` and `receipt_temp_c` belong
+ * to the batch rather than the line, but they are captured on the same screen at the same
+ * moment, so they arrive here.
+ */
+export type PostGrnLine = {
+  item_id: string;
+  /** Defaults to the item's base unit when omitted. */
+  uom_id?: string;
+  /** The vendor's number. A system one is generated when there is none. */
+  batch_no?: string | null;
+  mfg_date?: string | null;
+  /** Required on a perishable item. Part of the quality floor; no mode switches it off. */
+  best_before?: string | null;
+  /** Required on a cold-chain item. Same floor. */
+  receipt_temp_c?: number | null;
+  qty_challan?: number | null;
+  qty_physical: number;
+  qty_accepted: number;
+  qty_rejected: number;
+  decision: GrnLineDecision;
+  reject_reason?: RejectReason | null;
 };
 
 export type DispatchNoteRow = {
@@ -568,6 +600,7 @@ export type Database = {
           | "posted_by"
           | "amendment_of"
           | "amendment_reason"
+          | "idempotency_key"
         >;
         Update: Partial<GrnRow>;
         Relationships: [];
@@ -705,6 +738,35 @@ export type Database = {
       revoke_role: {
         Args: { p_property_id: string; p_user_id: string; p_role: MembershipRole };
         Returns: undefined;
+      };
+      /**
+       * Gates 1-5 in one transaction. Replaying a key returns the original receipt
+       * rather than posting a second one.
+       */
+      post_grn: {
+        Args: {
+          p_property_id: string;
+          p_gate_entry_id: string | null;
+          p_party_id: string | null;
+          p_idempotency_key: string;
+          p_lines: PostGrnLine[];
+        };
+        Returns: { grn_id: string; grn_no: string }[];
+      };
+      /** Arrivals with no receipt against them yet — the receiving worklist. */
+      list_open_gate_entries: {
+        Args: { p_property_id: string };
+        Returns: {
+          id: string;
+          gate_entry_no: string;
+          timestamp_in: string;
+          party_id: string | null;
+          party_name: string | null;
+          arrival_type: ArrivalType;
+          package_count: number;
+          vehicle_number: string | null;
+          hours_open: number;
+        }[];
       };
     };
     Enums: {
