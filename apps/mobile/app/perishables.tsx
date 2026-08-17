@@ -154,6 +154,27 @@ export default function Perishables() {
                 })}
             onBack={() => router.back()}
           />
+
+          {/*
+            The verdict, before any scrolling. A bucket with nothing in it is shown
+            greyed rather than hidden, so the row keeps the same shape every visit and
+            "zero expired" is something you can see rather than infer from an absence.
+          */}
+          {!loading && totalTracked > 0 ? (
+            <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
+              <CountChip label="Expired" count={grouped.get("EXPIRED")?.length ?? 0} tone="bad" />
+              <CountChip
+                label="Use today"
+                count={grouped.get("CRITICAL")?.length ?? 0}
+                tone="warn"
+              />
+              <CountChip
+                label="This week"
+                count={grouped.get("NEARING")?.length ?? 0}
+                tone="neutral"
+              />
+            </View>
+          ) : null}
         </Page>
       </View>
 
@@ -280,6 +301,64 @@ export default function Perishables() {
   );
 }
 
+/** One bucket's count. Greyed at zero rather than hidden, so the row keeps its shape. */
+function CountChip({
+  label,
+  count,
+  tone,
+}: {
+  label: string;
+  count: number;
+  tone: "bad" | "warn" | "neutral";
+}) {
+  const p = usePalette();
+  const live = count > 0;
+  const ink = !live
+    ? p.textFaint
+    : tone === "bad"
+      ? p.danger
+      : tone === "warn"
+        ? p.warning
+        : p.text;
+  const wash = !live
+    ? p.surfaceSunken
+    : tone === "bad"
+      ? p.dangerSurface
+      : tone === "warn"
+        ? p.warningSurface
+        : p.surfaceSunken;
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        paddingVertical: space.sm,
+        paddingHorizontal: space.md,
+        borderRadius: radius.md,
+        backgroundColor: wash,
+      }}
+    >
+      <Text
+        style={{
+          fontSize: type.heading,
+          ...font("heavy"),
+          color: ink,
+          letterSpacing: -0.5,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {count}
+      </Text>
+      <Text
+        style={{ fontSize: type.micro, ...font("semibold"), color: live ? ink : p.textFaint }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 function StockRow({
   line,
   now,
@@ -311,52 +390,66 @@ function StockRow({
   return (
     <View
       style={{
-        paddingHorizontal: space.lg,
+        paddingLeft: space.lg - 3,
+        paddingRight: space.lg,
         paddingVertical: space.md,
         borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
         borderBottomColor: p.border,
+        // A coloured edge groups the list by urgency at a glance, before any text is
+        // read. Cheaper than tinting the whole row, which would fight the type.
+        borderLeftWidth: 3,
+        borderLeftColor: bucket === "FRESH" ? "transparent" : tone,
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
+        <View style={{ flex: 1, minWidth: 0, paddingRight: space.sm }}>
           <Text
             numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
+            style={{ fontSize: type.subheading, ...font("semibold"), color: p.text }}
           >
             {line.itemName}
           </Text>
           <Text
             numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
+            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}
           >
+            {/* Quantity first and in the stronger weight: it is the figure somebody
+                acts on, and it was previously last behind two codes. */}
+            <Text style={{ ...font("semibold"), color: p.text, fontVariant: ["tabular-nums"] }}>
+              {line.qty} {line.uomCode}
+            </Text>
+            {"  ·  "}
             {line.batchNo}
             {"  ·  "}
             {line.locationCode}
-            {"  ·  "}
-            <Text style={{ fontVariant: ["tabular-nums"] }}>
-              {line.qty} {line.uomCode}
-            </Text>
           </Text>
         </View>
 
-        <View style={{ alignItems: "flex-end", marginLeft: space.sm }}>
+        <View style={{ alignItems: "flex-end" }}>
+          {/* The thing the eye is hunting for down a long list, so it is set largest. */}
           <Text
             style={{
-              fontSize: type.subheading,
-              ...font("bold"),
+              fontSize: type.title,
+              ...font("heavy"),
               color: tone,
+              letterSpacing: -0.6,
+              lineHeight: type.title + 2,
               fontVariant: ["tabular-nums"],
             }}
           >
-            {left === null ? "—" : left < 0 ? `${Math.abs(left)}d ago` : `${left}d`}
+            {left === null ? "—" : left < 0 ? Math.abs(left) : left}
+            {left === null ? "" : "d"}
           </Text>
-          {pct !== null ? (
-            <Text
-              style={{ fontSize: type.micro, color: p.textFaint, fontVariant: ["tabular-nums"] }}
-            >
-              {pct}% left
-            </Text>
-          ) : null}
+          <Text
+            style={{
+              fontSize: type.micro,
+              ...font("semibold"),
+              color: left !== null && left < 0 ? tone : p.textFaint,
+              letterSpacing: 0.3,
+            }}
+          >
+            {left === null ? "no date" : left < 0 ? "ago" : pct !== null ? `${pct}% left` : "left"}
+          </Text>
         </View>
       </View>
 
