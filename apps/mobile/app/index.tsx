@@ -280,13 +280,20 @@ export default function Home() {
             </Card>
           </Section>
 
-          <Section title="Gate">
+          <Section title="The flow">
             <Card padded={false}>
               <Row
                 icon="car-outline"
                 label="New arrival"
-                value="Security capture"
+                value="Gate 0 — Security capture"
+                divider
                 onPress={() => router.push("/gate/new")}
+              />
+              <Row
+                icon="clipboard-outline"
+                label="Receive goods"
+                value="Gates 1 to 5 — count it, check it, post the receipt"
+                onPress={() => router.push("/receive")}
               />
             </Card>
           </Section>

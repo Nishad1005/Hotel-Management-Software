@@ -201,14 +201,19 @@ declare
   v_temp          numeric(5, 2);
   v_pct           numeric(5, 2);
 begin
-  -- STOREKEEPER because receiving is their work, PURCHASE because they own variance
-  -- against the order, OWNER and ADMIN because a small property is one person holding
-  -- all three. SECURITY is absent on purpose: they raise the gate entry, and if the same
-  -- person raised the GRN too then the two records agree by construction and the
-  -- reconciliation control this module rests on does not exist.
+  -- The same list the domain package grants `receiving` to, and it has to stay the same
+  -- list: where the capability table and a policy disagree the policy wins and the app
+  -- has a bug, so the disagreement should not exist.
+  --
+  -- STOREKEEPER because receiving is their work; OWNER and ADMIN because a small
+  -- property is one person holding every role. PURCHASE is absent — they approve
+  -- variance against the order, they do not stand at the dock. SECURITY is absent for a
+  -- stronger reason: they raise the gate entry, and if the same person raised the GRN
+  -- too then the two records agree by construction and the reconciliation control this
+  -- whole module rests on stops existing while continuing to look like it works.
   if not app.has_property_role(
        p_property_id,
-       array['OWNER', 'ADMIN', 'STOREKEEPER', 'PURCHASE']::public.membership_role[]
+       array['OWNER', 'ADMIN', 'STOREKEEPER']::public.membership_role[]
      ) then
     raise exception 'You do not have permission to receive goods at this property.'
       using errcode = '42501';

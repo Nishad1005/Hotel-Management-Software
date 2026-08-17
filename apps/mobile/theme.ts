@@ -97,8 +97,15 @@ export function font(w: WeightName) {
   return { fontFamily: fontFamily[w], fontWeight: weight[w] } as const;
 }
 
-/** Numbers in columns must not jog sideways as digits change. */
-export const tabular = { fontVariant: ["tabular-nums"] } as const;
+/**
+ * Numbers in columns must not jog sideways as digits change.
+ *
+ * Deliberately not `as const`. React Native's `TextStyle` declares `fontVariant` as a
+ * mutable array, so a readonly tuple does not satisfy it — the token typechecked at no
+ * call site at all, and every one of them inlined the literal instead. A token nobody
+ * can use is not a token.
+ */
+export const tabular: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
 
 export interface Palette {
   background: string;

@@ -42,6 +42,8 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   "stock/opening": "stock.view",
   "gate/new": "gate.capture",
   "gate/recorded": "gate.capture",
+  receive: "receiving",
+  "receive/[entry]": "receiving",
 };
 
 export function capabilitiesForMembership(
