@@ -611,6 +611,18 @@ export type Database = {
         Args: { p_property_id: string; p_location_id: string };
         Returns: undefined;
       };
+      can_manage_users: {
+        Args: { p_property_id: string };
+        Returns: boolean;
+      };
+      grant_role: {
+        Args: { p_property_id: string; p_user_id: string; p_role: MembershipRole };
+        Returns: undefined;
+      };
+      revoke_role: {
+        Args: { p_property_id: string; p_user_id: string; p_role: MembershipRole };
+        Returns: undefined;
+      };
     };
     Enums: {
       organisation_lifecycle: OrganisationLifecycle;
