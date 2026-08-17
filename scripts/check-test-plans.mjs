@@ -27,6 +27,13 @@ const ASSERTIONS = [
   "isnt_empty",
   "lives_ok",
   "throws_ok",
+  // Pattern-matching variants. Their absence here counted a real assertion as absent
+  // and blocked a correct file, which is the failure mode that gets a checker disabled.
+  "throws_like",
+  "throws_matching",
+  "lives_like",
+  "matches",
+  "imatches",
   "results_eq",
   "set_eq",
   "has_table",
