@@ -52,7 +52,7 @@ export default function SignIn() {
   return (
     <ScrollView
       style={{ backgroundColor: p.background }}
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
       keyboardShouldPersistTaps="handled"
     >
       {/*
@@ -64,7 +64,10 @@ export default function SignIn() {
       */}
       <View
         style={{
-          backgroundColor: p.primary,
+          // p.brand, not p.primary. `primary` is a FOREGROUND colour and flips to a
+          // near-white in dark mode, so using it as a background produced a pale band
+          // across a near-black page with a hard seam through the middle.
+          backgroundColor: p.brand,
           paddingTop: insets.top + space.xxxl,
           paddingBottom: space.xxxl + space.xl,
           paddingHorizontal: space.xl,
@@ -87,7 +90,7 @@ export default function SignIn() {
           style={{
             fontSize: type.display,
             ...font("heavy"),
-            color: p.onPrimary,
+            color: p.onBrand,
             marginTop: space.lg,
             letterSpacing: -1.2,
           }}
@@ -98,8 +101,7 @@ export default function SignIn() {
           style={{
             fontSize: type.label,
             ...font("medium"),
-            color: p.onPrimary,
-            opacity: 0.72,
+            color: p.onBrandMuted,
             marginTop: space.xxs,
             letterSpacing: 0.2,
           }}
