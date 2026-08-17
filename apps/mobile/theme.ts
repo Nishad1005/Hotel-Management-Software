@@ -112,6 +112,18 @@ export interface Palette {
   /** Structure: headers, chrome, the product's own voice. */
   primary: string;
   onPrimary: string;
+  /**
+   * A block of the product's own colour, for sign-in and anywhere else a full-width
+   * band carries the brand.
+   *
+   * Deliberately the SAME deep slate in both themes, unlike `primary`, which flips to a
+   * near-white in dark mode because it is a foreground colour. Using `primary` as a
+   * background produced a pale band across a near-black page with a hard seam through
+   * the middle — a brand band is brand-coloured regardless of the reader's theme.
+   */
+  brand: string;
+  onBrand: string;
+  onBrandMuted: string;
   /** Action and stock-in-hand. The only saturated colour in ordinary use. */
   accent: string;
   onAccent: string;
@@ -139,6 +151,9 @@ const light: Palette = {
   textFaint: "#8A99AB",
   primary: "#1E293B",
   onPrimary: "#FFFFFF",
+  brand: "#16233A",
+  onBrand: "#F8FAFC",
+  onBrandMuted: "#A9BAD1",
   accent: "#047857",
   onAccent: "#FFFFFF",
   accentSurface: "#E7F5EF",
@@ -153,17 +168,24 @@ const light: Palette = {
 };
 
 const dark: Palette = {
-  background: "#0A0F18",
-  surface: "#141C28",
-  surfaceRaised: "#1A2432",
-  surfaceSunken: "#0F1622",
-  border: "#26313F",
-  borderStrong: "#5A6B7F",
-  text: "#EEF2F7",
-  textMuted: "#9FADBE",
-  textFaint: "#6F7F92",
+  // Lifted as a set. The previous values put the page at #0A0F18 and cards at #141C28
+  // — a 10-point step that reads as one flat surface on most screens, so every card
+  // dissolved into the page and the whole app looked like unstyled boxes. Cards now sit
+  // clearly above the page, and the border does real work rather than being a rumour.
+  background: "#0B121C",
+  surface: "#1B2634",
+  surfaceRaised: "#22303F",
+  surfaceSunken: "#141E2B",
+  border: "#31404F",
+  borderStrong: "#64748B",
+  text: "#F1F5F9",
+  textMuted: "#A8B7C7",
+  textFaint: "#78889B",
   primary: "#E2E8F0",
   onPrimary: "#0A0F18",
+  brand: "#16233A",
+  onBrand: "#F8FAFC",
+  onBrandMuted: "#A9BAD1",
   accent: "#2DD4A0",
   onAccent: "#04211A",
   accentSurface: "#0C2A22",
