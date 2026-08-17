@@ -1,5 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { daysRemaining, expiryStatus, shelfLifeRemainingPct, sortByFefo } from "@golai/domain";
+import {
+  daysRemaining,
+  DEFAULT_EXPIRY_THRESHOLDS,
+  expiryStatus,
+  shelfLifeRemainingPct,
+  sortByFefo,
+} from "@golai/domain";
 import type { ExpiryState } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
@@ -20,7 +26,6 @@ import { elevation, font, radius, space, touch, type, usePalette } from "../them
  */
 
 // Assam defaults. Category-specific thresholds arrive with the rule dashboard at P2.
-const THRESHOLDS = { criticalDays: 2, nearingDays: 7 };
 
 const BUCKETS: {
   state: ExpiryState;
@@ -90,7 +95,7 @@ export default function Perishables() {
     const dated = lines.filter((l) => l.state === "AVAILABLE");
     const byBucket = new Map<ExpiryState, StockLine[]>();
     for (const line of sortByFefo(dated)) {
-      const state = expiryStatus(line.bestBefore, now, THRESHOLDS);
+      const state = expiryStatus(line.bestBefore, now, DEFAULT_EXPIRY_THRESHOLDS);
       byBucket.set(state, [...(byBucket.get(state) ?? []), line]);
     }
     return byBucket;

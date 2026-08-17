@@ -1020,6 +1020,48 @@ export type Database = {
           total_qty: number;
         }[];
       };
+      /** Every figure the home screen shows, counted where the rows are. */
+      property_overview: {
+        Args: { p_property_id: string; p_nearing_days?: number };
+        Returns: {
+          items: number;
+          locations: number;
+          bins: number;
+          vendors: number;
+          vendors_on_hold: number;
+          stock_lines: number;
+          expired: number;
+          expiring_soon: number;
+          arrivals_waiting: number;
+          arrivals_overdue: number;
+          quarantine_lines: number;
+          quarantine_oldest_hours: number | null;
+          awaiting_gate_pass: number;
+        }[];
+      };
+      /** Every lot holding stock, in every state. */
+      list_stock_on_hand: {
+        Args: { p_property_id: string; p_search?: string | null };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          is_system_generated: boolean;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          category_name: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          location_name: string;
+          location_kind: LocationKind;
+          state: StockState;
+          qty: number;
+          best_before: string | null;
+          days_remaining: number | null;
+          dwell_breach: boolean;
+        }[];
+      };
       /** Stock in QUARANTINE, with how long it has stood there. */
       list_awaiting_putaway: {
         Args: { p_property_id: string };

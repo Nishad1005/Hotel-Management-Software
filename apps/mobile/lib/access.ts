@@ -39,6 +39,7 @@ export const ROLE_PARITY: Exact<GolaiRole, MembershipRole> = true;
 export const ROUTE_CAPABILITY: Record<string, Capability> = {
   items: "masters.edit",
   perishables: "stock.view",
+  stock: "stock.view",
   "stock/opening": "stock.view",
   "gate/new": "gate.capture",
   "gate/recorded": "gate.capture",

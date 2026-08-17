@@ -36,8 +36,18 @@ const ASSERTIONS = [
   "imatches",
   "results_eq",
   "set_eq",
+  "bag_eq",
+  "row_eq",
+  "is_deeply",
+  // Comparisons other than equality. `cmp_ok` was missing and undercounted a correct
+  // file by one, which is the second time this list has caused exactly that — so its
+  // near-neighbours are added at the same time rather than one per incident.
+  "cmp_ok",
+  "isa_ok",
   "has_table",
   "has_column",
+  "has_function",
+  "has_index",
   "col_is_pk",
 ];
 
