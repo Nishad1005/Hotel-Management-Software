@@ -46,6 +46,9 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   "receive/[entry]": "receiving",
   putaway: "putaway",
   issue: "issue",
+  dispatch: "dispatch",
+  "gate-out": "gate.pass",
+  vendors: "parties.edit",
 };
 
 export function capabilitiesForMembership(

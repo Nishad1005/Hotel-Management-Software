@@ -307,7 +307,21 @@ export default function Home() {
                 icon="exit-outline"
                 label="Issue to a department"
                 value="Gate 8 — out of the store, oldest first"
+                divider
                 onPress={() => router.push("/issue")}
+              />
+              <Row
+                icon="albums-outline"
+                label="Send out"
+                value="Gate 9 — stage returns, empties and linen at Terminal 2"
+                divider
+                onPress={() => router.push("/dispatch")}
+              />
+              <Row
+                icon="shield-checkmark-outline"
+                label="Gate out"
+                value="Gate 10 — Security issues the gate pass"
+                onPress={() => router.push("/gate-out")}
               />
             </Card>
           </Section>

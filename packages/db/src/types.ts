@@ -230,7 +230,10 @@ export type MovementReason =
   | "ZONE_TRANSFER"
   | "ISSUE"
   | "RETURN_TO_STORE"
+  /** The move to Terminal 2. Still on the property. */
   | "DISPATCH_STAGING"
+  /** The departure itself — the movement with no destination, because there is none. */
+  | "GATE_OUT"
   | "WRITE_OFF_EXPIRED"
   | "WRITE_OFF_DAMAGED"
   | "CORRECTION";
@@ -377,6 +380,13 @@ export type DispatchNoteRow = {
   dispatch_type: DispatchType;
   reason_code: string | null;
   origin_location_id: string | null;
+  /**
+   * The original single-line shape, kept nullable and no longer written.
+   *
+   * A dispatch has lines (`dispatch_line`) as of the Gate 9 migration — one rejected line
+   * per delivery is the easy case, not the usual one. These stay for a release because an
+   * offline device running older code may still write them (expand/contract).
+   */
   batch_id: string | null;
   item_id: string | null;
   qty: number | null;
@@ -385,6 +395,22 @@ export type DispatchNoteRow = {
   is_returnable: boolean;
   expected_return_date: string | null;
   authorised_by: string | null;
+  staged_by_name: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+};
+
+export type DispatchLineRow = {
+  id: string;
+  property_id: string;
+  dispatch_note_id: string;
+  batch_id: string;
+  item_id: string;
+  from_location_id: string;
+  /** Where it came from. A supplier return and a linen collection differ only in this. */
+  from_state: StockState;
+  qty: number;
+  uom_id: string;
   created_at: string;
 };
 
@@ -398,7 +424,9 @@ export type GatePassRow = {
   vehicle_number: string | null;
   package_count: number | null;
   verified_by: string | null;
+  verified_by_name: string | null;
   printed_at: string | null;
+  idempotency_key: string | null;
   created_at: string;
 };
 
@@ -474,6 +502,20 @@ export type StockMovementRow = {
 export type IssueStockLine = {
   batch_id: string;
   from_location_id: string;
+  qty: number;
+};
+
+/**
+ * One line handed to `stage_for_dispatch`.
+ *
+ * `from_state` is supplied rather than inferred: the same batch can sit in the reject
+ * hold and in a zone at once — half a delivery accepted, half turned away — and which one
+ * is leaving is the difference between a supplier return and a transfer out.
+ */
+export type DispatchStageLine = {
+  batch_id: string;
+  from_location_id: string;
+  from_state: StockState;
   qty: number;
 };
 
@@ -708,6 +750,13 @@ export type Database = {
         Update: Partial<DispatchNoteRow>;
         Relationships: [];
       };
+      // Written only by stage_for_dispatch, like every other document with a number.
+      dispatch_line: {
+        Row: DispatchLineRow;
+        Insert: DispatchLineRow;
+        Update: Partial<DispatchLineRow>;
+        Relationships: [];
+      };
       gate_pass: {
         Row: GatePassRow;
         Insert: InsertOf<
@@ -904,6 +953,71 @@ export type Database = {
           qty: number;
           best_before: string | null;
           days_remaining: number | null;
+        }[];
+      };
+      /** Gate 9. Moves stock to STAGED_OUT at Terminal 2 against a numbered dispatch note. */
+      stage_for_dispatch: {
+        Args: {
+          p_property_id: string;
+          p_dispatch_type: DispatchType;
+          p_recipient_party_id: string | null;
+          p_reason_code: string | null;
+          p_is_returnable: boolean;
+          p_expected_return_date: string | null;
+          p_idempotency_key: string;
+          p_lines: DispatchStageLine[];
+        };
+        Returns: { dispatch_id: string; dispatch_no: string }[];
+      };
+      /**
+       * Gate 10. Issues the gate pass and takes the staged stock off the property.
+       * Refuses a pass verified by whoever staged it.
+       */
+      issue_gate_pass: {
+        Args: {
+          p_property_id: string;
+          p_dispatch_note_id: string;
+          p_carrier: string;
+          p_vehicle_number: string | null;
+          p_package_count: number | null;
+          p_idempotency_key: string;
+        };
+        Returns: { gate_pass_id: string; gate_pass_no: string }[];
+      };
+      /** Stock that may leave: the reject hold first, then zones and departments. */
+      list_dispatchable_stock: {
+        Args: { p_property_id: string };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          uom_id: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          location_name: string;
+          state: StockState;
+          qty: number;
+          best_before: string | null;
+        }[];
+      };
+      /** Dispatch notes with no gate pass — staged, and still on the property. */
+      list_awaiting_gate_pass: {
+        Args: { p_property_id: string };
+        Returns: {
+          dispatch_id: string;
+          dispatch_no: string;
+          dispatch_type: DispatchType;
+          recipient_name: string | null;
+          is_returnable: boolean;
+          expected_return_date: string | null;
+          staged_by_name: string | null;
+          staged_by: string | null;
+          staged_at: string;
+          line_count: number;
+          total_qty: number;
         }[];
       };
       /** Stock in QUARANTINE, with how long it has stood there. */
