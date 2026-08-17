@@ -10,7 +10,7 @@
 -- the person who staged it is not a weaker control, it is the absence of one.
 
 begin;
-select plan(21);
+select plan(23);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -219,11 +219,28 @@ select is(
   'though a replay of the original submission returns the original pass'
 );
 
+-- Security's authority is Gate 0 and Gate 10, and nothing between them (PRD section 11).
+-- Passing a consignment out is theirs; deciding what goes into it is not.
+select throws_like(
+  $q$ select * from public.stage_for_dispatch(
+        (select prop from ctx), 'EMPTIES', null, 'Crates back', false, null, 'dp-guard-stage',
+        jsonb_build_array(jsonb_build_object(
+          'batch_id', (select id from public.batch where batch_no = 'V-ROHU-1'),
+          'from_location_id', (select rej from ctx), 'from_state', 'REJECT_HOLD', 'qty', 1))) $q$,
+  '%do not have permission to stage goods%',
+  'a guard cannot decide what goes out, only verify what someone else decided'
+);
+
 -- ---------------------------------------------------------------------------
 -- Segregation — the control people will ask to have relaxed
 -- ---------------------------------------------------------------------------
 --
--- The guard stages this one themselves, then tries to verify their own consignment out.
+-- Tested against the administrator, who is the only kind of user that can do both halves
+-- — and therefore the only one who can trip this. That is not an edge case: a small
+-- property runs on one person holding every role, which is exactly where a two-person
+-- control has to be enforced against the PERSON rather than assumed from the roles.
+
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000ab01","role":"authenticated"}';
 
 select is(
   (select d.dispatch_no from public.stage_for_dispatch(
@@ -233,7 +250,7 @@ select is(
        'batch_id', (select id from public.batch where batch_no = 'V-ROHU-1'),
        'from_location_id', (select rej from ctx), 'from_state', 'REJECT_HOLD', 'qty', 1))) d),
   'DP-DN-000002',
-  'anyone with dispatch authority can stage, including Security'
+  'an administrator holds both halves, so they can stage'
 );
 
 select throws_like(
@@ -242,8 +259,23 @@ select throws_like(
         (select id from public.dispatch_note where dispatch_no = 'DP-DN-000002'),
         'Ramen Das', null, 1, 'dp-pass-3') $q$,
   '%Someone else has to verify it out%',
-  'but not verify their own consignment out — that separation is the whole point of the gate'
+  'and are refused their own consignment anyway — holding both roles is not being two people'
 );
+
+-- The same consignment, the same document, a different person: allowed. What the rule
+-- forbids is one person being both ends of it, not Security being involved at all.
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000ab03","role":"authenticated"}';
+
+select is(
+  (select g.gate_pass_no from public.issue_gate_pass(
+     (select prop from ctx),
+     (select id from public.dispatch_note where dispatch_no = 'DP-DN-000002'),
+     'Ramen Das', null, 1, 'dp-pass-4') g),
+  'DP-GP-000002',
+  'while the guard passes the very same consignment out without complaint'
+);
+
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000ab02","role":"authenticated"}';
 
 -- ---------------------------------------------------------------------------
 -- Property boundaries and the ledger
