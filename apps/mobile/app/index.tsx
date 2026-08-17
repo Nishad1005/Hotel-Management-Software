@@ -328,6 +328,28 @@ export default function Home() {
             </Card>
           </Section>
 
+          {/*
+            Its own section, above master data, because it is the product argument rather
+            than a report. Nothing in it is captured anywhere — it is the flow read back.
+          */}
+          <Section title="Compliance">
+            <Card padded={false}>
+              <Row
+                icon="shield-checkmark-outline"
+                label="FSSAI registers"
+                value="Inward, temperature, non-conforming, waste — all by-products"
+                divider
+                onPress={() => router.push("/registers")}
+              />
+              <Row
+                icon="git-branch-outline"
+                label="Trace a batch"
+                value="Gate to vendor to bin to department, on one screen"
+                onPress={() => router.push("/registers")}
+              />
+            </Card>
+          </Section>
+
           <Section title="Master data">
             <Card padded={false}>
               <Row

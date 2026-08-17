@@ -1020,6 +1020,111 @@ export type Database = {
           total_qty: number;
         }[];
       };
+      /**
+       * PRD section 7.2 — the inward material check, the receipt temperature record and
+       * the non-conforming register. One dataset; they differ only in which rows you
+       * look at.
+       */
+      list_inward_register: {
+        Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
+        Returns: {
+          received_at: string;
+          grn_no: string;
+          gate_entry_no: string | null;
+          vendor_name: string | null;
+          vendor_fssai: string | null;
+          item_code: string;
+          item_name: string;
+          batch_no: string | null;
+          batch_is_generated: boolean | null;
+          qty_challan: number | null;
+          qty_physical: number;
+          qty_accepted: number;
+          qty_rejected: number;
+          uom_code: string;
+          best_before: string | null;
+          receipt_temp_c: number | null;
+          temp_min_c: number | null;
+          temp_max_c: number | null;
+          temp_in_range: boolean | null;
+          decision: GrnLineDecision;
+          reject_reason: RejectReason | null;
+          received_by: string;
+          batch_id: string | null;
+        }[];
+      };
+      /** PRD section 7.2 — waste disposal and used cooking oil, as a view of dispatch. */
+      list_waste_register: {
+        Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
+        Returns: {
+          dispatched_at: string;
+          dispatch_no: string;
+          dispatch_type: DispatchType;
+          reason_code: string | null;
+          recipient_name: string | null;
+          recipient_fssai: string | null;
+          item_code: string;
+          item_name: string;
+          batch_no: string;
+          qty: number;
+          uom_code: string;
+          gate_pass_no: string | null;
+          left_at: string | null;
+          carrier: string | null;
+          vehicle_number: string | null;
+          staged_by_name: string | null;
+          verified_by_name: string | null;
+        }[];
+      };
+      /** PRD section 7.5 forward trace, read off the append-only ledger. */
+      trace_batch: {
+        Args: { p_property_id: string; p_batch_id: string };
+        Returns: {
+          occurred_at: string;
+          reason: MovementReason;
+          qty: number;
+          uom_code: string;
+          from_code: string | null;
+          from_name: string | null;
+          from_state: StockState | null;
+          to_code: string | null;
+          to_name: string | null;
+          to_state: StockState | null;
+          scan_method: ScanMethod | null;
+          recorded_by_name: string | null;
+          note: string | null;
+        }[];
+      };
+      /** Where a batch came from — the header a forward trace hangs under. */
+      batch_provenance: {
+        Args: { p_property_id: string; p_batch_id: string };
+        Returns: {
+          batch_no: string;
+          is_system_generated: boolean;
+          item_code: string;
+          item_name: string;
+          category_name: string;
+          uom_code: string;
+          best_before: string | null;
+          mfg_date: string | null;
+          receipt_temp_c: number | null;
+          pct_at_receipt: number | null;
+          dwell_breach: boolean;
+          source: BatchSource;
+          received_at: string | null;
+          grn_no: string | null;
+          gate_entry_no: string | null;
+          arrived_at: string | null;
+          vendor_name: string | null;
+          vendor_code: string | null;
+          vendor_fssai: string | null;
+          decision: GrnLineDecision | null;
+          reject_reason: RejectReason | null;
+          qty_accepted: number | null;
+          qty_rejected: number | null;
+          received_by: string | null;
+        }[];
+      };
       /** Every figure the home screen shows, counted where the rows are. */
       property_overview: {
         Args: { p_property_id: string; p_nearing_days?: number };

@@ -41,6 +41,8 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   perishables: "stock.view",
   stock: "stock.view",
   "stock/opening": "stock.view",
+  registers: "reports.view",
+  "registers/trace/[batch]": "reports.view",
   "gate/new": "gate.capture",
   "gate/recorded": "gate.capture",
   receive: "receiving",
