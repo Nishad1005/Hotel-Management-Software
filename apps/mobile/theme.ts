@@ -10,12 +10,13 @@
  * element shout at the same volume. Hence two densities: `field` and `desk`. Gate and
  * dock screens use field. Masters, lists and settings use desk.
  *
- * SECOND, this is an operations tool, not a consumer app. Industrial slate for
- * structure, a single green for action and stock-in-hand. Colour is used sparingly so
- * that when something IS coloured — expiring, blocked, rejected — it means something.
+ * SECOND, this is an operations tool, but it is also the thing a managing director
+ * judges in ten seconds. The first palette was industrial slate on cold grey, following
+ * the system theme, which meant it rendered near-black and read as unfinished. It is
+ * now warm, light and soft: an off-white page, white cards raised above it, terracotta
+ * for action. Colour still stays scarce, so that when something IS coloured — expiring,
+ * blocked, rejected — it means something.
  */
-
-import { useColorScheme } from "react-native";
 
 export const space = {
   xxs: 2,
@@ -29,10 +30,10 @@ export const space = {
 } as const;
 
 export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
   pill: 999,
 } as const;
 
@@ -139,35 +140,58 @@ export interface Palette {
   shadow: string;
 }
 
+/**
+ * Warm, light, and soft.
+ *
+ * The first version was industrial slate on a cold grey, following the system theme —
+ * which meant it rendered near-black on most machines and read as grim. This is the
+ * deliberate opposite: a warm off-white page, white cards that sit above it, and
+ * terracotta for action.
+ *
+ * The warmth is in the neutrals, not just the accent. A cold grey under a warm accent
+ * looks like an accident; every neutral here carries a little red so the whole thing
+ * agrees with itself.
+ */
 const light: Palette = {
-  background: "#F1F5F9",
+  background: "#FAF7F4",
   surface: "#FFFFFF",
   surfaceRaised: "#FFFFFF",
-  surfaceSunken: "#E9EEF4",
-  border: "#DEE5EC",
-  borderStrong: "#94A3B8",
-  text: "#0F172A",
-  textMuted: "#5A6B7F",
-  textFaint: "#8A99AB",
-  primary: "#1E293B",
+  surfaceSunken: "#F4EFE9",
+  border: "#ECE4DB",
+  borderStrong: "#C9BCAE",
+  text: "#1F1B18",
+  textMuted: "#736A62",
+  textFaint: "#A69C93",
+  primary: "#33241D",
   onPrimary: "#FFFFFF",
-  brand: "#16233A",
-  onBrand: "#F8FAFC",
-  onBrandMuted: "#A9BAD1",
-  accent: "#047857",
+  brand: "#33241D",
+  onBrand: "#FDFBF9",
+  onBrandMuted: "#C4B3A6",
+  accent: "#C2410C",
   onAccent: "#FFFFFF",
-  accentSurface: "#E7F5EF",
-  success: "#047857",
-  successSurface: "#E7F5EF",
-  warning: "#9A5B00",
-  warningSurface: "#FDF3E2",
-  danger: "#C22F26",
-  dangerSurface: "#FCECEA",
-  focus: "#0F62D6",
-  shadow: "#0F172A",
+  accentSurface: "#FCEFE7",
+  success: "#15803D",
+  successSurface: "#E9F5EC",
+  // Pushed towards yellow rather than orange, because the accent is already terracotta
+  // and a warning that shares its hue stops being a warning.
+  warning: "#A16207",
+  warningSurface: "#FBF3DF",
+  danger: "#CC2936",
+  dangerSurface: "#FDECEE",
+  // Blue on purpose: a focus ring that matches the brand is a focus ring nobody sees.
+  focus: "#2563EB",
+  shadow: "#4A342A",
 };
 
-const dark: Palette = {
+/**
+ * Kept, exported, and not currently selected.
+ *
+ * Exported rather than deleted because the gate device at night is a real requirement
+ * (PRD section 4 Gate 0a), and a palette that is deleted has to be invented again from
+ * nothing. It is cold slate, so it needs rebuilding warm before it is switched on — the
+ * two themes have to agree about the brand, and right now they do not.
+ */
+export const darkPalette: Palette = {
   // Lifted as a set. The previous values put the page at #0A0F18 and cards at #141C28
   // — a 10-point step that reads as one flat surface on most screens, so every card
   // dissolved into the page and the whole app looked like unstyled boxes. Cards now sit
@@ -199,12 +223,24 @@ const dark: Palette = {
   shadow: "#000000",
 };
 
+/**
+ * Always light, deliberately.
+ *
+ * Following the system theme meant the app rendered near-black on most machines, and a
+ * desaturated dark operations tool reads as unfinished rather than serious. Every
+ * business tool this will be compared against — Linear, Stripe, Notion, a Shopify
+ * admin — is light by default.
+ *
+ * `dark` is kept and maintained because the gate device at night is a real case, and
+ * because a palette that has never been rendered rots. It becomes reachable behind a
+ * setting, not behind whatever the reader's laptop happens to be set to.
+ */
 export function usePalette(): Palette {
-  return useColorScheme() === "dark" ? dark : light;
+  return light;
 }
 
 export function useIsDark(): boolean {
-  return useColorScheme() === "dark";
+  return false;
 }
 
 /**
@@ -216,8 +252,8 @@ export function useIsDark(): boolean {
 export function elevation(level: 0 | 1 | 2, palette: Palette) {
   if (level === 0) return {};
   const config = {
-    1: { opacity: 0.06, radius: 3, offset: 1, elevation: 1 },
-    2: { opacity: 0.1, radius: 12, offset: 4, elevation: 4 },
+    1: { opacity: 0.05, radius: 8, offset: 2, elevation: 2 },
+    2: { opacity: 0.09, radius: 24, offset: 8, elevation: 8 },
   }[level];
   return {
     shadowColor: palette.shadow,
