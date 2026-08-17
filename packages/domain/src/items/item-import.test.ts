@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ITEM_COLUMN_ALIASES, readItemSheet } from "./item-import";
+import { ITEM_COLUMN_ALIASES, readItemSheet, suggestItemCode } from "./item-import";
 
 const HEADER = "Item Code,Item Name,Category,UOM";
 
@@ -94,5 +94,60 @@ describe("ITEM_COLUMN_ALIASES", () => {
     expect(ITEM_COLUMN_ALIASES.type.indexOf("definition")).toBeLessThan(
       ITEM_COLUMN_ALIASES.type.indexOf("type"),
     );
+  });
+});
+
+describe("shelf life", () => {
+  const withShelf = "Item Code,Item Name,Category,UOM,Shelf Life (days)";
+
+  it("reads whole days, which is what makes an imported item perishable at all", () => {
+    const sheet = readItemSheet(`${withShelf}\nMILK,Toned Milk,Dairy,L,10`);
+    expect(sheet.rows[0]?.shelfLifeDays).toBe(10);
+  });
+
+  it("is null when the column is absent", () => {
+    const sheet = readItemSheet("Item Name\nRohu");
+    expect(sheet.rows[0]?.shelfLifeDays).toBeNull();
+  });
+
+  it("refuses to guess at anything that is not a plain number", () => {
+    // A wrong shelf life produces a wrong expiry date on every batch of that item, and a
+    // watchlist that quietly lies is worse than one with gaps in it.
+    const sheet = readItemSheet(
+      `${withShelf}\nA,One,Dairy,L,7 days\nB,Two,Dairy,L,approx 30\nC,Three,Dairy,L,n/a\nD,Four,Dairy,L,1.5\nE,Five,Dairy,L,-3\nF,Six,Dairy,L,0`,
+    );
+    expect(sheet.rows.map((r) => r.shelfLifeDays)).toEqual([null, null, null, null, null, null]);
+  });
+});
+
+describe("suggesting a code for a line that has none", () => {
+  it("derives it from the name, so a printed label can be read", () => {
+    expect(suggestItemCode("Toned Milk 1L", new Set())).toBe("TONED-MILK-1L");
+  });
+
+  it("collapses punctuation and spacing to one separator", () => {
+    expect(suggestItemCode("Milk  1L  (Toned)", new Set())).toBe("MILK-1L-TONED");
+    expect(suggestItemCode("Milk-1L-Toned", new Set())).toBe("MILK-1L-TONED");
+  });
+
+  it("never ends on a separator", () => {
+    expect(suggestItemCode("Rohu — ", new Set())).toBe("ROHU");
+    // Truncation is where this goes wrong: the cut can land on a hyphen.
+    expect(suggestItemCode("Fresh Atlantic Salmon Fillet Skin On", new Set())).not.toMatch(/-$/);
+  });
+
+  it("falls back rather than returning an empty code", () => {
+    expect(suggestItemCode("!!!", new Set())).toBe("ITEM");
+  });
+
+  it("suffixes around a code that is already spoken for", () => {
+    const taken = new Set(["TONED-MILK", "TONED-MILK-2"]);
+    expect(suggestItemCode("Toned Milk", taken)).toBe("TONED-MILK-3");
+  });
+
+  it("checks against the item master, not only against this file", () => {
+    // The collision that matters is the unique constraint, which does not care which
+    // spreadsheet a code came from.
+    expect(suggestItemCode("Rohu", new Set(["ROHU"]))).toBe("ROHU-2");
   });
 });

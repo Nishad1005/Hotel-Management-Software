@@ -86,6 +86,39 @@ export default function ItemsList() {
               ? {}
               : { subtitle: `${items.length} item${items.length === 1 ? "" : "s"}` })}
             onBack={() => router.back()}
+            {...(canEditMasters
+              ? {
+                  right: (
+                    <Pressable
+                      onPress={() => router.push("/items/import")}
+                      accessibilityRole="button"
+                      accessibilityLabel="Import items from a spreadsheet"
+                      hitSlop={8}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        minHeight: 44,
+                        paddingHorizontal: space.md,
+                        borderRadius: radius.md,
+                        backgroundColor: pressed ? p.accentSurface : "transparent",
+                        cursor: "pointer",
+                      })}
+                    >
+                      <Ionicons name="cloud-upload-outline" size={18} color={p.accent} />
+                      <Text
+                        style={{
+                          fontSize: type.label,
+                          ...font("semibold"),
+                          color: p.accent,
+                          marginLeft: space.xs,
+                        }}
+                      >
+                        Import
+                      </Text>
+                    </Pressable>
+                  ),
+                }
+              : {})}
           />
 
           <View

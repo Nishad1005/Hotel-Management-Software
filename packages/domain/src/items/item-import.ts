@@ -27,6 +27,16 @@ export const ITEM_COLUMN_ALIASES = {
   subCategory: ["subcategory", "subgroup"],
   uom: ["uom", "unit", "units"],
   barcode: ["barcode", "ean", "upc"],
+  /**
+   * Optional, and the difference between a stock list and this product.
+   *
+   * Without a shelf life an item cannot be perishable — the schema refuses it, because a
+   * perishable whose expiry can never be computed is worse than one nobody claimed was
+   * perishable. So a sheet with this column imports items that appear in the expiry
+   * watchlist on day one, and a sheet without it imports items somebody has to go back
+   * and mark by hand.
+   */
+  shelfLifeDays: ["shelflifedays", "shelflife", "shelflifeindays", "expirydays", "daystoexpiry"],
 } as const;
 
 export interface ItemSheetRow {
@@ -38,6 +48,13 @@ export interface ItemSheetRow {
   subCategory: string | null;
   uom: string | null;
   barcode: string | null;
+  /**
+   * Whole positive days, or null.
+   *
+   * Null covers three different sheets — no column, a blank cell, and "n/a" — and all
+   * three mean the same thing here: nothing is known, so nothing is claimed.
+   */
+  shelfLifeDays: number | null;
   /** 1-based line in the original file, so an error points at a row they can find. */
   line: number;
 }
@@ -90,6 +107,7 @@ export function readItemSheet(text: string): ItemSheet {
   const subCol = at(ITEM_COLUMN_ALIASES.subCategory);
   const uomCol = at(ITEM_COLUMN_ALIASES.uom);
   const barcodeCol = at(ITEM_COLUMN_ALIASES.barcode);
+  const shelfCol = at(ITEM_COLUMN_ALIASES.shelfLifeDays);
 
   const cell = (row: string[], index: number | null): string | null => {
     if (index === null) return null;
@@ -122,6 +140,7 @@ export function readItemSheet(text: string): ItemSheet {
       subCategory: cell(row, subCol),
       uom: cell(row, uomCol),
       barcode: cell(row, barcodeCol),
+      shelfLifeDays: wholeDays(cell(row, shelfCol)),
       line: i + 1,
     });
   }
@@ -148,4 +167,54 @@ export function readItemSheet(text: string): ItemSheet {
     skipped,
     duplicates: [...duplicates],
   };
+}
+
+/**
+ * A shelf life, or nothing.
+ *
+ * Deliberately unforgiving. "7 days", "approx 30", "1 year" and "n/a" all become null
+ * rather than a guess, because a wrong shelf life produces a wrong expiry date on a batch
+ * and a watchlist that quietly lies is worse than one with gaps in it. A property that
+ * wants these tracked writes the number.
+ */
+function wholeDays(raw: string | null): number | null {
+  if (raw === null) return null;
+  if (!/^\d+$/.test(raw.trim())) return null;
+  const days = Number(raw.trim());
+  return Number.isSafeInteger(days) && days > 0 ? days : null;
+}
+
+/**
+ * A code for a line the property has none for.
+ *
+ * Derived from the name rather than a counter, because a storekeeper reading a printed
+ * label should be able to tell what it is. `TONED-MILK-1L` is findable; `SB-ITEM-0147`
+ * sends them to a screen to look it up.
+ *
+ * `taken` carries what is already spoken for — both the codes elsewhere in the sheet and
+ * the ones already in the item master — because the collision that matters is against the
+ * unique constraint, not against this file.
+ */
+export function suggestItemCode(name: string, taken: ReadonlySet<string>): string {
+  const base =
+    name
+      .toUpperCase()
+      // Anything that is not a letter, a digit or a separator becomes a separator, so
+      // "Milk 1L (Toned)" and "Milk-1L-Toned" arrive at the same place.
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 24)
+      .replace(/-+$/g, "") || "ITEM";
+
+  if (!taken.has(base)) return base;
+
+  // Suffixed rather than truncated-and-hashed: two items genuinely called the same thing
+  // is a real situation in a hotel store — two suppliers' toned milk — and -2 says that
+  // more clearly than a checksum would.
+  for (let n = 2; n < 1000; n += 1) {
+    const candidate = `${base.slice(0, 28)}-${n}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+
+  throw new Error(`Could not find a free code for "${name}" — a thousand are already taken.`);
 }
