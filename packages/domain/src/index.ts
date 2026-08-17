@@ -15,3 +15,5 @@ export * from "./perishables/index";
 export * from "./identity/index";
 export * from "./access/index";
 export * from "./quantity/index";
+export * from "./locations/index";
+export * from "./labels/index";
