@@ -89,7 +89,9 @@ export type LocationKind =
   | "ZONE"
   | "RACK"
   | "BIN"
-  | "DISPATCH";
+  | "DISPATCH"
+  /** A consuming department. Holds issued stock without holding store stock. */
+  | "DEPARTMENT";
 export type EnforcementMode = "RECORD_ONLY" | "WARN" | "BLOCK";
 
 export type OrganisationRow = {
@@ -462,6 +464,69 @@ export type StockMovementRow = {
   scan_method: ScanMethod | null;
 };
 
+/**
+ * One line handed to `issue_stock`.
+ *
+ * The lot, not the item: which batch and which bin is the decision FEFO makes, and
+ * flattening it to "20 kg of flour" would let the server pick — which is the same as
+ * nobody having decided.
+ */
+export type IssueStockLine = {
+  batch_id: string;
+  from_location_id: string;
+  qty: number;
+};
+
+export type IssueNoteRow = {
+  id: string;
+  property_id: string;
+  issue_no: string;
+  /** A DEPARTMENT location. Departments are places, so they live in the location tree. */
+  department_id: string;
+  purpose: string | null;
+  issued_at: string;
+  issued_by: string | null;
+  issued_by_name: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+};
+
+export type IssueLineRow = {
+  id: string;
+  property_id: string;
+  issue_note_id: string;
+  batch_id: string;
+  item_id: string;
+  from_location_id: string;
+  qty: number;
+  uom_id: string;
+  /** The expiry rule ships RECORD_ONLY, so this is the register it produces. */
+  was_expired: boolean;
+  days_remaining_at_issue: number | null;
+  created_at: string;
+};
+
+/**
+ * Who took custody.
+ *
+ * `verified_by_scan` is the whole point of the table. Acceptance criterion 17 is met when
+ * it is true and not before; a typed `receiver_name` is the storekeeper's assertion, not
+ * the receiver's identity.
+ */
+export type ReceiptAckRow = {
+  id: string;
+  property_id: string;
+  issue_note_id: string | null;
+  dispatch_note_id: string | null;
+  receiver_name: string;
+  receiver_person_id: string | null;
+  verified_by_scan: boolean;
+  scan_method: ScanMethod | null;
+  acknowledged_at: string;
+  recorded_by: string | null;
+  recorded_by_name: string | null;
+};
+
 /** Derived from stock_movement. Never inserted or updated directly. */
 export type StockLotRow = {
   property_id: string;
@@ -707,6 +772,26 @@ export type Database = {
         Update: Partial<StockMovementRow>;
         Relationships: [];
       };
+      // Written only by issue_stock. There is no insert policy, deliberately: a document
+      // with a number cannot be assembled from several client statements.
+      issue_note: {
+        Row: IssueNoteRow;
+        Insert: IssueNoteRow;
+        Update: Partial<IssueNoteRow>;
+        Relationships: [];
+      };
+      issue_line: {
+        Row: IssueLineRow;
+        Insert: IssueLineRow;
+        Update: Partial<IssueLineRow>;
+        Relationships: [];
+      };
+      receipt_ack: {
+        Row: ReceiptAckRow;
+        Insert: ReceiptAckRow;
+        Update: Partial<ReceiptAckRow>;
+        Relationships: [];
+      };
       stock_lot: {
         Row: StockLotRow;
         // A maintained projection. Written only by the ledger trigger.
@@ -784,6 +869,41 @@ export type Database = {
           to_location_id: string;
           to_location_code: string;
           remaining: number;
+        }[];
+      };
+      /**
+       * Gate 8. Moves AVAILABLE stock into ISSUED at a department and writes the
+       * acknowledgement in the same transaction.
+       */
+      issue_stock: {
+        Args: {
+          p_property_id: string;
+          p_department_id: string;
+          p_receiver_name: string;
+          p_purpose: string | null;
+          p_idempotency_key: string;
+          p_lines: IssueStockLine[];
+        };
+        Returns: { issue_id: string; issue_no: string; expired_lines: number }[];
+      };
+      /** AVAILABLE stock in FEFO order. Quarantine and reject hold are absent by construction. */
+      list_issuable_stock: {
+        Args: { p_property_id: string; p_item_id?: string | null };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          is_perishable: boolean;
+          uom_id: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          location_name: string;
+          qty: number;
+          best_before: string | null;
+          days_remaining: number | null;
         }[];
       };
       /** Stock in QUARANTINE, with how long it has stood there. */

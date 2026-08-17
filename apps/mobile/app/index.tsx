@@ -300,7 +300,14 @@ export default function Home() {
                 icon="file-tray-stacked-outline"
                 label="Put away"
                 value="Gate 6 — into a bin, and only then issuable"
+                divider
                 onPress={() => router.push("/putaway")}
+              />
+              <Row
+                icon="exit-outline"
+                label="Issue to a department"
+                value="Gate 8 — out of the store, oldest first"
+                onPress={() => router.push("/issue")}
               />
             </Card>
           </Section>
