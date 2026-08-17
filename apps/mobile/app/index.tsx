@@ -272,6 +272,13 @@ export default function Home() {
                 onPress={() => router.push("/admin/locations")}
               />
               <Row
+                icon="business-outline"
+                label="Vendors"
+                value="Who supplies, who launders, who takes the waste"
+                divider
+                onPress={() => router.push("/vendors")}
+              />
+              <Row
                 icon="people-outline"
                 label="People"
                 value="Who works here, and what they may do"
