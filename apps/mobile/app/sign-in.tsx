@@ -52,44 +52,74 @@ export default function SignIn() {
   return (
     <ScrollView
       style={{ backgroundColor: p.background }}
-      contentContainerStyle={{
-        flexGrow: 1,
-        justifyContent: "center",
-        padding: space.xl,
-        paddingTop: insets.top + space.xxl,
-      }}
+      contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={{ width: "100%", maxWidth: 400, alignSelf: "center" }}>
-        <View style={{ alignItems: "center", marginBottom: space.xxl }}>
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: radius.lg,
-              backgroundColor: p.accent,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="cube" size={28} color={p.onAccent} />
-          </View>
-          <Text
-            style={{
-              fontSize: type.display,
-              ...font("heavy"),
-              color: p.text,
-              marginTop: space.lg,
-              letterSpacing: -1,
-            }}
-          >
-            Golai
-          </Text>
-          <Text style={{ fontSize: type.label, color: p.textMuted, marginTop: space.xxs }}>
-            Quantity. Movement. Accountability.
-          </Text>
+      {/*
+        A full-width band of the product's own colour, with the form on the page
+        beneath it. Colour blocking rather than a shadow: this is a flat design, and a
+        contrasting section does the work an elevation would have done — it gives the
+        screen a top edge and somewhere for the identity to live, instead of a logo
+        floating in the middle of an empty page.
+      */}
+      <View
+        style={{
+          backgroundColor: p.primary,
+          paddingTop: insets.top + space.xxxl,
+          paddingBottom: space.xxxl + space.xl,
+          paddingHorizontal: space.xl,
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: 58,
+            height: 58,
+            borderRadius: radius.lg,
+            backgroundColor: p.accent,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="cube" size={29} color={p.onAccent} />
         </View>
+        <Text
+          style={{
+            fontSize: type.display,
+            ...font("heavy"),
+            color: p.onPrimary,
+            marginTop: space.lg,
+            letterSpacing: -1.2,
+          }}
+        >
+          Golai
+        </Text>
+        <Text
+          style={{
+            fontSize: type.label,
+            ...font("medium"),
+            color: p.onPrimary,
+            opacity: 0.72,
+            marginTop: space.xxs,
+            letterSpacing: 0.2,
+          }}
+        >
+          Quantity. Movement. Accountability.
+        </Text>
+      </View>
 
+      <View
+        style={{
+          width: "100%",
+          maxWidth: 400,
+          alignSelf: "center",
+          paddingHorizontal: space.xl,
+          paddingBottom: space.xxl,
+          // Lifts the card over the band's lower edge, so the two sections read as one
+          // composition rather than two stacked blocks.
+          marginTop: -space.xxl,
+        }}
+      >
         <Card>
           <Field
             label="Email"

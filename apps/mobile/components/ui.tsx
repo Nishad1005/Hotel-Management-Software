@@ -950,3 +950,136 @@ export function Notice({
     </View>
   );
 }
+
+/**
+ * A figure, with the thing it counts.
+ *
+ * The home screen was three cards of navigation rows and not one number on it — a
+ * settings menu wearing a dashboard's clothes. For an operations product that is the
+ * wrong shape: somebody opening this wants to know whether anything needs them today,
+ * and the links belong under that answer rather than instead of it.
+ *
+ * The figure is set at display size in tabular numerals, so a row of these does not jog
+ * sideways as digits change. `tone` is used sparingly and only where the number carries
+ * a verdict — expired stock is red because it IS a problem, not because red looks lively.
+ */
+export function StatTile({
+  label,
+  value,
+  caption,
+  icon,
+  tone = "neutral",
+  onPress,
+}: {
+  label: string;
+  value: number | string;
+  caption?: string;
+  icon: IoniconName;
+  tone?: "neutral" | "accent" | "warn" | "bad";
+  onPress?: () => void;
+}) {
+  const p = usePalette();
+  const { hovered, focused, handlers } = useInteractionState();
+
+  const ink =
+    tone === "bad" ? p.danger : tone === "warn" ? p.warning : tone === "accent" ? p.accent : p.text;
+  const wash =
+    tone === "bad"
+      ? p.dangerSurface
+      : tone === "warn"
+        ? p.warningSurface
+        : tone === "accent"
+          ? p.accentSurface
+          : p.surfaceSunken;
+
+  const inner = (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: radius.sm,
+            backgroundColor: wash,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name={icon} size={17} color={ink} />
+        </View>
+        {onPress ? (
+          <>
+            <View style={{ flex: 1 }} />
+            <Ionicons name="chevron-forward" size={15} color={p.textFaint} />
+          </>
+        ) : null}
+      </View>
+
+      <Text
+        style={{
+          fontSize: type.display,
+          ...font("heavy"),
+          color: ink,
+          letterSpacing: -1,
+          lineHeight: type.display + 2,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {value}
+      </Text>
+      <Text
+        style={{ fontSize: type.label, ...font("semibold"), color: p.text, marginTop: space.xs }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      {caption ? (
+        <Text
+          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
+          numberOfLines={1}
+        >
+          {caption}
+        </Text>
+      ) : null}
+    </>
+  );
+
+  const frame = (pressed: boolean) =>
+    ({
+      flexGrow: 1,
+      flexBasis: 150,
+      padding: space.lg,
+      borderRadius: radius.lg,
+      backgroundColor: p.surface,
+      borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
+      borderColor: focused ? p.focus : hovered && onPress ? p.borderStrong : p.border,
+      // Scale rather than a background change. The surface is already white on a tinted
+      // page, so darkening it reads as a rendering glitch rather than a press.
+      transform: [{ scale: pressed ? 0.98 : 1 }],
+      cursor: onPress ? "pointer" : "default",
+    }) as ViewStyle;
+
+  if (!onPress) return <View style={frame(false)}>{inner}</View>;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}${caption ? `. ${caption}` : ""}`}
+      {...handlers}
+      style={({ pressed }) => frame(pressed)}
+    >
+      {inner}
+    </Pressable>
+  );
+}
+
+/**
+ * Lays tiles out in a wrapping row.
+ *
+ * `flexBasis` with wrap rather than a breakpoint: the same code gives two columns on a
+ * phone and four on a laptop without having to know which it is running on.
+ */
+export function StatGrid({ children }: { children: ReactNode }) {
+  return <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>{children}</View>;
+}
