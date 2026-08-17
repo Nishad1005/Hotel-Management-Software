@@ -233,6 +233,15 @@ export type MovementReason =
   | "WRITE_OFF_DAMAGED"
   | "CORRECTION";
 
+/**
+ * How a scanned code was established.
+ *
+ * Hard rule 13 permits only a scan. TYPED exists so the concession this build makes is
+ * counted rather than invisible — the rule ships RECORD_ONLY and tightens to BLOCK once
+ * labels are printed and scanners are on the floor.
+ */
+export type ScanMethod = "CAMERA" | "HARDWARE" | "TYPED";
+
 export type BatchSource = "OPENING_STOCK" | "GRN";
 export type ArrivalType =
   | "PO_DELIVERY"
@@ -449,6 +458,8 @@ export type StockMovementRow = {
   recorded_by_name: string | null;
   idempotency_key: string;
   note: string | null;
+  /** Set where the movement had a scannable destination — put-away, and later transfer. */
+  scan_method: ScanMethod | null;
 };
 
 /** Derived from stock_movement. Never inserted or updated directly. */
@@ -689,6 +700,7 @@ export type Database = {
           | "recorded_by"
           | "recorded_by_name"
           | "note"
+          | "scan_method"
         >;
         // Append-only in the database (ADR 0003). Declared for completeness; the
         // trigger refuses it.
@@ -753,6 +765,48 @@ export type Database = {
         };
         Returns: { grn_id: string; grn_no: string }[];
       };
+      /**
+       * Gate 6. The destination is resolved from a scanned code rather than an id, and
+       * how it was established is recorded on the movement.
+       */
+      put_away: {
+        Args: {
+          p_property_id: string;
+          p_batch_id: string;
+          p_from_location_id: string;
+          p_to_location_code: string;
+          p_qty: number;
+          p_scan_method: ScanMethod;
+          p_idempotency_key: string;
+        };
+        Returns: {
+          movement_id: string;
+          to_location_id: string;
+          to_location_code: string;
+          remaining: number;
+        }[];
+      };
+      /** Stock in QUARANTINE, with how long it has stood there. */
+      list_awaiting_putaway: {
+        Args: { p_property_id: string };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          is_system_generated: boolean;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          storage_regime: StorageRegime;
+          uom_id: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          qty: number;
+          best_before: string | null;
+          received_at: string | null;
+          hours_waiting: number | null;
+        }[];
+      };
       /** Arrivals with no receipt against them yet — the receiving worklist. */
       list_open_gate_entries: {
         Args: { p_property_id: string };
@@ -777,6 +831,7 @@ export type Database = {
       storage_regime: StorageRegime;
       location_kind: LocationKind;
       enforcement_mode: EnforcementMode;
+      scan_method: ScanMethod;
     };
     CompositeTypes: Record<never, never>;
   };

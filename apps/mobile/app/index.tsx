@@ -293,7 +293,14 @@ export default function Home() {
                 icon="clipboard-outline"
                 label="Receive goods"
                 value="Gates 1 to 5 — count it, check it, post the receipt"
+                divider
                 onPress={() => router.push("/receive")}
+              />
+              <Row
+                icon="file-tray-stacked-outline"
+                label="Put away"
+                value="Gate 6 — into a bin, and only then issuable"
+                onPress={() => router.push("/putaway")}
               />
             </Card>
           </Section>

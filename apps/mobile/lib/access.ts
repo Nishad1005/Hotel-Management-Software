@@ -44,6 +44,7 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   "gate/recorded": "gate.capture",
   receive: "receiving",
   "receive/[entry]": "receiving",
+  putaway: "putaway",
 };
 
 export function capabilitiesForMembership(
