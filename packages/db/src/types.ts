@@ -58,6 +58,26 @@ export type MembershipRole =
 
 export type UomKind = "WEIGHT" | "VOLUME" | "COUNT";
 export type StorageRegime = "AMBIENT" | "CHILLED" | "FROZEN";
+
+/**
+ * Every counterparty that transacts at a gate. One entity with a discriminator, because
+ * Terminal 2 scans the laundry exactly as Terminal 1 scans the vendor.
+ */
+export type PartyType =
+  | "VENDOR"
+  | "CONTRACTOR"
+  | "LAUNDRY"
+  | "AGGREGATOR"
+  | "CARRIER"
+  | "SISTER_PROPERTY";
+
+export type DocumentNumberType =
+  | "GATE_ENTRY"
+  | "GRN"
+  | "GATE_PASS"
+  | "DISPATCH_NOTE"
+  | "ISSUE"
+  | "PARTY";
 /**
  * RACK groups; BIN is the leaf that carries a scannable label and is the only lawful
  * put-away destination (PRD section 4 Gate 6, hard rule 13).
@@ -339,6 +359,34 @@ export type GatePassRow = {
   created_at: string;
 };
 
+export type PartyRow = {
+  id: string;
+  property_id: string;
+  code: string;
+  name: string;
+  party_type: PartyType;
+  phone: string | null;
+  gstin: string | null;
+  fssai_licence: string | null;
+  /** Shown in red at the gate before anything is unloaded. */
+  on_hold: boolean;
+  hold_reason: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Read-only from the client. The counter moves only through
+ * app.next_document_number, which is what makes "sequential and immutable" true.
+ */
+export type NumberSequenceRow = {
+  property_id: string;
+  doc_type: DocumentNumberType;
+  next_value: number;
+  updated_at: string;
+};
+
 export type ReturnableItemRow = {
   id: string;
   property_id: string;
@@ -365,6 +413,8 @@ export type StockMovementRow = {
   reason: MovementReason;
   occurred_at: string;
   recorded_by: string | null;
+  /** The recorder's name as it was at the moment of the movement. */
+  recorded_by_name: string | null;
   idempotency_key: string;
   note: string | null;
 };
@@ -564,6 +614,27 @@ export type Database = {
         Update: Partial<GatePassRow>;
         Relationships: [];
       };
+      party: {
+        Row: PartyRow;
+        Insert: InsertOf<
+          PartyRow,
+          | "party_type"
+          | "phone"
+          | "gstin"
+          | "fssai_licence"
+          | "on_hold"
+          | "hold_reason"
+          | "is_active"
+        >;
+        Update: Partial<PartyRow>;
+        Relationships: [];
+      };
+      number_sequence: {
+        Row: NumberSequenceRow;
+        Insert: InsertOf<NumberSequenceRow, "next_value">;
+        Update: Partial<NumberSequenceRow>;
+        Relationships: [];
+      };
       returnable_item: {
         Row: ReturnableItemRow;
         Insert: InsertOf<
@@ -583,6 +654,7 @@ export type Database = {
           | "to_state"
           | "occurred_at"
           | "recorded_by"
+          | "recorded_by_name"
           | "note"
         >;
         // Append-only in the database (ADR 0003). Declared for completeness; the
