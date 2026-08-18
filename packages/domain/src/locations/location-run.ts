@@ -68,6 +68,86 @@ function normalisePrefix(raw: string): string {
     .slice(0, 3);
 }
 
+/**
+ * A new storage zone.
+ *
+ * Provisioning seeds seven — security, the two terminals, dispatch, dry, chilled, frozen
+ * — and that is a starting set rather than a complete one. A resort has a pool bar store,
+ * a spa store and a banquet store; a city hotel has none of them. Without this the seven
+ * were all a property could ever have, and its own layout had nowhere to go.
+ *
+ * The code is derived rather than typed whole, so every zone at a property shares its
+ * prefix and a sticker read at three in the morning says which hotel it belongs to. The
+ * suffix is the property's to choose because the word is theirs.
+ */
+export const ZONE_SUFFIX_MAX = 12;
+
+export type ZoneError =
+  | "PROPERTY_REQUIRED"
+  | "NAME_REQUIRED"
+  | "SUFFIX_REQUIRED"
+  | "SUFFIX_TOO_LONG";
+
+export interface ZonePlan {
+  ok: boolean;
+  errors: ZoneError[];
+  /** What the code will be. Shown before anything is written. */
+  code: string;
+  suffix: string;
+}
+
+export function planZone(input: {
+  propertyCode: string;
+  /** The property's own word — "Pool bar store", "Ghoda shed". */
+  name: string;
+  /** Derived from the name when left blank, because most of the time it should be. */
+  suffix?: string;
+}): ZonePlan {
+  const errors: ZoneError[] = [];
+
+  const property = (input.propertyCode ?? "").trim().toUpperCase();
+  if (property.length === 0) errors.push("PROPERTY_REQUIRED");
+
+  const name = (input.name ?? "").trim();
+  if (name.length === 0) errors.push("NAME_REQUIRED");
+
+  const typed = input.suffix !== undefined && input.suffix.trim().length > 0;
+  const source = typed ? input.suffix! : name;
+  const suffix = zoneSuffix(source);
+
+  if (suffix.length === 0) errors.push("SUFFIX_REQUIRED");
+
+  // Only what somebody typed. Silently shortening a code they chose is how a label comes
+  // back saying something they did not; silently shortening one DERIVED from a long name
+  // is the whole job — "Housekeeping chemicals and consumables" was never a code.
+  if (typed && rawZoneSuffix(source).length > ZONE_SUFFIX_MAX) errors.push("SUFFIX_TOO_LONG");
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    code: errors.length === 0 ? `${property}-${suffix}` : "",
+    suffix,
+  };
+}
+
+/**
+ * Letters and digits, upper case, words joined rather than run together.
+ *
+ * "Pool bar store" becomes POOLBAR rather than POOL-BAR-STORE: the code is read off a
+ * sticker and typed into a search box, and every hyphen is a chance to type it wrong.
+ * "Store" is dropped because every zone is one.
+ */
+function rawZoneSuffix(raw: string): string {
+  return (raw ?? "")
+    .toUpperCase()
+    .replace(/\b(STORE|STORES|ROOM|AREA)\b/g, " ")
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+function zoneSuffix(raw: string): string {
+  return rawZoneSuffix(raw).slice(0, ZONE_SUFFIX_MAX);
+}
+
 export function planLocationRun(input: {
   /** The zone or rack these hang under, e.g. `SB-DRY`. */
   parentCode: string;

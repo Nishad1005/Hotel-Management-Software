@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fixturePrefix, MAX_RUN, planLocationRun } from "./location-run";
+import { fixturePrefix, MAX_RUN, planLocationRun, planZone, ZONE_SUFFIX_MAX } from "./location-run";
 
 describe("fixturePrefix", () => {
   it("takes the first letter of what the property calls it", () => {
@@ -134,5 +134,65 @@ describe("planLocationRun", () => {
     expect(run.first).toBeNull();
     expect(run.last).toBeNull();
     expect(run.count).toBe(0);
+  });
+});
+
+describe("planning a new zone", () => {
+  it("derives the code from the property and the zone's own name", () => {
+    expect(planZone({ propertyCode: "SB", name: "Pool bar" }).code).toBe("SB-POOLBAR");
+  });
+
+  it("drops the words every zone shares", () => {
+    // "Dry store", "Cold room", "Banquet area" — the noun is the same every time and
+    // carrying it makes every code longer for no information.
+    expect(planZone({ propertyCode: "SB", name: "Banquet store" }).code).toBe("SB-BANQUET");
+    expect(planZone({ propertyCode: "SB", name: "Spa room" }).code).toBe("SB-SPA");
+  });
+
+  it("joins words rather than hyphenating them", () => {
+    // The code is read off a sticker and typed into a search box. Every hyphen is a
+    // chance to type it wrong.
+    expect(planZone({ propertyCode: "SB", name: "Housekeeping chemicals" }).code).toBe(
+      "SB-HOUSEKEEPING",
+    );
+  });
+
+  it("takes an explicit suffix over the derived one", () => {
+    expect(planZone({ propertyCode: "SB", name: "Pool bar", suffix: "PB" }).code).toBe("SB-PB");
+  });
+
+  it("upper-cases whatever it is given", () => {
+    expect(planZone({ propertyCode: "sb", name: "pool bar", suffix: "pb" }).code).toBe("SB-PB");
+  });
+
+  it("refuses a name that reduces to nothing", () => {
+    // "Store" alone is every zone. There is no code left once it is dropped.
+    const plan = planZone({ propertyCode: "SB", name: "Store" });
+    expect(plan.ok).toBe(false);
+    expect(plan.errors).toContain("SUFFIX_REQUIRED");
+  });
+
+  it("refuses a blank name", () => {
+    expect(planZone({ propertyCode: "SB", name: "   " }).errors).toContain("NAME_REQUIRED");
+  });
+
+  it("refuses an over-long explicit suffix rather than silently cutting it", () => {
+    // Truncating a code somebody typed is how a label comes back saying something they
+    // did not choose.
+    const plan = planZone({ propertyCode: "SB", name: "Pool bar", suffix: "ABCDEFGHIJKLMNOP" });
+    expect(plan.ok).toBe(false);
+    expect(plan.errors).toContain("SUFFIX_TOO_LONG");
+  });
+
+  it("truncates a derived suffix without complaining, because nobody typed it", () => {
+    const plan = planZone({ propertyCode: "SB", name: "Housekeeping chemicals and consumables" });
+    expect(plan.ok).toBe(true);
+    expect(plan.suffix.length).toBe(ZONE_SUFFIX_MAX);
+  });
+
+  it("gives no code at all when it is not valid", () => {
+    // An empty string rather than a half-built one, so a preview cannot show something
+    // that will never be written.
+    expect(planZone({ propertyCode: "", name: "" }).code).toBe("");
   });
 });

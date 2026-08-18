@@ -1,14 +1,18 @@
 import type { LocationKind, StorageRegime } from "@golai/db";
-import { planLocationRun } from "@golai/domain";
+import { planLocationRun, planZone } from "@golai/domain";
 import { requireSupabase } from "./supabase";
 
 /**
- * Building a property's bin tree.
+ * Building a property's storage tree.
  *
- * This is implementer tooling, not something the property does. We take the layout
- * Voyage sends, generate the tree, produce the label PDFs and hand them over — so
- * everything here is shaped around one person doing it quickly and not being able to
- * make a mess somebody else has to clean up.
+ * Written as implementer tooling — we take the layout a property sends and generate the
+ * tree — and it turned out the property wants to do it themselves. It works either way:
+ * the write policy is OWNER/ADMIN, which a property administrator holds, and the fixture
+ * name is asked for in their words rather than ours.
+ *
+ * Everything here is shaped around one person doing it quickly and not being able to make
+ * a mess somebody else has to clean up: the codes are previewed before anything is
+ * written, a run is capped, and retiring a location is refused while stock is on it.
  */
 
 export interface LocationNode {
@@ -65,6 +69,71 @@ export async function listLocationTree(): Promise<ZoneSummary[]> {
   }
 
   return parents.map((zone) => ({ ...zone, children: byParent.get(zone.id) ?? [] }));
+}
+
+export interface ZoneInput {
+  propertyId: string;
+  propertyCode: string;
+  name: string;
+  suffix?: string;
+  regime: StorageRegime;
+  /** The property's word for what is inside — Shelf, Rack, Ghoda, Peti stack. */
+  fixtureType: string;
+}
+
+/**
+ * Creates a storage zone.
+ *
+ * Provisioning seeds seven and that is a starting set, not a complete one. A resort has a
+ * pool bar store and a spa store; without this the seeded seven were all a property could
+ * ever have, and its own layout had nowhere to go.
+ *
+ * A zone rather than a bin: `kind = 'ZONE'` and no parent, which is what makes it appear
+ * as a heading on the tree screen and what makes it a lawful parent for a run of bins.
+ * Put-away still refuses it as a destination — only the leaf is one — so adding a zone
+ * cannot accidentally create somewhere stock can be dumped without a label.
+ */
+export async function createZone(input: ZoneInput): Promise<{ id: string; code: string }> {
+  const plan = planZone({
+    propertyCode: input.propertyCode,
+    name: input.name,
+    ...(input.suffix ? { suffix: input.suffix } : {}),
+  });
+
+  if (!plan.ok) throw new Error(`Cannot create that zone: ${plan.errors.join(", ")}`);
+
+  const client = requireSupabase();
+
+  // Reactivated rather than inserted where the code was retired, for the same reason the
+  // bin run does it: a retired row still occupies `unique (property_id, code)`, so an
+  // insert reports a duplicate and a plain upsert silently does nothing at all.
+  const { data: revived, error: reviveError } = await client
+    .from("location")
+    .update({ is_active: true, name: input.name.trim(), regime: input.regime })
+    .eq("property_id", input.propertyId)
+    .eq("code", plan.code)
+    .eq("is_active", false)
+    .select("id, code");
+
+  if (reviveError) throw new Error(friendly(reviveError.code, reviveError.message));
+  if (revived && revived.length > 0) return { id: revived[0]!.id, code: revived[0]!.code };
+
+  const { data, error } = await client
+    .from("location")
+    .insert({
+      property_id: input.propertyId,
+      code: plan.code,
+      name: input.name.trim(),
+      kind: "ZONE",
+      parent_id: null,
+      regime: input.regime,
+      fixture_type: input.fixtureType.trim() || "Shelf",
+    })
+    .select("id, code")
+    .single();
+
+  if (error) throw new Error(friendly(error.code, error.message));
+  return { id: data.id, code: data.code };
 }
 
 export interface LocationRunInput {
@@ -160,7 +229,8 @@ export async function deactivateLocation(propertyId: string, locationId: string)
 }
 
 function friendly(code: string | undefined, message: string): string {
-  if (code === "42501") return "You do not have permission to change locations at this property.";
+  if (code === "42501")
+    return "Changing the store layout needs an Administrator. Recording stock does not, and neither should hold the other.";
   if (code === "23505") return "A location with that code already exists here.";
   return message;
 }
