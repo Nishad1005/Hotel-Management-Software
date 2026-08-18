@@ -8,11 +8,12 @@ import {
   type VendorRef,
 } from "@golai/domain";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Row, ChoiceTile, FieldError, PrimaryButton, Section, Stepper } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
+import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { drainOnce } from "../../lib/sync";
 import { font, radius, space, touch, type, usePalette } from "../../theme";
@@ -24,16 +25,15 @@ import { font, radius, space, touch, type, usePalette } from "../../theme";
  * and completed at Terminal 1, because a guard holding up a vehicle in the rain will
  * either skip an over-long form or invent answers for it.
  *
- * Not yet wired: the vendor master, the camera, and number leasing. Vendors below are
- * placeholder data and the number is generated locally so the flow can be walked and
- * timed end to end. Persistence lands with the outbox.
+ * Not yet wired: the camera, and number leasing. The number is generated locally so the
+ * flow can be walked and timed end to end; leasing lands with ADR 0005.
+ *
+ * The vendor list IS wired now. It was placeholder data captured as an unregistered name,
+ * because picking one would have written a fabricated UUID into a column with no foreign
+ * key to catch it. There is a party master and a composite foreign key on that column, so
+ * a registered vendor is now a real reference — which is what makes the hold status, the
+ * FSSAI licence and the reconciliation against a supplier mean anything.
  */
-
-const PLACEHOLDER_VENDORS = [
-  { id: "11111111-1111-1111-1111-111111111111", code: "SB-VEN-0042", name: "Bhaskar Fish Supply" },
-  { id: "22222222-2222-2222-2222-222222222222", code: "SB-VEN-0017", name: "Tinsukia Dairy" },
-  { id: "33333333-3333-3333-3333-333333333333", code: "SB-VEN-0088", name: "Assam Fresh Produce" },
-] as const;
 
 const VEHICLE_OPTIONS: {
   mode: VehicleMode;
@@ -70,6 +70,23 @@ export default function NewGateEntry() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [unregisteredName, setUnregisteredName] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [parties, setParties] = useState<Party[]>([]);
+
+  // Failure is silent on purpose. A guard with a vehicle at the barrier must be able to
+  // capture the arrival whether or not the vendor list loaded; the unregistered-name path
+  // below is always there, and refusing to record would be the one failure this gate
+  // exists to prevent.
+  useEffect(() => {
+    let alive = true;
+    void listParties()
+      .then((list) => {
+        if (alive) setParties(list);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const draft = {
     vendor: vendor ?? { kind: "UNREGISTERED" as const, name: "" },
@@ -240,6 +257,7 @@ export default function NewGateEntry() {
 
       <VendorPicker
         open={pickerOpen}
+        parties={parties}
         name={unregisteredName}
         onChangeName={setUnregisteredName}
         onClose={() => setPickerOpen(false)}
@@ -255,12 +273,14 @@ export default function NewGateEntry() {
 
 function VendorPicker({
   open,
+  parties,
   name,
   onChangeName,
   onClose,
   onPick,
 }: {
   open: boolean;
+  parties: Party[];
   name: string;
   onChangeName: (v: string) => void;
   onClose: () => void;
@@ -296,19 +316,25 @@ function VendorPicker({
           contentContainerStyle={{ padding: space.md }}
           keyboardShouldPersistTaps="handled"
         >
-          {PLACEHOLDER_VENDORS.map((v) => (
+          {parties.length === 0 ? (
+            <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.md }}>
+              No vendors are registered yet. Enter the name below — an unregistered vendor can still
+              be received, and registration is chased afterwards.
+            </Text>
+          ) : null}
+
+          {parties.map((v) => (
             <Row
               key={v.id}
-              icon="business"
+              icon={v.onHold ? "hand-left" : "business"}
               label={v.name}
-              value={v.code}
-              // Captured by name, not as a party reference. There is no party master
-              // yet, and now that these entries actually reach the server, picking one
-              // of these would write a fabricated UUID into gate_entry.party_id — a
-              // column with no foreign key to catch it. An unregistered vendor by name
-              // is what the schema is for, and it leaves nothing to clean up when the
-              // real master lands.
-              onPress={() => onPick({ kind: "UNREGISTERED", name: v.name }, v.name)}
+              // The hold reason where there is one, because a guard needs to know BEFORE
+              // anything comes off the vehicle rather than after. Status is resolved here
+              // at pick time rather than printed on a card, which is what lets a hold
+              // applied this morning stop a delivery this afternoon.
+              value={v.onHold ? `On hold — ${v.holdReason ?? "ask the office"}` : v.code}
+              {...(v.onHold ? { tint: "danger" as const } : {})}
+              onPress={() => onPick({ kind: "REGISTERED", partyId: v.id }, v.name)}
             />
           ))}
 

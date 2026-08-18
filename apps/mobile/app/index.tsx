@@ -18,8 +18,10 @@ import { elevation, font, radius, space, touch, type, usePalette } from "../them
  * I go" but "does anything need me today". The links still matter; they belong under
  * the answer rather than instead of it.
  *
- * The figures are ordered by how much they demand — expired first, because that is
- * stock that cannot be served and money already lost.
+ * The figures are ordered by who they are waiting on. The work queues come first —
+ * arrivals to receive, stock at Terminal 1, consignments waiting to leave — because each
+ * is a job somebody has to do today. What merely needs watching comes underneath, however
+ * red it looks: stock expiring in six days does not need anybody before lunch.
  */
 export default function Home() {
   const p = usePalette();
@@ -31,6 +33,8 @@ export default function Home() {
   const [blocked, setBlocked] = useState(0);
   const [overview, setOverview] = useState<PropertyOverview | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const propertyId = activeProperty?.propertyId ?? null;
 
   useFocusEffect(
     useCallback(() => {
@@ -45,8 +49,9 @@ export default function Home() {
 
       void refreshQueue();
       void (async () => {
+        if (!propertyId) return;
         try {
-          const next = await loadOverview(Date.now());
+          const next = await loadOverview(propertyId);
           if (alive) setOverview(next);
         } catch {
           // A dashboard that cannot count is not worth an error screen — the actions
@@ -62,10 +67,21 @@ export default function Home() {
         alive = false;
         unsubscribe();
       };
-    }, []),
+    }, [propertyId]),
   );
 
-  const needsAttention = (overview?.expired ?? 0) + (overview?.expiringSoon ?? 0);
+  /**
+   * What is waiting on a person right now, as against what merely needs watching.
+   *
+   * The distinction decides the heading and the order below. An arrival standing at the
+   * gate and a pallet standing at Terminal 1 are both somebody's next job; stock expiring
+   * in six days is not, however red it looks.
+   */
+  const queued =
+    (overview?.arrivalsWaiting ?? 0) +
+    (overview?.quarantineLines ?? 0) +
+    (overview?.awaitingGatePass ?? 0);
+  const atRisk = (overview?.expired ?? 0) + (overview?.expiringSoon ?? 0);
 
   return (
     <View style={{ flex: 1, backgroundColor: p.background }}>
@@ -182,7 +198,7 @@ export default function Home() {
               marginBottom: space.md,
             }}
           >
-            {needsAttention > 0 ? "Needs attention" : "The store today"}
+            {queued > 0 ? "Waiting on someone" : atRisk > 0 ? "Needs watching" : "The store today"}
           </Text>
 
           {loading ? (
@@ -200,45 +216,102 @@ export default function Home() {
               <ActivityIndicator color={p.accent} />
             </View>
           ) : (
-            <StatGrid>
-              <StatTile
-                icon="alert-circle"
-                label="Expired"
-                value={overview?.expired ?? 0}
-                caption={overview?.expired ? "Cannot be served" : "Nothing past date"}
-                tone={overview?.expired ? "bad" : "neutral"}
-                onPress={() => router.push("/perishables")}
-              />
-              <StatTile
-                icon="hourglass"
-                label="Use this week"
-                value={overview?.expiringSoon ?? 0}
-                caption="Within seven days"
-                tone={overview?.expiringSoon ? "warn" : "neutral"}
-                onPress={() => router.push("/perishables")}
-              />
-              <StatTile
-                icon="layers-outline"
-                label="Stock lines"
-                value={overview?.stockLines ?? 0}
-                caption="Batches on hand"
-                tone="accent"
-                onPress={() => router.push("/stock/opening")}
-              />
-              <StatTile
-                icon="cube-outline"
-                label="Items"
-                value={overview?.items ?? 0}
-                caption={`${overview?.locations ?? 0} locations`}
-                onPress={() => router.push("/items")}
-              />
-            </StatGrid>
+            <>
+              {/*
+                The work queues first, and in flow order — gate, dock, gate again. These
+                are three jobs somebody has to do today, and they were invisible on this
+                screen until now even though the app had grown six screens to do them on.
+              */}
+              <StatGrid>
+                <StatTile
+                  icon="car-outline"
+                  label="To receive"
+                  value={overview?.arrivalsWaiting ?? 0}
+                  caption={
+                    overview?.arrivalsOverdue
+                      ? `${overview.arrivalsOverdue} waiting over four hours`
+                      : "Arrivals with no receipt"
+                  }
+                  tone={
+                    overview?.arrivalsOverdue
+                      ? "bad"
+                      : overview?.arrivalsWaiting
+                        ? "warn"
+                        : "neutral"
+                  }
+                  onPress={() => router.push("/receive")}
+                />
+                <StatTile
+                  icon="file-tray-stacked-outline"
+                  label="To put away"
+                  value={overview?.quarantineLines ?? 0}
+                  caption={
+                    overview?.quarantineOldestHours
+                      ? `Oldest ${overview.quarantineOldestHours.toFixed(1)} h at T1`
+                      : "Nothing at Terminal 1"
+                  }
+                  tone={(overview?.quarantineOldestHours ?? 0) >= 4 ? "warn" : "neutral"}
+                  onPress={() => router.push("/putaway")}
+                />
+                <StatTile
+                  icon="shield-checkmark-outline"
+                  label="To gate out"
+                  value={overview?.awaitingGatePass ?? 0}
+                  caption="Staged, still on the property"
+                  tone={overview?.awaitingGatePass ? "warn" : "neutral"}
+                  onPress={() => router.push("/gate-out")}
+                />
+              </StatGrid>
+
+              <View style={{ height: space.md }} />
+
+              <StatGrid>
+                <StatTile
+                  icon="alert-circle"
+                  label="Expired"
+                  value={overview?.expired ?? 0}
+                  caption={overview?.expired ? "Cannot be served" : "Nothing past date"}
+                  tone={overview?.expired ? "bad" : "neutral"}
+                  onPress={() => router.push("/perishables")}
+                />
+                <StatTile
+                  icon="hourglass"
+                  label="Use this week"
+                  value={overview?.expiringSoon ?? 0}
+                  caption="Within seven days"
+                  tone={overview?.expiringSoon ? "warn" : "neutral"}
+                  onPress={() => router.push("/perishables")}
+                />
+                <StatTile
+                  icon="layers-outline"
+                  label="Stock lines"
+                  value={overview?.stockLines ?? 0}
+                  caption="Issuable, across every bin"
+                  tone="accent"
+                  onPress={() => router.push("/stock")}
+                />
+                <StatTile
+                  icon="cube-outline"
+                  label="Items"
+                  value={overview?.items ?? 0}
+                  caption={`${overview?.bins ?? 0} bins · ${overview?.vendors ?? 0} vendors`}
+                  onPress={() => router.push("/items")}
+                />
+              </StatGrid>
+            </>
           )}
 
           <View style={{ height: space.xxl }} />
 
           <Section title="Stock">
             <Card padded={false}>
+              <Row
+                icon="albums-outline"
+                label="What is in the store"
+                value="Everything on hand, and where it is"
+                divider
+                onPress={() => router.push("/stock")}
+              />
               <Row
                 icon="hourglass-outline"
                 label="Expiring soon"
@@ -251,6 +324,28 @@ export default function Home() {
                 label="Opening stock"
                 value="Record what is already in the store"
                 onPress={() => router.push("/stock/opening")}
+              />
+            </Card>
+          </Section>
+
+          {/*
+            Its own section, above master data, because it is the product argument rather
+            than a report. Nothing in it is captured anywhere — it is the flow read back.
+          */}
+          <Section title="Compliance">
+            <Card padded={false}>
+              <Row
+                icon="shield-checkmark-outline"
+                label="FSSAI registers"
+                value="Inward, temperature, non-conforming, waste — all by-products"
+                divider
+                onPress={() => router.push("/registers")}
+              />
+              <Row
+                icon="git-branch-outline"
+                label="Trace a batch"
+                value="Gate to vendor to bin to department, on one screen"
+                onPress={() => router.push("/registers")}
               />
             </Card>
           </Section>
@@ -272,6 +367,13 @@ export default function Home() {
                 onPress={() => router.push("/admin/locations")}
               />
               <Row
+                icon="business-outline"
+                label="Vendors"
+                value="Who supplies, who launders, who takes the waste"
+                divider
+                onPress={() => router.push("/vendors")}
+              />
+              <Row
                 icon="people-outline"
                 label="People"
                 value="Who works here, and what they may do"
@@ -280,13 +382,48 @@ export default function Home() {
             </Card>
           </Section>
 
-          <Section title="Gate">
+          <Section title="The flow">
             <Card padded={false}>
               <Row
                 icon="car-outline"
                 label="New arrival"
-                value="Security capture"
+                value="Gate 0 — Security capture"
+                divider
                 onPress={() => router.push("/gate/new")}
+              />
+              <Row
+                icon="clipboard-outline"
+                label="Receive goods"
+                value="Gates 1 to 5 — count it, check it, post the receipt"
+                divider
+                onPress={() => router.push("/receive")}
+              />
+              <Row
+                icon="file-tray-stacked-outline"
+                label="Put away"
+                value="Gate 6 — into a bin, and only then issuable"
+                divider
+                onPress={() => router.push("/putaway")}
+              />
+              <Row
+                icon="exit-outline"
+                label="Issue to a department"
+                value="Gate 8 — out of the store, oldest first"
+                divider
+                onPress={() => router.push("/issue")}
+              />
+              <Row
+                icon="albums-outline"
+                label="Send out"
+                value="Gate 9 — stage returns, empties and linen at Terminal 2"
+                divider
+                onPress={() => router.push("/dispatch")}
+              />
+              <Row
+                icon="shield-checkmark-outline"
+                label="Gate out"
+                value="Gate 10 — Security issues the gate pass"
+                onPress={() => router.push("/gate-out")}
               />
             </Card>
           </Section>

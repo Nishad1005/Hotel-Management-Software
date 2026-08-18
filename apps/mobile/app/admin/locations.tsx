@@ -1,5 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { fixturePrefix, MAX_RUN, planLocationRun } from "@golai/domain";
+import {
+  fixturePrefix,
+  LABEL_SIZES,
+  MAX_RUN,
+  planLabelSheet,
+  planLocationRun,
+  renderLabelSheetHtml,
+  type LabelSizeId,
+} from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -13,7 +21,9 @@ import {
   Page,
   PrimaryButton,
   Section,
+  SelectRow,
 } from "../../components/ui";
+import { printer } from "../../lib/print";
 import {
   createLocationRun,
   deactivateLocation,
@@ -268,6 +278,10 @@ export default function Locations() {
                         </View>
                       ) : null}
 
+                      {z.children.length > 0 ? (
+                        <LabelPrinter zone={z} propertyName={activeProperty?.propertyName ?? ""} />
+                      ) : null}
+
                       {canEditMasters ? (
                         <>
                           <Text
@@ -388,6 +402,82 @@ export default function Locations() {
           )}
         </Page>
       </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * Printing a zone's stickers.
+ *
+ * Onboarding is ours to do — we build the tree and hand over the labels — so this is
+ * where a run of a hundred and twenty bins becomes a stack of stickers, one press.
+ *
+ * The size choice is not cosmetic. Every thermal option is one label per page, because
+ * sending an A4 grid to a thermal printer squeezes all ten onto a single sticker; that
+ * was golaiv1's one genuine field failure here, found with a printer and a wasted roll.
+ * The geometry and the page CSS both live in packages/domain with tests, so the failure
+ * cannot come back quietly.
+ */
+function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName: string }) {
+  const p = usePalette();
+  const [sizeId, setSizeId] = useState<LabelSizeId>("thermal-100x50");
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    setError(null);
+    try {
+      const plan = planLabelSheet(
+        zone.children.map((c) => ({ code: c.code, name: c.name, zone: zone.name })),
+        sizeId,
+      );
+      await printer.print(
+        renderLabelSheetHtml(plan, propertyName ? { footer: propertyName } : {}),
+        `${zone.code} labels`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  if (!printer.available()) return null;
+
+  return (
+    <View style={{ marginBottom: space.xl }}>
+      <Text
+        style={{
+          fontSize: type.caption,
+          ...font("bold"),
+          letterSpacing: 1.1,
+          textTransform: "uppercase",
+          color: p.textMuted,
+          marginBottom: space.md,
+        }}
+      >
+        Print labels
+      </Text>
+
+      <SelectRow
+        label="Label size"
+        value={sizeId}
+        placeholder="Choose"
+        choices={LABEL_SIZES.map((s) => ({ id: s.id, label: s.label }))}
+        onSelect={(id) => setSizeId(id as LabelSizeId)}
+      />
+
+      <PrimaryButton
+        label={`Print ${zone.children.length} label${zone.children.length === 1 ? "" : "s"}`}
+        icon="print-outline"
+        tone="neutral"
+        onPress={() => void run()}
+      />
+
+      <Text
+        style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.sm, lineHeight: 17 }}
+      >
+        Choose &ldquo;Save as PDF&rdquo; in the print dialog to send them to a print shop instead.
+      </Text>
+
+      {error ? <FieldError message={error} /> : null}
     </View>
   );
 }

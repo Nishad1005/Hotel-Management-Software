@@ -36,6 +36,15 @@ export interface ItemListRow {
   categoryName: string;
   uomCode: string;
   uomId: string;
+  /**
+   * Carried on the list row because receiving judges a delivery against them at the
+   * dock, and a second fetch per line while a vehicle waits is not a trade worth making.
+   * Both rules are RECORD_ONLY: they colour the screen, they do not stop the receipt.
+   */
+  tempMinC: number | null;
+  tempMaxC: number | null;
+  minShelfLifePctAtReceipt: number | null;
+  categoryMinShelfLifePct: number | null;
 }
 
 export async function listCategories(): Promise<CategoryOption[]> {
@@ -70,7 +79,7 @@ export async function listItems(search: string, categoryId: string | null): Prom
   let query = requireSupabase()
     .from("item")
     .select(
-      "id, code, name, is_perishable, is_cold_chain, shelf_life_days, storage_regime, is_active, base_uom_id, category:category_id(name), uom:base_uom_id(code)",
+      "id, code, name, is_perishable, is_cold_chain, shelf_life_days, storage_regime, is_active, base_uom_id, temp_min_c, temp_max_c, min_shelf_life_pct_at_receipt, category:category_id(name, default_min_shelf_life_pct), uom:base_uom_id(code)",
     )
     .order("name")
     .limit(200);
@@ -86,7 +95,7 @@ export async function listItems(search: string, categoryId: string | null): Prom
 
   return (data ?? []).map((r) => {
     const row = r as unknown as ItemRow & {
-      category: { name: string } | null;
+      category: { name: string; default_min_shelf_life_pct: number | null } | null;
       uom: { code: string } | null;
     };
     return {
@@ -101,6 +110,10 @@ export async function listItems(search: string, categoryId: string | null): Prom
       categoryName: row.category?.name ?? "",
       uomCode: row.uom?.code ?? "",
       uomId: row.base_uom_id,
+      tempMinC: row.temp_min_c,
+      tempMaxC: row.temp_max_c,
+      minShelfLifePctAtReceipt: row.min_shelf_life_pct_at_receipt,
+      categoryMinShelfLifePct: row.category?.default_min_shelf_life_pct ?? null,
     };
   });
 }

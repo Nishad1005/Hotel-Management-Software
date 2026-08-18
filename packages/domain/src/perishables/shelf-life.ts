@@ -62,6 +62,19 @@ export interface ExpiryThresholds {
 }
 
 /**
+ * Two days and seven.
+ *
+ * Seven because a kitchen plans a week at a time, and two because that is roughly the
+ * point at which "plan for it" becomes "use it today".
+ *
+ * Exported rather than written out at each call site, which is where it started: the
+ * watchlist, the home screen and this file's own tests each carried their own copy, so
+ * the day somebody tuned one of them the two screens would have disagreed about which
+ * stock was urgent while both looked correct.
+ */
+export const DEFAULT_EXPIRY_THRESHOLDS: ExpiryThresholds = { criticalDays: 2, nearingDays: 7 };
+
+/**
  * Which bucket a batch belongs in.
  *
  * Stock with no best-before date is FRESH rather than EXPIRED. Non-perishables have

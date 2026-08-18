@@ -58,6 +58,26 @@ export type MembershipRole =
 
 export type UomKind = "WEIGHT" | "VOLUME" | "COUNT";
 export type StorageRegime = "AMBIENT" | "CHILLED" | "FROZEN";
+
+/**
+ * Every counterparty that transacts at a gate. One entity with a discriminator, because
+ * Terminal 2 scans the laundry exactly as Terminal 1 scans the vendor.
+ */
+export type PartyType =
+  | "VENDOR"
+  | "CONTRACTOR"
+  | "LAUNDRY"
+  | "AGGREGATOR"
+  | "CARRIER"
+  | "SISTER_PROPERTY";
+
+export type DocumentNumberType =
+  | "GATE_ENTRY"
+  | "GRN"
+  | "GATE_PASS"
+  | "DISPATCH_NOTE"
+  | "ISSUE"
+  | "PARTY";
 /**
  * RACK groups; BIN is the leaf that carries a scannable label and is the only lawful
  * put-away destination (PRD section 4 Gate 6, hard rule 13).
@@ -69,7 +89,9 @@ export type LocationKind =
   | "ZONE"
   | "RACK"
   | "BIN"
-  | "DISPATCH";
+  | "DISPATCH"
+  /** A consuming department. Holds issued stock without holding store stock. */
+  | "DEPARTMENT";
 export type EnforcementMode = "RECORD_ONLY" | "WARN" | "BLOCK";
 
 export type OrganisationRow = {
@@ -208,10 +230,22 @@ export type MovementReason =
   | "ZONE_TRANSFER"
   | "ISSUE"
   | "RETURN_TO_STORE"
+  /** The move to Terminal 2. Still on the property. */
   | "DISPATCH_STAGING"
+  /** The departure itself — the movement with no destination, because there is none. */
+  | "GATE_OUT"
   | "WRITE_OFF_EXPIRED"
   | "WRITE_OFF_DAMAGED"
   | "CORRECTION";
+
+/**
+ * How a scanned code was established.
+ *
+ * Hard rule 13 permits only a scan. TYPED exists so the concession this build makes is
+ * counted rather than invisible — the rule ships RECORD_ONLY and tightens to BLOCK once
+ * labels are printed and scanners are on the floor.
+ */
+export type ScanMethod = "CAMERA" | "HARDWARE" | "TYPED";
 
 export type BatchSource = "OPENING_STOCK" | "GRN";
 export type ArrivalType =
@@ -288,6 +322,11 @@ export type GrnRow = {
   posted_by: string | null;
   amendment_of: string | null;
   amendment_reason: string | null;
+  /**
+   * Identifies the submission, so an outbox retry returns the original receipt rather
+   * than posting a second one. Set by `post_grn`; never written from a client.
+   */
+  idempotency_key: string | null;
   created_at: string;
 };
 
@@ -307,6 +346,33 @@ export type GrnLineRow = {
   created_at: string;
 };
 
+/**
+ * One line handed to `post_grn`.
+ *
+ * Not a `GrnLineRow`: the caller supplies neither ids the server allocates nor the batch,
+ * which is created or matched during posting. `best_before` and `receipt_temp_c` belong
+ * to the batch rather than the line, but they are captured on the same screen at the same
+ * moment, so they arrive here.
+ */
+export type PostGrnLine = {
+  item_id: string;
+  /** Defaults to the item's base unit when omitted. */
+  uom_id?: string;
+  /** The vendor's number. A system one is generated when there is none. */
+  batch_no?: string | null;
+  mfg_date?: string | null;
+  /** Required on a perishable item. Part of the quality floor; no mode switches it off. */
+  best_before?: string | null;
+  /** Required on a cold-chain item. Same floor. */
+  receipt_temp_c?: number | null;
+  qty_challan?: number | null;
+  qty_physical: number;
+  qty_accepted: number;
+  qty_rejected: number;
+  decision: GrnLineDecision;
+  reject_reason?: RejectReason | null;
+};
+
 export type DispatchNoteRow = {
   id: string;
   property_id: string;
@@ -314,6 +380,13 @@ export type DispatchNoteRow = {
   dispatch_type: DispatchType;
   reason_code: string | null;
   origin_location_id: string | null;
+  /**
+   * The original single-line shape, kept nullable and no longer written.
+   *
+   * A dispatch has lines (`dispatch_line`) as of the Gate 9 migration — one rejected line
+   * per delivery is the easy case, not the usual one. These stay for a release because an
+   * offline device running older code may still write them (expand/contract).
+   */
   batch_id: string | null;
   item_id: string | null;
   qty: number | null;
@@ -322,6 +395,22 @@ export type DispatchNoteRow = {
   is_returnable: boolean;
   expected_return_date: string | null;
   authorised_by: string | null;
+  staged_by_name: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+};
+
+export type DispatchLineRow = {
+  id: string;
+  property_id: string;
+  dispatch_note_id: string;
+  batch_id: string;
+  item_id: string;
+  from_location_id: string;
+  /** Where it came from. A supplier return and a linen collection differ only in this. */
+  from_state: StockState;
+  qty: number;
+  uom_id: string;
   created_at: string;
 };
 
@@ -335,8 +424,38 @@ export type GatePassRow = {
   vehicle_number: string | null;
   package_count: number | null;
   verified_by: string | null;
+  verified_by_name: string | null;
   printed_at: string | null;
+  idempotency_key: string | null;
   created_at: string;
+};
+
+export type PartyRow = {
+  id: string;
+  property_id: string;
+  code: string;
+  name: string;
+  party_type: PartyType;
+  phone: string | null;
+  gstin: string | null;
+  fssai_licence: string | null;
+  /** Shown in red at the gate before anything is unloaded. */
+  on_hold: boolean;
+  hold_reason: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Read-only from the client. The counter moves only through
+ * app.next_document_number, which is what makes "sequential and immutable" true.
+ */
+export type NumberSequenceRow = {
+  property_id: string;
+  doc_type: DocumentNumberType;
+  next_value: number;
+  updated_at: string;
 };
 
 export type ReturnableItemRow = {
@@ -365,8 +484,89 @@ export type StockMovementRow = {
   reason: MovementReason;
   occurred_at: string;
   recorded_by: string | null;
+  /** The recorder's name as it was at the moment of the movement. */
+  recorded_by_name: string | null;
   idempotency_key: string;
   note: string | null;
+  /** Set where the movement had a scannable destination — put-away, and later transfer. */
+  scan_method: ScanMethod | null;
+};
+
+/**
+ * One line handed to `issue_stock`.
+ *
+ * The lot, not the item: which batch and which bin is the decision FEFO makes, and
+ * flattening it to "20 kg of flour" would let the server pick — which is the same as
+ * nobody having decided.
+ */
+export type IssueStockLine = {
+  batch_id: string;
+  from_location_id: string;
+  qty: number;
+};
+
+/**
+ * One line handed to `stage_for_dispatch`.
+ *
+ * `from_state` is supplied rather than inferred: the same batch can sit in the reject
+ * hold and in a zone at once — half a delivery accepted, half turned away — and which one
+ * is leaving is the difference between a supplier return and a transfer out.
+ */
+export type DispatchStageLine = {
+  batch_id: string;
+  from_location_id: string;
+  from_state: StockState;
+  qty: number;
+};
+
+export type IssueNoteRow = {
+  id: string;
+  property_id: string;
+  issue_no: string;
+  /** A DEPARTMENT location. Departments are places, so they live in the location tree. */
+  department_id: string;
+  purpose: string | null;
+  issued_at: string;
+  issued_by: string | null;
+  issued_by_name: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+};
+
+export type IssueLineRow = {
+  id: string;
+  property_id: string;
+  issue_note_id: string;
+  batch_id: string;
+  item_id: string;
+  from_location_id: string;
+  qty: number;
+  uom_id: string;
+  /** The expiry rule ships RECORD_ONLY, so this is the register it produces. */
+  was_expired: boolean;
+  days_remaining_at_issue: number | null;
+  created_at: string;
+};
+
+/**
+ * Who took custody.
+ *
+ * `verified_by_scan` is the whole point of the table. Acceptance criterion 17 is met when
+ * it is true and not before; a typed `receiver_name` is the storekeeper's assertion, not
+ * the receiver's identity.
+ */
+export type ReceiptAckRow = {
+  id: string;
+  property_id: string;
+  issue_note_id: string | null;
+  dispatch_note_id: string | null;
+  receiver_name: string;
+  receiver_person_id: string | null;
+  verified_by_scan: boolean;
+  scan_method: ScanMethod | null;
+  acknowledged_at: string;
+  recorded_by: string | null;
+  recorded_by_name: string | null;
 };
 
 /** Derived from stock_movement. Never inserted or updated directly. */
@@ -518,6 +718,7 @@ export type Database = {
           | "posted_by"
           | "amendment_of"
           | "amendment_reason"
+          | "idempotency_key"
         >;
         Update: Partial<GrnRow>;
         Relationships: [];
@@ -549,6 +750,13 @@ export type Database = {
         Update: Partial<DispatchNoteRow>;
         Relationships: [];
       };
+      // Written only by stage_for_dispatch, like every other document with a number.
+      dispatch_line: {
+        Row: DispatchLineRow;
+        Insert: DispatchLineRow;
+        Update: Partial<DispatchLineRow>;
+        Relationships: [];
+      };
       gate_pass: {
         Row: GatePassRow;
         Insert: InsertOf<
@@ -562,6 +770,27 @@ export type Database = {
           | "printed_at"
         >;
         Update: Partial<GatePassRow>;
+        Relationships: [];
+      };
+      party: {
+        Row: PartyRow;
+        Insert: InsertOf<
+          PartyRow,
+          | "party_type"
+          | "phone"
+          | "gstin"
+          | "fssai_licence"
+          | "on_hold"
+          | "hold_reason"
+          | "is_active"
+        >;
+        Update: Partial<PartyRow>;
+        Relationships: [];
+      };
+      number_sequence: {
+        Row: NumberSequenceRow;
+        Insert: InsertOf<NumberSequenceRow, "next_value">;
+        Update: Partial<NumberSequenceRow>;
         Relationships: [];
       };
       returnable_item: {
@@ -583,11 +812,33 @@ export type Database = {
           | "to_state"
           | "occurred_at"
           | "recorded_by"
+          | "recorded_by_name"
           | "note"
+          | "scan_method"
         >;
         // Append-only in the database (ADR 0003). Declared for completeness; the
         // trigger refuses it.
         Update: Partial<StockMovementRow>;
+        Relationships: [];
+      };
+      // Written only by issue_stock. There is no insert policy, deliberately: a document
+      // with a number cannot be assembled from several client statements.
+      issue_note: {
+        Row: IssueNoteRow;
+        Insert: IssueNoteRow;
+        Update: Partial<IssueNoteRow>;
+        Relationships: [];
+      };
+      issue_line: {
+        Row: IssueLineRow;
+        Insert: IssueLineRow;
+        Update: Partial<IssueLineRow>;
+        Relationships: [];
+      };
+      receipt_ack: {
+        Row: ReceiptAckRow;
+        Insert: ReceiptAckRow;
+        Update: Partial<ReceiptAckRow>;
         Relationships: [];
       };
       stock_lot: {
@@ -634,6 +885,324 @@ export type Database = {
         Args: { p_property_id: string; p_user_id: string; p_role: MembershipRole };
         Returns: undefined;
       };
+      /**
+       * Gates 1-5 in one transaction. Replaying a key returns the original receipt
+       * rather than posting a second one.
+       */
+      post_grn: {
+        Args: {
+          p_property_id: string;
+          p_gate_entry_id: string | null;
+          p_party_id: string | null;
+          p_idempotency_key: string;
+          p_lines: PostGrnLine[];
+        };
+        Returns: { grn_id: string; grn_no: string }[];
+      };
+      /**
+       * Gate 6. The destination is resolved from a scanned code rather than an id, and
+       * how it was established is recorded on the movement.
+       */
+      put_away: {
+        Args: {
+          p_property_id: string;
+          p_batch_id: string;
+          p_from_location_id: string;
+          p_to_location_code: string;
+          p_qty: number;
+          p_scan_method: ScanMethod;
+          p_idempotency_key: string;
+        };
+        Returns: {
+          movement_id: string;
+          to_location_id: string;
+          to_location_code: string;
+          remaining: number;
+        }[];
+      };
+      /**
+       * Gate 8. Moves AVAILABLE stock into ISSUED at a department and writes the
+       * acknowledgement in the same transaction.
+       */
+      issue_stock: {
+        Args: {
+          p_property_id: string;
+          p_department_id: string;
+          p_receiver_name: string;
+          p_purpose: string | null;
+          p_idempotency_key: string;
+          p_lines: IssueStockLine[];
+        };
+        Returns: { issue_id: string; issue_no: string; expired_lines: number }[];
+      };
+      /** AVAILABLE stock in FEFO order. Quarantine and reject hold are absent by construction. */
+      list_issuable_stock: {
+        Args: { p_property_id: string; p_item_id?: string | null };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          is_perishable: boolean;
+          uom_id: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          location_name: string;
+          qty: number;
+          best_before: string | null;
+          days_remaining: number | null;
+        }[];
+      };
+      /** Gate 9. Moves stock to STAGED_OUT at Terminal 2 against a numbered dispatch note. */
+      stage_for_dispatch: {
+        Args: {
+          p_property_id: string;
+          p_dispatch_type: DispatchType;
+          p_recipient_party_id: string | null;
+          p_reason_code: string | null;
+          p_is_returnable: boolean;
+          p_expected_return_date: string | null;
+          p_idempotency_key: string;
+          p_lines: DispatchStageLine[];
+        };
+        Returns: { dispatch_id: string; dispatch_no: string }[];
+      };
+      /**
+       * Gate 10. Issues the gate pass and takes the staged stock off the property.
+       * Refuses a pass verified by whoever staged it.
+       */
+      issue_gate_pass: {
+        Args: {
+          p_property_id: string;
+          p_dispatch_note_id: string;
+          p_carrier: string;
+          p_vehicle_number: string | null;
+          p_package_count: number | null;
+          p_idempotency_key: string;
+        };
+        Returns: { gate_pass_id: string; gate_pass_no: string }[];
+      };
+      /** Stock that may leave: the reject hold first, then zones and departments. */
+      list_dispatchable_stock: {
+        Args: { p_property_id: string };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          uom_id: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          location_name: string;
+          state: StockState;
+          qty: number;
+          best_before: string | null;
+        }[];
+      };
+      /** Dispatch notes with no gate pass — staged, and still on the property. */
+      list_awaiting_gate_pass: {
+        Args: { p_property_id: string };
+        Returns: {
+          dispatch_id: string;
+          dispatch_no: string;
+          dispatch_type: DispatchType;
+          recipient_name: string | null;
+          is_returnable: boolean;
+          expected_return_date: string | null;
+          staged_by_name: string | null;
+          staged_by: string | null;
+          staged_at: string;
+          line_count: number;
+          total_qty: number;
+        }[];
+      };
+      /**
+       * PRD section 7.2 — the inward material check, the receipt temperature record and
+       * the non-conforming register. One dataset; they differ only in which rows you
+       * look at.
+       */
+      list_inward_register: {
+        Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
+        Returns: {
+          received_at: string;
+          grn_no: string;
+          gate_entry_no: string | null;
+          vendor_name: string | null;
+          vendor_fssai: string | null;
+          item_code: string;
+          item_name: string;
+          batch_no: string | null;
+          batch_is_generated: boolean | null;
+          qty_challan: number | null;
+          qty_physical: number;
+          qty_accepted: number;
+          qty_rejected: number;
+          uom_code: string;
+          best_before: string | null;
+          receipt_temp_c: number | null;
+          temp_min_c: number | null;
+          temp_max_c: number | null;
+          temp_in_range: boolean | null;
+          decision: GrnLineDecision;
+          reject_reason: RejectReason | null;
+          received_by: string;
+          batch_id: string | null;
+        }[];
+      };
+      /** PRD section 7.2 — waste disposal and used cooking oil, as a view of dispatch. */
+      list_waste_register: {
+        Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
+        Returns: {
+          dispatched_at: string;
+          dispatch_no: string;
+          dispatch_type: DispatchType;
+          reason_code: string | null;
+          recipient_name: string | null;
+          recipient_fssai: string | null;
+          item_code: string;
+          item_name: string;
+          batch_no: string;
+          qty: number;
+          uom_code: string;
+          gate_pass_no: string | null;
+          left_at: string | null;
+          carrier: string | null;
+          vehicle_number: string | null;
+          staged_by_name: string | null;
+          verified_by_name: string | null;
+        }[];
+      };
+      /** PRD section 7.5 forward trace, read off the append-only ledger. */
+      trace_batch: {
+        Args: { p_property_id: string; p_batch_id: string };
+        Returns: {
+          occurred_at: string;
+          reason: MovementReason;
+          qty: number;
+          uom_code: string;
+          from_code: string | null;
+          from_name: string | null;
+          from_state: StockState | null;
+          to_code: string | null;
+          to_name: string | null;
+          to_state: StockState | null;
+          scan_method: ScanMethod | null;
+          recorded_by_name: string | null;
+          note: string | null;
+        }[];
+      };
+      /** Where a batch came from — the header a forward trace hangs under. */
+      batch_provenance: {
+        Args: { p_property_id: string; p_batch_id: string };
+        Returns: {
+          batch_no: string;
+          is_system_generated: boolean;
+          item_code: string;
+          item_name: string;
+          category_name: string;
+          uom_code: string;
+          best_before: string | null;
+          mfg_date: string | null;
+          receipt_temp_c: number | null;
+          pct_at_receipt: number | null;
+          dwell_breach: boolean;
+          source: BatchSource;
+          received_at: string | null;
+          grn_no: string | null;
+          gate_entry_no: string | null;
+          arrived_at: string | null;
+          vendor_name: string | null;
+          vendor_code: string | null;
+          vendor_fssai: string | null;
+          decision: GrnLineDecision | null;
+          reject_reason: RejectReason | null;
+          qty_accepted: number | null;
+          qty_rejected: number | null;
+          received_by: string | null;
+        }[];
+      };
+      /** Every figure the home screen shows, counted where the rows are. */
+      property_overview: {
+        Args: { p_property_id: string; p_nearing_days?: number };
+        Returns: {
+          items: number;
+          locations: number;
+          bins: number;
+          vendors: number;
+          vendors_on_hold: number;
+          stock_lines: number;
+          expired: number;
+          expiring_soon: number;
+          arrivals_waiting: number;
+          arrivals_overdue: number;
+          quarantine_lines: number;
+          quarantine_oldest_hours: number | null;
+          awaiting_gate_pass: number;
+        }[];
+      };
+      /** Every lot holding stock, in every state. */
+      list_stock_on_hand: {
+        Args: { p_property_id: string; p_search?: string | null };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          is_system_generated: boolean;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          category_name: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          location_name: string;
+          location_kind: LocationKind;
+          state: StockState;
+          qty: number;
+          best_before: string | null;
+          days_remaining: number | null;
+          dwell_breach: boolean;
+        }[];
+      };
+      /** Stock in QUARANTINE, with how long it has stood there. */
+      list_awaiting_putaway: {
+        Args: { p_property_id: string };
+        Returns: {
+          batch_id: string;
+          batch_no: string;
+          is_system_generated: boolean;
+          item_id: string;
+          item_name: string;
+          item_code: string;
+          storage_regime: StorageRegime;
+          uom_id: string;
+          uom_code: string;
+          location_id: string;
+          location_code: string;
+          qty: number;
+          best_before: string | null;
+          received_at: string | null;
+          hours_waiting: number | null;
+        }[];
+      };
+      /** Arrivals with no receipt against them yet — the receiving worklist. */
+      list_open_gate_entries: {
+        Args: { p_property_id: string };
+        Returns: {
+          id: string;
+          gate_entry_no: string;
+          timestamp_in: string;
+          party_id: string | null;
+          party_name: string | null;
+          arrival_type: ArrivalType;
+          package_count: number;
+          vehicle_number: string | null;
+          hours_open: number;
+        }[];
+      };
     };
     Enums: {
       organisation_lifecycle: OrganisationLifecycle;
@@ -643,6 +1212,7 @@ export type Database = {
       storage_regime: StorageRegime;
       location_kind: LocationKind;
       enforcement_mode: EnforcementMode;
+      scan_method: ScanMethod;
     };
     CompositeTypes: Record<never, never>;
   };
