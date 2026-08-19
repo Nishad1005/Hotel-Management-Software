@@ -54,6 +54,8 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   dispatch: "dispatch",
   "gate-out": "gate.pass",
   vendors: "parties.edit",
+  // Deliberately absent: `platform` is vendor staff, not a property capability, and the
+  // server decides it. A route capability here would imply a property role grants it.
 };
 
 export function capabilitiesForMembership(

@@ -1194,6 +1194,53 @@ export type Database = {
           received_by: string | null;
         }[];
       };
+      /** Whether the caller may onboard customers. Answers only about the caller. */
+      am_i_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      /**
+       * Every tenant, for the vendor console. The one function here that crosses the
+       * tenancy boundary, guarded by the platform-admin check rather than by RLS.
+       */
+      list_tenants: {
+        Args: Record<string, never>;
+        Returns: {
+          org_id: string;
+          org_name: string;
+          org_lifecycle: OrganisationLifecycle;
+          property_id: string;
+          property_code: string;
+          property_name: string;
+          property_lifecycle: PropertyLifecycle;
+          created_at: string;
+          people: number;
+          items: number;
+          bins: number;
+          vendors: number;
+          receipts: number;
+          last_activity: string | null;
+        }[];
+      };
+      /** Creates a customer, a property and its first owner. Idempotent. */
+      provision_tenant: {
+        Args: {
+          p_org_name: string;
+          p_property_code: string;
+          p_property_name: string;
+          p_owner_user_id: string;
+        };
+        Returns: {
+          property_id: string;
+          property_code: string;
+          org_id: string;
+          was_new: boolean;
+        }[];
+      };
+      set_property_lifecycle: {
+        Args: { p_property_id: string; p_state: PropertyLifecycle };
+        Returns: undefined;
+      };
       /** Every figure the home screen shows, counted where the rows are. */
       property_overview: {
         Args: { p_property_id: string; p_nearing_days?: number };
