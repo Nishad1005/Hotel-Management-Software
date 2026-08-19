@@ -92,7 +92,11 @@ begin
    where g.property_id = p_property_id and g.idempotency_key = p_idempotency_key;
 
   if v_existing_id is not null then
-    select count(*)::int into v_adjusted from public.grn_line where grn_id = v_existing_id;
+    -- Aliased, like every grn_line reference in this function: `grn_id` is also one of
+    -- this function's own OUT parameters, and Postgres reports the collision at call time
+    -- rather than at creation.
+    select count(*)::int into v_adjusted
+      from public.grn_line gl where gl.grn_id = v_existing_id;
     return query select v_existing_id, v_existing_no, v_adjusted;
     return;
   end if;
@@ -153,8 +157,9 @@ begin
   -- that one line — quietly deleting the other five from the record while looking like it
   -- had worked.
   for v_orig_line in
-    select * from public.grn_line where grn_id = p_grn_id and property_id = p_property_id
-     order by created_at, id
+    select gl.* from public.grn_line gl
+     where gl.grn_id = p_grn_id and gl.property_id = p_property_id
+     order by gl.created_at, gl.id
   loop
     v_index := v_index + 1;
 
