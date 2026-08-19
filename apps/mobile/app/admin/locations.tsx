@@ -1,11 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { StorageRegime } from "@golai/db";
 import {
   fixturePrefix,
   LABEL_SIZES,
   MAX_RUN,
   planLabelSheet,
   planLocationRun,
+  planZone,
   renderLabelSheetHtml,
+  ZONE_SUFFIX_MAX,
   type LabelSizeId,
 } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -14,6 +17,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Card,
+  ChoiceTile,
   Field,
   FieldError,
   Header,
@@ -26,6 +30,7 @@ import {
 import { printer } from "../../lib/print";
 import {
   createLocationRun,
+  createZone,
   deactivateLocation,
   listLocationTree,
   type LocationNode,
@@ -35,15 +40,18 @@ import { useSession } from "../../lib/session";
 import { elevation, font, radius, space, touch, type, usePalette } from "../../theme";
 
 /**
- * Zones and locations — the implementer's screen.
+ * Zones and locations — the store, laid out in its own words.
  *
- * Standing a property up is our job, not the property's: we take the layout Voyage
- * sends, build the tree, print the labels and hand over a PDF. Nobody creates a hundred
- * and twenty bins one at a time, so the work here is a generator with a preview.
+ * Written on the assumption that standing a property up was our job — we take the layout
+ * they send, build the tree, hand over the labels. The property does it themselves, and
+ * the screen works either way: the write policy is OWNER/ADMIN, which their administrator
+ * holds, and every name it asks for is asked in their words rather than ours.
  *
- * The preview is the point. Codes are shown before anything is written, because the
- * alternative is discovering the naming was wrong after the stickers are printed and
- * stuck to shelves — and at that point the fix is a reprint and a walk round the store.
+ * Nobody creates a hundred and twenty bins one at a time, so the work here is a generator
+ * with a preview. The preview is the point. Codes are shown before anything is written,
+ * because the alternative is discovering the naming was wrong after the stickers are
+ * printed and stuck to shelves — and at that point the fix is a reprint and a walk round
+ * the store.
  */
 export default function Locations() {
   const p = usePalette();
@@ -207,7 +215,7 @@ export default function Locations() {
             <Notice
               icon="map-outline"
               title="No zones yet"
-              body="Zones are the areas of the store — dry store, cold room, freezer. They are seeded when a property is provisioned, so an empty list here means something went wrong at provisioning."
+              body="Zones are the areas of the store — dry store, cold room, freezer, and whatever else this property has. Seven are created when a property is set up; add the rest below."
             />
           ) : (
             zones.map((z) => (
@@ -400,6 +408,20 @@ export default function Locations() {
               </Section>
             ))
           )}
+
+          {canEditMasters && !loading ? (
+            <NewZone
+              propertyId={activeProperty?.propertyId ?? ""}
+              propertyCode={activeProperty?.propertyCode ?? ""}
+              busy={busy}
+              onCreated={(code) => {
+                setResult(`${code} added. Add the shelves inside it next.`);
+                setError(null);
+                void load();
+              }}
+              onError={setError}
+            />
+          ) : null}
         </Page>
       </ScrollView>
     </View>
@@ -407,10 +429,170 @@ export default function Locations() {
 }
 
 /**
+ * A new storage zone.
+ *
+ * Provisioning seeds seven — the two terminals, dispatch, security, dry, chilled, frozen —
+ * and until now that was every zone a property could ever have. A resort has a pool bar
+ * store and a spa store, and its own layout had nowhere to go.
+ *
+ * Last on the screen rather than first, because adding a zone is a once-a-quarter act and
+ * filling one with shelves is a daily one. The code is previewed live for the same reason
+ * the bin run previews its codes: the fix after stickers are printed and stuck is a
+ * reprint and a walk round the store.
+ */
+function NewZone({
+  propertyId,
+  propertyCode,
+  busy,
+  onCreated,
+  onError,
+}: {
+  propertyId: string;
+  propertyCode: string;
+  busy: boolean;
+  onCreated: (code: string) => void;
+  onError: (message: string) => void;
+}) {
+  const p = usePalette();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [suffix, setSuffix] = useState("");
+  const [regime, setRegime] = useState<StorageRegime>("AMBIENT");
+  const [fixture, setFixture] = useState("Shelf");
+  const [saving, setSaving] = useState(false);
+
+  const plan = useMemo(
+    () => planZone({ propertyCode, name, ...(suffix.trim() ? { suffix } : {}) }),
+    [propertyCode, name, suffix],
+  );
+
+  async function create() {
+    if (!plan.ok || !propertyId) return;
+    setSaving(true);
+    try {
+      const zone = await createZone({
+        propertyId,
+        propertyCode,
+        name,
+        ...(suffix.trim() ? { suffix } : {}),
+        regime,
+        fixtureType: fixture,
+      });
+      setName("");
+      setSuffix("");
+      setFixture("Shelf");
+      setRegime("AMBIENT");
+      setOpen(false);
+      onCreated(zone.code);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <View style={{ marginTop: space.md }}>
+        <PrimaryButton label="Add a zone" icon="add" tone="neutral" onPress={() => setOpen(true)} />
+      </View>
+    );
+  }
+
+  return (
+    <Section title="New zone">
+      <Card>
+        <Field
+          label="What is it called?"
+          value={name}
+          onChangeText={setName}
+          placeholder="Pool bar store, Spa store, Banquet store"
+          autoCapitalize="words"
+          hint="The property's own name for the area. It appears on every screen and every sticker."
+        />
+
+        <Field
+          label="Code"
+          value={suffix || plan.suffix}
+          onChangeText={setSuffix}
+          placeholder="POOLBAR"
+          autoCapitalize="characters"
+          hint={
+            plan.ok
+              ? `Every location inside it will start ${plan.code}-`
+              : "Derived from the name. Change it if the property already has a code for this area."
+          }
+        />
+
+        {/*
+          Chosen once, here, and inherited by every bin created inside. Asking again per
+          run is how a chilled zone ends up with an ambient shelf in it, and put-away
+          refuses a regime mismatch outright — so the mistake surfaces as a refusal at the
+          dock rather than as a question here.
+        */}
+        <Text
+          style={{
+            fontSize: type.label,
+            ...font("semibold"),
+            color: p.text,
+            marginBottom: space.xs,
+          }}
+        >
+          How is it stored?
+        </Text>
+        <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.lg }}>
+          {(
+            [
+              { id: "AMBIENT", label: "Ambient", icon: "cube-outline" },
+              { id: "CHILLED", label: "Chilled", icon: "snow-outline" },
+              { id: "FROZEN", label: "Frozen", icon: "thermometer-outline" },
+            ] as const
+          ).map((r) => (
+            <ChoiceTile
+              key={r.id}
+              icon={r.icon}
+              label={r.label}
+              selected={regime === r.id}
+              onPress={() => setRegime(r.id)}
+            />
+          ))}
+        </View>
+
+        <Field
+          label="What is inside it called?"
+          value={fixture}
+          onChangeText={setFixture}
+          placeholder="Shelf, Rack, Ghoda, Peti stack"
+          hint="Their word, not ours. A ghoda is a ghoda on every label."
+        />
+
+        {name.trim() && !plan.ok ? (
+          <FieldError
+            message={
+              plan.errors.includes("SUFFIX_TOO_LONG")
+                ? `A code is at most ${ZONE_SUFFIX_MAX} characters.`
+                : "That name leaves no code behind it. Give the area a distinct word, or type a code."
+            }
+          />
+        ) : null}
+
+        <PrimaryButton
+          label={saving ? "Adding…" : plan.ok ? `Add ${plan.code}` : "Add zone"}
+          icon="checkmark"
+          onPress={() => void create()}
+          disabled={saving || busy || !plan.ok}
+        />
+        <View style={{ height: space.sm }} />
+        <PrimaryButton label="Cancel" tone="neutral" onPress={() => setOpen(false)} />
+      </Card>
+    </Section>
+  );
+}
+
+/**
  * Printing a zone's stickers.
  *
- * Onboarding is ours to do — we build the tree and hand over the labels — so this is
- * where a run of a hundred and twenty bins becomes a stack of stickers, one press.
+ * Where a run of a hundred and twenty bins becomes a stack of stickers, one press.
  *
  * The size choice is not cosmetic. Every thermal option is one label per page, because
  * sending an A4 grid to a thermal printer squeezes all ten onto a single sticker; that

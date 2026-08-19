@@ -519,6 +519,22 @@ export type DispatchStageLine = {
   qty: number;
 };
 
+/**
+ * One corrected line handed to `amend_grn`.
+ *
+ * Only the lines being changed need sending. Anything omitted is carried forward from the
+ * original exactly — restating the other five lines of a six-line receipt is how the other
+ * five get restated wrongly.
+ */
+export type AmendGrnLine = {
+  grn_line_id: string;
+  qty_physical?: number;
+  qty_accepted?: number;
+  qty_rejected?: number;
+  decision?: GrnLineDecision;
+  reject_reason?: RejectReason | null;
+};
+
 export type IssueNoteRow = {
   id: string;
   property_id: string;
@@ -1053,6 +1069,59 @@ export type Database = {
           batch_id: string | null;
         }[];
       };
+      /**
+       * Corrects a posted receipt by superseding it. The original is never touched, and
+       * the stock difference is a compensating CORRECTION movement.
+       */
+      amend_grn: {
+        Args: {
+          p_property_id: string;
+          p_grn_id: string;
+          p_reason: string;
+          p_idempotency_key: string;
+          p_lines: AmendGrnLine[];
+        };
+        Returns: { grn_id: string; grn_no: string; adjusted_lines: number }[];
+      };
+      /** Posted receipts with both ends of the amendment chain. */
+      list_receipts: {
+        Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
+        Returns: {
+          grn_id: string;
+          grn_no: string;
+          posted_at: string;
+          posted_by_name: string | null;
+          gate_entry_no: string | null;
+          vendor_name: string | null;
+          line_count: number;
+          total_accepted: number;
+          total_rejected: number;
+          amends_grn_no: string | null;
+          amendment_reason: string | null;
+          superseded_by_grn_no: string | null;
+        }[];
+      };
+      /** The lines of one receipt, with how much of each is still correctable. */
+      list_receipt_lines: {
+        Args: { p_property_id: string; p_grn_id: string };
+        Returns: {
+          line_id: string;
+          item_id: string;
+          item_code: string;
+          item_name: string;
+          batch_id: string | null;
+          batch_no: string | null;
+          uom_code: string;
+          qty_challan: number | null;
+          qty_physical: number;
+          qty_accepted: number;
+          qty_rejected: number;
+          decision: GrnLineDecision;
+          reject_reason: RejectReason | null;
+          still_quarantined: number;
+          still_rejected: number;
+        }[];
+      };
       /** PRD section 7.2 — waste disposal and used cooking oil, as a view of dispatch. */
       list_waste_register: {
         Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
@@ -1124,6 +1193,53 @@ export type Database = {
           qty_rejected: number | null;
           received_by: string | null;
         }[];
+      };
+      /** Whether the caller may onboard customers. Answers only about the caller. */
+      am_i_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      /**
+       * Every tenant, for the vendor console. The one function here that crosses the
+       * tenancy boundary, guarded by the platform-admin check rather than by RLS.
+       */
+      list_tenants: {
+        Args: Record<string, never>;
+        Returns: {
+          org_id: string;
+          org_name: string;
+          org_lifecycle: OrganisationLifecycle;
+          property_id: string;
+          property_code: string;
+          property_name: string;
+          property_lifecycle: PropertyLifecycle;
+          created_at: string;
+          people: number;
+          items: number;
+          bins: number;
+          vendors: number;
+          receipts: number;
+          last_activity: string | null;
+        }[];
+      };
+      /** Creates a customer, a property and its first owner. Idempotent. */
+      provision_tenant: {
+        Args: {
+          p_org_name: string;
+          p_property_code: string;
+          p_property_name: string;
+          p_owner_user_id: string;
+        };
+        Returns: {
+          property_id: string;
+          property_code: string;
+          org_id: string;
+          was_new: boolean;
+        }[];
+      };
+      set_property_lifecycle: {
+        Args: { p_property_id: string; p_state: PropertyLifecycle };
+        Returns: undefined;
       };
       /** Every figure the home screen shows, counted where the rows are. */
       property_overview: {

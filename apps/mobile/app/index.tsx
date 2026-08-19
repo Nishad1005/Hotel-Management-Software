@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, Page, Row, Section, StatGrid, StatTile } from "../components/ui";
 import { onOutboxChange, outbox } from "../lib/outbox";
 import { loadOverview, type PropertyOverview } from "../lib/overview";
+import { amIPlatformAdmin } from "../lib/platform";
 import { useSession } from "../lib/session";
 import { elevation, font, radius, space, touch, type, usePalette } from "../theme";
 
@@ -33,6 +34,9 @@ export default function Home() {
   const [blocked, setBlocked] = useState(0);
   const [overview, setOverview] = useState<PropertyOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  // Vendor staff, not a property's. Loaded once here rather than held in the session,
+  // because it decides one row of navigation and nothing else.
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
   const propertyId = activeProperty?.propertyId ?? null;
 
@@ -48,6 +52,9 @@ export default function Home() {
       };
 
       void refreshQueue();
+      void amIPlatformAdmin().then((yes) => {
+        if (alive) setIsPlatformAdmin(yes);
+      });
       void (async () => {
         if (!propertyId) return;
         try {
@@ -332,6 +339,24 @@ export default function Home() {
             Its own section, above master data, because it is the product argument rather
             than a report. Nothing in it is captured anywhere — it is the flow read back.
           */}
+          {/*
+            Ours, not the property's, and last on the screen because most people who see
+            this app will never have it. Styled like everything else rather than hidden
+            behind a gesture — a console nobody can find is one that gets rebuilt.
+          */}
+          {isPlatformAdmin ? (
+            <Section title="Platform">
+              <Card padded={false}>
+                <Row
+                  icon="business-outline"
+                  label="Customers"
+                  value="Onboard a property, and see how far each has got"
+                  onPress={() => router.push("/platform")}
+                />
+              </Card>
+            </Section>
+          ) : null}
+
           <Section title="Compliance">
             <Card padded={false}>
               <Row
@@ -345,7 +370,14 @@ export default function Home() {
                 icon="git-branch-outline"
                 label="Trace a batch"
                 value="Gate to vendor to bin to department, on one screen"
+                divider
                 onPress={() => router.push("/registers")}
+              />
+              <Row
+                icon="documents-outline"
+                label="Goods receipts"
+                value="What was posted, and what corrected it"
+                onPress={() => router.push("/receipts")}
               />
             </Card>
           </Section>
