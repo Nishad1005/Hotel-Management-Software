@@ -519,6 +519,22 @@ export type DispatchStageLine = {
   qty: number;
 };
 
+/**
+ * One corrected line handed to `amend_grn`.
+ *
+ * Only the lines being changed need sending. Anything omitted is carried forward from the
+ * original exactly — restating the other five lines of a six-line receipt is how the other
+ * five get restated wrongly.
+ */
+export type AmendGrnLine = {
+  grn_line_id: string;
+  qty_physical?: number;
+  qty_accepted?: number;
+  qty_rejected?: number;
+  decision?: GrnLineDecision;
+  reject_reason?: RejectReason | null;
+};
+
 export type IssueNoteRow = {
   id: string;
   property_id: string;
@@ -1051,6 +1067,59 @@ export type Database = {
           reject_reason: RejectReason | null;
           received_by: string;
           batch_id: string | null;
+        }[];
+      };
+      /**
+       * Corrects a posted receipt by superseding it. The original is never touched, and
+       * the stock difference is a compensating CORRECTION movement.
+       */
+      amend_grn: {
+        Args: {
+          p_property_id: string;
+          p_grn_id: string;
+          p_reason: string;
+          p_idempotency_key: string;
+          p_lines: AmendGrnLine[];
+        };
+        Returns: { grn_id: string; grn_no: string; adjusted_lines: number }[];
+      };
+      /** Posted receipts with both ends of the amendment chain. */
+      list_receipts: {
+        Args: { p_property_id: string; p_from?: string | null; p_to?: string | null };
+        Returns: {
+          grn_id: string;
+          grn_no: string;
+          posted_at: string;
+          posted_by_name: string | null;
+          gate_entry_no: string | null;
+          vendor_name: string | null;
+          line_count: number;
+          total_accepted: number;
+          total_rejected: number;
+          amends_grn_no: string | null;
+          amendment_reason: string | null;
+          superseded_by_grn_no: string | null;
+        }[];
+      };
+      /** The lines of one receipt, with how much of each is still correctable. */
+      list_receipt_lines: {
+        Args: { p_property_id: string; p_grn_id: string };
+        Returns: {
+          line_id: string;
+          item_id: string;
+          item_code: string;
+          item_name: string;
+          batch_id: string | null;
+          batch_no: string | null;
+          uom_code: string;
+          qty_challan: number | null;
+          qty_physical: number;
+          qty_accepted: number;
+          qty_rejected: number;
+          decision: GrnLineDecision;
+          reject_reason: RejectReason | null;
+          still_quarantined: number;
+          still_rejected: number;
         }[];
       };
       /** PRD section 7.2 — waste disposal and used cooking oil, as a view of dispatch. */

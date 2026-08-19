@@ -345,7 +345,14 @@ export default function Home() {
                 icon="git-branch-outline"
                 label="Trace a batch"
                 value="Gate to vendor to bin to department, on one screen"
+                divider
                 onPress={() => router.push("/registers")}
+              />
+              <Row
+                icon="documents-outline"
+                label="Goods receipts"
+                value="What was posted, and what corrected it"
+                onPress={() => router.push("/receipts")}
               />
             </Card>
           </Section>

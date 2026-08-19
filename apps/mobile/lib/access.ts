@@ -46,6 +46,8 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   "gate/new": "gate.capture",
   "gate/recorded": "gate.capture",
   receive: "receiving",
+  receipts: "reports.view",
+  "receipts/[grn]": "reports.view",
   "receive/[entry]": "receiving",
   putaway: "putaway",
   issue: "issue",
