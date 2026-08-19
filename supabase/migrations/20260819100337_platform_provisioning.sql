@@ -188,14 +188,18 @@ begin
   -- Matched by name, so the same customer name puts a second hotel in the same group and
   -- a different one creates a separate customer. That single argument is what makes
   -- hotels-in-a-group and independent-hotels the same code path (ADR 0002).
-  select id into v_org from public.organisation where name = trim(p_org_name);
+  select o.id into v_org from public.organisation o where o.name = trim(p_org_name);
   if v_org is null then
     insert into public.organisation (name, lifecycle_state)
     values (trim(p_org_name), 'ACTIVE')
     returning id into v_org;
   end if;
 
-  select id into v_property from public.property where org_id = v_org and code = v_code;
+  -- Aliased throughout, because this function's OUT parameters are named `org_id`,
+  -- `property_id` and `property_code` — every one of which is also a column on the tables
+  -- below, and Postgres reports the collision at call time rather than at creation.
+  select pr.id into v_property
+    from public.property pr where pr.org_id = v_org and pr.code = v_code;
 
   if v_property is null then
     -- ONBOARDING, never LIVE. A property reaches LIVE when its readiness checklist passes
