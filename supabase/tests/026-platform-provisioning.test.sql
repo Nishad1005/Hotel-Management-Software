@@ -10,7 +10,7 @@
 -- perfectly legitimate, fully authenticated user, and must get nothing at all.
 
 begin;
-select plan(20);
+select plan(21);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -103,51 +103,15 @@ select is(
   'a platform administrator onboards a customer, and the code is upper-cased as it is stored'
 );
 
-select is(
-  (select lifecycle_state::text from public.property where code = 'SB'),
-  'ONBOARDING',
-  'left in ONBOARDING and never LIVE — at this moment its item master is empty'
-);
-
--- Units, categories, the location skeleton, the rules and the departments. A property
--- that cannot receive on its first morning was not onboarded, it was inserted.
-select cmp_ok(
-  (select count(*)::int from public.uom u join public.property p on p.id = u.property_id
-    where p.code = 'SB'),
-  '>=',
-  10,
-  'with its units seeded, so it can be received into on the first morning'
-);
-
-select is(
-  (select count(*)::int from public.location l join public.property p on p.id = l.property_id
-    where p.code = 'SB' and l.kind = 'DEPARTMENT'),
-  8,
-  'and its departments, which come from the trigger rather than from this call'
-);
-
-select is(
-  (select count(*)::int from public.membership m join public.property p on p.id = m.property_id
-    where p.code = 'SB' and m.user_id = '00000000-0000-0000-0000-00000000fb04'),
-  2,
-  'the owner holds both OWNER and ADMIN, because on day one they are the only person here'
-);
-
 -- ADR 0002: the same customer name puts a second hotel in one group, a different name
 -- creates a separate customer. One argument, and it is what makes hotels-in-a-group and
--- independent-hotels the same code path.
+-- independent-hotels the same code path. The grouping itself is asserted further down,
+-- where the role is one that can see both properties.
 select is(
-  (select t.org_id = (select org_id from public.property where code = 'SB')
-     from public.provision_tenant('Solitaire Hotels', 'SB2', 'Solitaire Tinsukia',
-                                  '00000000-0000-0000-0000-00000000fb04') t),
-  true,
-  'a second property under the same customer name joins the same group'
-);
-
-select is(
-  (select count(distinct org_id)::int from public.property where code in ('SB', 'SB2')),
-  1,
-  'rather than creating a second customer with the same name'
+  (select t.property_code from public.provision_tenant('Solitaire Hotels', 'SB2',
+     'Solitaire Tinsukia', '00000000-0000-0000-0000-00000000fb04') t),
+  'SB2',
+  'a second property is added under the same customer name'
 );
 
 -- Partial failure and re-run is the normal case in provisioning, not an edge case.
@@ -177,8 +141,16 @@ select throws_like(
 );
 
 -- ---------------------------------------------------------------------------
--- The console's own list
+-- What the console can see, and how
 -- ---------------------------------------------------------------------------
+--
+-- Everything below reads through `list_tenants` rather than off the tables, and that is
+-- not a stylistic choice — it is the behaviour under test. A platform administrator holds
+-- no membership at the properties they create, so `select … from public.property` returns
+-- them NOTHING: RLS is doing exactly its job, and the console's window is the function.
+--
+-- The first version of this file read the tables directly and failed seven assertions,
+-- which was the tenancy boundary working and the test not understanding it.
 
 select is(
   (select count(*)::int from public.list_tenants()),
@@ -192,6 +164,12 @@ select is(
   'counting the people at each, so a customer nobody has logins for is visible as one'
 );
 
+select is(
+  (select t.property_lifecycle::text from public.list_tenants() t where t.property_code = 'SB'),
+  'ONBOARDING',
+  'a new property is left in ONBOARDING and never LIVE — its item master is still empty'
+);
+
 -- The question behind the question. A tenant provisioned six weeks ago with no movements
 -- is a stalled onboarding, and it looks identical to a healthy one on every other column.
 select is(
@@ -202,10 +180,55 @@ select is(
 
 select lives_ok(
   $q$ select public.set_property_lifecycle(
-        (select id from public.property where code = 'SB'), 'LIVE') $q$,
-  'and a property goes LIVE when we say so, weeks after it was created'
+        (select t.property_id from public.list_tenants() t where t.property_code = 'SB'),
+        'LIVE') $q$,
+  'a property goes LIVE when we say so, weeks after it was created'
 );
 
+select is(
+  (select t.property_lifecycle::text from public.list_tenants() t where t.property_code = 'SB'),
+  'LIVE',
+  'and the console says so afterwards'
+);
+
+-- ---------------------------------------------------------------------------
+-- What was actually seeded
+-- ---------------------------------------------------------------------------
+--
+-- As the superuser, because these are rows inside a tenancy the platform administrator is
+-- deliberately not a member of. There is no window onto them and there should not be —
+-- what is asserted here is that provisioning did its job, not that anybody can see it.
+
 reset role;
+
+-- A property that cannot receive on its first morning was not onboarded, it was inserted.
+select cmp_ok(
+  (select count(*)::int from public.uom u join public.property p on p.id = u.property_id
+    where p.code = 'SB'),
+  '>=',
+  10,
+  'the new property has its units, so it can be received into on the first morning'
+);
+
+select is(
+  (select count(*)::int from public.location l join public.property p on p.id = l.property_id
+    where p.code = 'SB' and l.kind = 'DEPARTMENT'),
+  8,
+  'and its departments, which come from the trigger rather than from the provisioning call'
+);
+
+select is(
+  (select count(*)::int from public.membership m join public.property p on p.id = m.property_id
+    where p.code = 'SB' and m.user_id = '00000000-0000-0000-0000-00000000fb04'),
+  2,
+  'the owner holds both OWNER and ADMIN, because on day one they are the only person here'
+);
+
+select is(
+  (select count(distinct org_id)::int from public.property where code in ('SB', 'SB2')),
+  1,
+  'and both properties sit under one customer rather than two of the same name'
+);
+
 select * from finish();
 rollback;
