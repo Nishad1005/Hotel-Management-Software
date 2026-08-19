@@ -171,8 +171,11 @@ begin
   -- Every location, document number and label at this property starts with it, and it is
   -- printed onto stickers that get glued to shelves. Renaming it later is a reprint and a
   -- walk round the store, so it is checked properly here rather than trimmed silently.
-  if v_code !~ '^[A-Z0-9]{2,8}$' then
-    raise exception 'A property code is two to eight letters or digits — it starts every location code and every document number at this property.'
+  -- The same expression as `property.code`'s own check constraint, deliberately. A
+  -- looser one here would let a code through this friendly message and into a raw
+  -- constraint violation, which is the worst of both: refused anyway, and unreadably.
+  if v_code !~ '^[A-Z][A-Z0-9]{1,7}$' then
+    raise exception 'A property code starts with a letter and is two to eight letters or digits — it begins every location code and every document number at this property.'
       using errcode = '23514';
   end if;
 
@@ -257,7 +260,15 @@ begin
       using errcode = '42501';
   end if;
 
-  update public.property set lifecycle_state = p_state where id = p_property_id;
+  -- `property_live_has_go_live_date` refuses LIVE without a date, so setting the state
+  -- alone raised a constraint violation naming the constraint. Coalesced rather than
+  -- overwritten: a property suspended and brought back was still live the first time, and
+  -- that date is the one an audit asks for.
+  update public.property
+     set lifecycle_state = p_state,
+         went_live_at = case when p_state = 'LIVE' then coalesce(went_live_at, now())
+                             else went_live_at end
+   where id = p_property_id;
 
   -- CLAUDE.md rule 4b: an UPDATE that matches nothing succeeds having done nothing, and
   -- a console reporting success for a property id that does not exist is worse than an

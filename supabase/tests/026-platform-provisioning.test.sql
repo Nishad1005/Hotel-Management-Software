@@ -10,7 +10,7 @@
 -- perfectly legitimate, fully authenticated user, and must get nothing at all.
 
 begin;
-select plan(21);
+select plan(22);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -138,6 +138,16 @@ select throws_like(
         '00000000-0000-0000-0000-00000000fb04') $q$,
   '%two to eight letters or digits%',
   'and so is one with a separator in it, which would double the hyphens in every bin code'
+);
+
+-- The table's own constraint requires a leading letter, and this check was looser than
+-- it. A code like 1SB passed the readable refusal and hit the raw constraint instead —
+-- refused anyway, and unreadably, which is the worst of both.
+select throws_like(
+  $q$ select * from public.provision_tenant('Bad Codes', '1SB', 'Leading Digit',
+        '00000000-0000-0000-0000-00000000fb04') $q$,
+  '%starts with a letter%',
+  'and one starting with a digit, in the same words rather than as a constraint violation'
 );
 
 -- ---------------------------------------------------------------------------

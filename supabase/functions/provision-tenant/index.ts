@@ -79,8 +79,11 @@ Deno.serve(async (req) => {
     const code = (property_code ?? "").trim().toUpperCase();
     // Checked here and again in the database. Here so the caller is told before a login is
     // created; there because the database is the side that must not be wrong.
-    if (!/^[A-Z0-9]{2,8}$/.test(code)) {
-      return json({ error: "A property code is two to eight letters or digits" }, 400);
+    if (!/^[A-Z][A-Z0-9]{1,7}$/.test(code)) {
+      return json(
+        { error: "A property code starts with a letter and is two to eight letters or digits" },
+        400,
+      );
     }
 
     // 1. Authority, asked of the database as the CALLER.

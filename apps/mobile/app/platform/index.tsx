@@ -356,12 +356,15 @@ function NewTenantForm({
   const [error, setError] = useState<string | null>(null);
 
   const cleanCode = code.trim().toUpperCase();
-  const codeOk = /^[A-Z0-9]{2,8}$/.test(cleanCode);
+  const codeOk = /^[A-Z][A-Z0-9]{1,7}$/.test(cleanCode);
 
   const problems: string[] = [];
   if (!orgName.trim()) problems.push("The customer needs a name.");
   if (!propertyName.trim()) problems.push("The property needs a name.");
-  if (!codeOk) problems.push("A code is two to eight letters or digits, with no spaces or dashes.");
+  if (!codeOk)
+    problems.push(
+      "A code starts with a letter, then two to eight letters or digits, with no spaces or dashes.",
+    );
   if (!ownerName.trim()) problems.push("The owner needs a name.");
   if (!ownerEmail.trim() && !ownerPhone.trim())
     problems.push("The owner needs an email address or a mobile number to sign in with.");
@@ -413,7 +416,9 @@ function NewTenantForm({
         placeholder="SB"
         autoCapitalize="characters"
         hint="Two to eight letters or digits. It starts every location code, every document number and every printed label at this property — and changing it later is a reprint and a walk round the store."
-        {...(code.trim() && !codeOk ? { error: "Letters and digits only, two to eight." } : {})}
+        {...(code.trim() && !codeOk
+          ? { error: "Starts with a letter. Two to eight letters or digits." }
+          : {})}
       />
 
       <View style={{ height: space.sm }} />
