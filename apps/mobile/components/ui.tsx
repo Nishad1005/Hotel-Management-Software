@@ -1,20 +1,154 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState, type ReactNode } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
+  Text as RNText,
   TextInput,
   View,
+  type StyleProp,
+  type TextProps as RNTextProps,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { elevation, font, radius, space, touch, type, type Palette, usePalette } from "../theme";
+import {
+  elevation,
+  font,
+  radius,
+  space,
+  tabular,
+  text as textStyles,
+  touch,
+  type,
+  type Palette,
+  type TextRole,
+  usePalette,
+} from "../theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 export type Density = "field" | "desk";
+
+// ---------------------------------------------------------------------------
+// Typography
+// ---------------------------------------------------------------------------
+
+/**
+ * Which palette slot the words are painted in.
+ *
+ * Named rather than passed as a colour, and that is the point: once screens say
+ * `tone="muted"` instead of `color: p.textMuted`, the palette is honoured by
+ * construction rather than by discipline. A colour cannot drift into a screen that has no
+ * way to name one.
+ */
+export type TextTone =
+  | "default"
+  | "muted"
+  | "faint"
+  | "accent"
+  | "success"
+  | "warning"
+  | "danger"
+  | "onAccent"
+  | "onBrand"
+  | "onBrandMuted";
+
+const TONE_KEY: Record<TextTone, keyof Palette> = {
+  default: "text",
+  muted: "textMuted",
+  faint: "textFaint",
+  accent: "accent",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
+  onAccent: "onAccent",
+  onBrand: "onBrand",
+  onBrandMuted: "onBrandMuted",
+};
+
+export interface TextOwnProps {
+  /**
+   * Required, and there is deliberately no `size` prop.
+   *
+   * Overriding the weight is legitimate — a semibold body is a list row's name.
+   * Overriding the size is how eight sizes came back the first time.
+   */
+  role?: TextRole;
+  tone?: TextTone;
+  /** Overrides the role's default weight. */
+  weight?: Parameters<typeof font>[0];
+  /** Tabular figures, so a column of numbers does not jog sideways as digits change. */
+  numeric?: boolean;
+  align?: TextStyle["textAlign"];
+  /** `numberOfLines`, spelled shorter because it is used on nearly every row. */
+  lines?: number;
+  /** Layout only — margins and flex. Typography belongs to `role`, `tone` and `weight`. */
+  style?: StyleProp<TextStyle>;
+  children?: ReactNode;
+}
+
+/**
+ * `role` is omitted from React Native's own props deliberately.
+ *
+ * RN added `role` as the ARIA-style accessibility prop, so intersecting the two collapsed
+ * ours to `"heading"` — the single member the two unions happen to share, and a
+ * bewildering error to read. Accessibility semantics stay available through
+ * `accessibilityRole`, which every call site in this app already uses.
+ */
+export type TextProps = TextOwnProps & Omit<RNTextProps, "style" | "numberOfLines" | "role">;
+
+/**
+ * A word, styled by what it is rather than by how it looks.
+ *
+ * Before this existed, 192 of the app's 203 text elements hand-declared their own font
+ * size, weight and colour — so there were 13 letter-spacings, six line heights, and more
+ * than half of all type sitting at 11 or 12 pixels. Every one of those call sites was
+ * already writing `fontSize` + `font()` + `color`, which is exactly `role` + `weight` +
+ * `tone`; that is what makes replacing them mechanical rather than a judgement per line.
+ *
+ * Every prop has a default. With `exactOptionalPropertyTypes` on, optional props force
+ * the `{...(x ? { x } : {})}` spread that already litters several screens, and a
+ * typography primitive used on every row is the last place that should be necessary.
+ */
+export function Text({
+  role = "body",
+  tone = "default",
+  weight,
+  numeric = false,
+  align,
+  lines,
+  style,
+  children,
+  ...rest
+}: TextProps) {
+  const p = usePalette();
+  const token = textStyles[role];
+
+  return (
+    <RNText
+      {...rest}
+      {...(lines === undefined ? {} : { numberOfLines: lines })}
+      style={[
+        {
+          fontSize: token.fontSize,
+          lineHeight: token.lineHeight,
+          letterSpacing: token.letterSpacing,
+          color: p[TONE_KEY[tone]],
+          textTransform: token.textTransform,
+          ...font(weight ?? token.weight),
+          ...(numeric ? tabular : {}),
+          ...(align === undefined ? {} : { textAlign: align }),
+        },
+        style,
+      ]}
+    >
+      {children}
+    </RNText>
+  );
+}
 
 const heightFor = (d: Density) => (d === "field" ? touch.field : touch.desk);
 
@@ -53,6 +187,77 @@ function useInteractionState() {
   };
 }
 
+/**
+ * A tappable glyph, with the states a tappable thing needs.
+ *
+ * There was no such primitive, so roughly thirty raw `Pressable`s were hand-rolled across
+ * the screens and every one of them quietly skipped the hover, focus and pointer-cursor
+ * plumbing that `interactive()` right above provides. Two of those were the back chevron
+ * and the close button — which appear on *every* screen and every modal, and so were the
+ * app's most-used controls while looking, to a mouse, entirely inert.
+ *
+ * That is an accessibility regression rather than a cosmetic one: `usePalette`'s own note
+ * says keyboard navigation on web "is not optional".
+ */
+export function IconButton({
+  icon,
+  label,
+  onPress,
+  size = 22,
+  tone = "default",
+  disabled = false,
+}: {
+  icon: IoniconName;
+  /** Spoken, not shown. An icon-only control is unusable without it. */
+  label: string;
+  onPress: () => void;
+  size?: number;
+  tone?: "default" | "muted" | "accent" | "danger" | "onBrand";
+  disabled?: boolean;
+}) {
+  const p = usePalette();
+  const { hovered, focused, handlers } = useInteractionState();
+
+  const colour =
+    tone === "accent"
+      ? p.accent
+      : tone === "danger"
+        ? p.danger
+        : tone === "muted"
+          ? p.textMuted
+          : tone === "onBrand"
+            ? p.onBrand
+            : p.text;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      hitSlop={8}
+      {...handlers}
+      style={({ pressed }) =>
+        ({
+          width: touch.desk,
+          height: touch.desk,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radius.md,
+          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
+          borderWidth: focused ? 2 : 0,
+          borderColor: p.focus,
+          opacity: disabled ? 0.4 : 1,
+          cursor: disabled ? "not-allowed" : "pointer",
+        }) as ViewStyle
+      }
+    >
+      <Ionicons name={icon} size={size} color={colour} />
+    </Pressable>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Structure
 // ---------------------------------------------------------------------------
@@ -72,27 +277,12 @@ export function Header({
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.lg }}>
       {onBack ? (
-        <Pressable
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={10}
-          style={({ pressed }) => ({
-            width: touch.desk,
-            height: touch.desk,
-            marginLeft: -space.sm,
-            marginRight: space.xs,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: radius.md,
-            backgroundColor: pressed ? p.surfaceSunken : "transparent",
-          })}
-        >
-          <Ionicons name="chevron-back" size={24} color={p.text} />
-        </Pressable>
+        <View style={{ marginLeft: -space.sm, marginRight: space.xs }}>
+          <IconButton icon="chevron-back" label="Back" size={24} onPress={onBack} />
+        </View>
       ) : null}
       <View style={{ flex: 1 }}>
-        <Text
+        <RNText
           accessibilityRole="header"
           style={{
             fontSize: type.title,
@@ -102,11 +292,11 @@ export function Header({
           }}
         >
           {title}
-        </Text>
+        </RNText>
         {subtitle ? (
-          <Text style={{ fontSize: type.label, color: p.textMuted, marginTop: space.xxs }}>
+          <RNText style={{ fontSize: type.label, color: p.textMuted, marginTop: space.xxs }}>
             {subtitle}
-          </Text>
+          </RNText>
         ) : null}
       </View>
       {right}
@@ -127,7 +317,7 @@ export function Section({
   return (
     <View style={{ marginBottom: space.xl }}>
       {title ? (
-        <Text
+        <RNText
           accessibilityRole="header"
           style={{
             fontSize: type.micro,
@@ -139,10 +329,10 @@ export function Section({
           }}
         >
           {title}
-        </Text>
+        </RNText>
       ) : null}
       {hint ? (
-        <Text
+        <RNText
           style={{
             fontSize: type.caption,
             color: p.textMuted,
@@ -151,7 +341,7 @@ export function Section({
           }}
         >
           {hint}
-        </Text>
+        </RNText>
       ) : null}
       {children}
     </View>
@@ -232,7 +422,7 @@ export function Row({
         </View>
       ) : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
+        <RNText
           numberOfLines={1}
           style={{
             fontSize: density === "field" ? type.subheading : type.body,
@@ -241,14 +431,14 @@ export function Row({
           }}
         >
           {label}
-        </Text>
+        </RNText>
         {value ? (
-          <Text
+          <RNText
             numberOfLines={1}
             style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
           >
             {value}
-          </Text>
+          </RNText>
         ) : null}
       </View>
       {trailing ??
@@ -285,12 +475,30 @@ export function Row({
   );
 }
 
+/**
+ * The one button, with a real hierarchy behind it.
+ *
+ * `tone="neutral"` was used 32 times against `accent`'s 27 — so most buttons in the app
+ * were a filled grey slab, the same height and weight as the orange one, whose only job
+ * was being "not the primary". Two same-sized filled rectangles side by side is not a
+ * hierarchy; it is a choice presented twice.
+ *
+ * Neutral now maps to an OUTLINE, which is what a secondary action has always wanted to
+ * be: same footprint, obviously subordinate, and it stops competing for the eye. The prop
+ * name is unchanged on purpose — thirty-two call sites get a real secondary button
+ * without being edited, and `variant` is there for new code that wants to say so
+ * directly.
+ */
+export type ButtonVariant = "solid" | "outline" | "ghost";
+
 export function PrimaryButton({
   label,
   icon,
   onPress,
   disabled,
   tone = "accent",
+  variant,
+  loading = false,
   density = "desk",
 }: {
   label: string;
@@ -298,20 +506,35 @@ export function PrimaryButton({
   onPress: () => void;
   disabled?: boolean;
   tone?: "accent" | "neutral" | "danger";
+  /** Defaults from `tone`: neutral is an outline, accent and danger are solid. */
+  variant?: ButtonVariant;
+  /**
+   * Shows a spinner and blocks the press.
+   *
+   * Screens were faking this by swapping the label to "Staging…", which loses the button
+   * width, reads as a state change rather than progress, and leaves the control pressable
+   * while the request is in flight.
+   */
+  loading?: boolean;
   density?: Density;
 }) {
   const p = usePalette();
   const { hovered, focused, handlers } = useInteractionState();
-  const bg = tone === "accent" ? p.accent : tone === "danger" ? p.danger : p.surfaceSunken;
-  const fg = tone === "neutral" ? p.text : p.onAccent;
+
+  const shape: ButtonVariant = variant ?? (tone === "neutral" ? "outline" : "solid");
+  const accentColour = tone === "danger" ? p.danger : tone === "neutral" ? p.text : p.accent;
+
+  const bg = shape === "solid" ? accentColour : shape === "outline" ? p.surface : "transparent";
+  const fg = shape === "solid" ? p.onAccent : accentColour;
+  const inert = disabled || loading;
 
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={inert}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ disabled: !!inert, busy: loading }}
       {...handlers}
       style={({ pressed }) => [
         {
@@ -321,27 +544,33 @@ export function PrimaryButton({
           minHeight: heightFor(density),
           borderRadius: radius.md,
           paddingHorizontal: space.xl,
-          backgroundColor: bg,
+          backgroundColor: pressed && shape !== "solid" ? p.surfaceSunken : bg,
           opacity: disabled ? 0.4 : pressed ? 0.85 : hovered ? 0.94 : 1,
-          borderWidth: focused ? 2 : 0,
-          borderColor: p.focus,
-          cursor: disabled ? "not-allowed" : "pointer",
+          // The focus ring replaces the outline rather than stacking on it, so an
+          // outlined button does not gain a second border when tabbed to.
+          borderWidth: focused ? 2 : shape === "outline" ? StyleSheet.hairlineWidth : 0,
+          borderColor: focused ? p.focus : p.borderStrong,
+          cursor: inert ? "not-allowed" : "pointer",
         } as ViewStyle,
-        tone === "accent" && !disabled ? elevation(1, p) : {},
+        shape === "solid" && !inert ? elevation(1, p) : {},
       ]}
     >
-      {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
-      <Text
+      {loading ? (
+        <ActivityIndicator size="small" color={fg} style={{ marginRight: space.sm }} />
+      ) : icon ? (
+        <Ionicons name={icon} size={18} color={fg} />
+      ) : null}
+      <RNText
         style={{
           color: fg,
           fontSize: type.body,
           ...font("semibold"),
-          marginLeft: icon ? space.sm : 0,
+          marginLeft: icon && !loading ? space.sm : 0,
           letterSpacing: 0.1,
         }}
       >
         {label}
-      </Text>
+      </RNText>
     </Pressable>
   );
 }
@@ -407,7 +636,7 @@ export function ChoiceTile({
       }
     >
       <Ionicons name={icon} size={22} color={selected ? p.accent : p.textMuted} />
-      <Text
+      <RNText
         style={{
           fontSize: type.caption,
           ...font("semibold"),
@@ -417,9 +646,9 @@ export function ChoiceTile({
         }}
       >
         {label}
-      </Text>
+      </RNText>
       {hint ? (
-        <Text
+        <RNText
           style={{
             fontSize: type.micro,
             color: p.textFaint,
@@ -428,7 +657,7 @@ export function ChoiceTile({
           }}
         >
           {hint}
-        </Text>
+        </RNText>
       ) : null}
     </Pressable>
   );
@@ -485,7 +714,7 @@ export function Stepper({
       }}
     >
       {button(-1, "remove", "One fewer")}
-      <Text
+      <RNText
         accessibilityLiveRegion="polite"
         style={{
           flex: 1,
@@ -497,7 +726,7 @@ export function Stepper({
         }}
       >
         {value}
-      </Text>
+      </RNText>
       {button(1, "add", "One more")}
     </View>
   );
@@ -534,7 +763,7 @@ export function Field({
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ marginBottom: space.lg }}>
-      <Text
+      <RNText
         style={{
           fontSize: type.label,
           ...font("semibold"),
@@ -543,7 +772,7 @@ export function Field({
         }}
       >
         {label}
-      </Text>
+      </RNText>
       <View
         style={{
           flexDirection: "row",
@@ -580,13 +809,13 @@ export function Field({
           }
         />
         {suffix ? (
-          <Text style={{ fontSize: type.caption, color: p.textMuted, ...font("medium") }}>
+          <RNText style={{ fontSize: type.caption, color: p.textMuted, ...font("medium") }}>
             {suffix}
-          </Text>
+          </RNText>
         ) : null}
       </View>
       {hint && !error ? (
-        <Text
+        <RNText
           style={{
             fontSize: type.caption,
             color: p.textMuted,
@@ -595,7 +824,7 @@ export function Field({
           }}
         >
           {hint}
-        </Text>
+        </RNText>
       ) : null}
       {error ? <FieldError message={error} /> : null}
     </View>
@@ -633,9 +862,9 @@ export function Toggle({
       }}
     >
       <View style={{ flex: 1, marginRight: space.md }}>
-        <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>{label}</Text>
+        <RNText style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>{label}</RNText>
         {hint ? (
-          <Text
+          <RNText
             style={{
               fontSize: type.caption,
               color: p.textMuted,
@@ -644,7 +873,7 @@ export function Toggle({
             }}
           >
             {hint}
-          </Text>
+          </RNText>
         ) : null}
       </View>
       <Switch
@@ -692,7 +921,7 @@ export function SelectRow({
 
   return (
     <View style={{ marginBottom: space.lg }}>
-      <Text
+      <RNText
         style={{
           fontSize: type.label,
           ...font("semibold"),
@@ -701,7 +930,7 @@ export function SelectRow({
         }}
       >
         {label}
-      </Text>
+      </RNText>
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
@@ -719,13 +948,13 @@ export function SelectRow({
           backgroundColor: pressed ? p.surfaceSunken : p.surface,
         })}
       >
-        <Text style={{ flex: 1, fontSize: type.body, color: selected ? p.text : p.textFaint }}>
+        <RNText style={{ flex: 1, fontSize: type.body, color: selected ? p.text : p.textFaint }}>
           {selected ? selected.label : placeholder}
-        </Text>
+        </RNText>
         {selected?.sublabel ? (
-          <Text style={{ fontSize: type.caption, color: p.textMuted, marginRight: space.sm }}>
+          <RNText style={{ fontSize: type.caption, color: p.textMuted, marginRight: space.sm }}>
             {selected.sublabel}
-          </Text>
+          </RNText>
         ) : null}
         <Ionicons name="chevron-down" size={18} color={p.textFaint} />
       </Pressable>
@@ -797,25 +1026,7 @@ export function SelectRow({
 }
 
 export function CloseButton({ onPress }: { onPress: () => void }) {
-  const p = usePalette();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="Close"
-      hitSlop={10}
-      style={({ pressed }) => ({
-        width: touch.desk,
-        height: touch.desk,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: radius.md,
-        backgroundColor: pressed ? p.surfaceSunken : "transparent",
-      })}
-    >
-      <Ionicons name="close" size={22} color={p.text} />
-    </Pressable>
-  );
+  return <IconButton icon="close" label="Close" onPress={onPress} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -830,7 +1041,7 @@ export function FieldError({ message }: { message: string }) {
       accessibilityRole="alert"
     >
       <Ionicons name="alert-circle" size={15} color={p.danger} style={{ marginTop: 1 }} />
-      <Text
+      <RNText
         style={{
           color: p.danger,
           fontSize: type.caption,
@@ -840,7 +1051,7 @@ export function FieldError({ message }: { message: string }) {
         }}
       >
         {message}
-      </Text>
+      </RNText>
     </View>
   );
 }
@@ -875,7 +1086,7 @@ export function StatusPill({
       }}
     >
       {icon ? <Ionicons name={icon} size={12} color={c.fg} /> : null}
-      <Text
+      <RNText
         style={{
           color: c.fg,
           fontSize: type.micro,
@@ -885,7 +1096,7 @@ export function StatusPill({
         }}
       >
         {label}
-      </Text>
+      </RNText>
     </View>
   );
 }
@@ -921,7 +1132,7 @@ export function Notice({
       >
         <Ionicons name={icon} size={26} color={fg} />
       </View>
-      <Text
+      <RNText
         style={{
           fontSize: type.subheading,
           ...font("semibold"),
@@ -931,9 +1142,9 @@ export function Notice({
         }}
       >
         {title}
-      </Text>
+      </RNText>
       {body ? (
-        <Text
+        <RNText
           style={{
             fontSize: type.label,
             color: p.textMuted,
@@ -944,7 +1155,7 @@ export function Notice({
           }}
         >
           {body}
-        </Text>
+        </RNText>
       ) : null}
       {action ? <View style={{ marginTop: space.xl }}>{action}</View> : null}
     </View>
@@ -1015,7 +1226,7 @@ export function StatTile({
         ) : null}
       </View>
 
-      <Text
+      <RNText
         style={{
           fontSize: type.display,
           ...font("heavy"),
@@ -1026,20 +1237,20 @@ export function StatTile({
         }}
       >
         {value}
-      </Text>
-      <Text
+      </RNText>
+      <RNText
         style={{ fontSize: type.label, ...font("semibold"), color: p.text, marginTop: space.xs }}
         numberOfLines={1}
       >
         {label}
-      </Text>
+      </RNText>
       {caption ? (
-        <Text
+        <RNText
           style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
           numberOfLines={1}
         >
           {caption}
-        </Text>
+        </RNText>
       ) : null}
     </>
   );
