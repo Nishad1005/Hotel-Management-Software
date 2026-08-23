@@ -2,23 +2,24 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ScanMethod } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { ScanField } from "../../components/scan-field";
 import {
+  Banner,
   Card,
   Field,
   FieldError,
-  Header,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import { listAwaitingPutaway, putAway, type AwaitingPutaway } from "../../lib/putaway";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * Gate 6 — put-away.
@@ -32,9 +33,7 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
  * destination is the thing that arrives from the scanner.
  */
 export default function PutAway() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [waiting, setWaiting] = useState<AwaitingPutaway[]>([]);
@@ -74,131 +73,72 @@ export default function PutAway() {
   const overdue = waiting.filter((w) => (w.hoursWaiting ?? 0) >= 4).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Put away"
-            subtitle={
-              loading
-                ? "Loading Terminal 1"
-                : waiting.length === 0
-                  ? "Terminal 1 is clear"
-                  : `${waiting.length} line${waiting.length === 1 ? "" : "s"} waiting${
-                      overdue > 0 ? ` · ${overdue} standing over four hours` : ""
-                    }`
-            }
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
+    <Screen
+      title="Put away"
+      subtitle={
+        loading
+          ? "Loading Terminal 1"
+          : waiting.length === 0
+            ? "Terminal 1 is clear"
+            : `${waiting.length} line${waiting.length === 1 ? "" : "s"} waiting${
+                overdue > 0 ? ` · ${overdue} standing over four hours` : ""
+              }`
+      }
+      onBack={() => router.back()}
+    >
+      {done ? (
+        <Banner icon="checkmark-circle" tone="good">
+          {done.qty} {done.item} put away in {done.code}.
+        </Banner>
+      ) : null}
 
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {done ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: p.successSurface,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginBottom: space.lg,
-              }}
-              accessibilityLiveRegion="polite"
-            >
-              <Ionicons name="checkmark-circle" size={18} color={p.success} />
-              <Text
-                style={{
-                  flex: 1,
-                  fontSize: type.caption,
-                  ...font("semibold"),
-                  color: p.success,
-                  marginLeft: space.sm,
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice
+          icon="cloud-offline-outline"
+          title="Could not load Terminal 1"
+          body={error}
+          tone="bad"
+        />
+      ) : waiting.length === 0 ? (
+        <Notice
+          icon="checkmark-circle-outline"
+          title="Nothing waiting at Terminal 1"
+          body="Everything received has been put away, so all of it is issuable. Stock appears here the moment a goods receipt is posted."
+          action={<PrimaryButton label="Go to receiving" onPress={() => router.push("/receive")} />}
+        />
+      ) : selected ? (
+        <DestinationPanel
+          line={selected}
+          propertyId={propertyId ?? ""}
+          onCancel={() => setSelected(null)}
+          onDone={(result) => {
+            setDone(result);
+            void refresh();
+          }}
+        />
+      ) : (
+        <>
+          <Text role="overline" tone="muted" style={{ marginBottom: space.sm }}>
+            Waiting at Terminal 1
+          </Text>
+          <Card padded={false}>
+            {waiting.map((w, i) => (
+              <WaitingRow
+                key={`${w.batchId}-${w.locationId}`}
+                line={w}
+                divider={i < waiting.length - 1}
+                onPress={() => {
+                  setDone(null);
+                  setSelected(w);
                 }}
-              >
-                {done.qty} {done.item} put away in {done.code}.
-              </Text>
-            </View>
-          ) : null}
-
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice
-              icon="cloud-offline-outline"
-              title="Could not load Terminal 1"
-              body={error}
-              tone="bad"
-            />
-          ) : waiting.length === 0 ? (
-            <Notice
-              icon="checkmark-circle-outline"
-              title="Nothing waiting at Terminal 1"
-              body="Everything received has been put away, so all of it is issuable. Stock appears here the moment a goods receipt is posted."
-              action={
-                <PrimaryButton label="Go to receiving" onPress={() => router.push("/receive")} />
-              }
-            />
-          ) : selected ? (
-            <DestinationPanel
-              line={selected}
-              propertyId={propertyId ?? ""}
-              onCancel={() => setSelected(null)}
-              onDone={(result) => {
-                setDone(result);
-                void refresh();
-              }}
-            />
-          ) : (
-            <>
-              <Text
-                style={{
-                  fontSize: type.micro,
-                  ...font("bold"),
-                  letterSpacing: 0.9,
-                  textTransform: "uppercase",
-                  color: p.textFaint,
-                  marginBottom: space.sm,
-                }}
-              >
-                Waiting at Terminal 1
-              </Text>
-              <Card padded={false}>
-                {waiting.map((w, i) => (
-                  <WaitingRow
-                    key={`${w.batchId}-${w.locationId}`}
-                    line={w}
-                    divider={i < waiting.length - 1}
-                    onPress={() => {
-                      setDone(null);
-                      setSelected(w);
-                    }}
-                  />
-                ))}
-              </Card>
-            </>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+              />
+            ))}
+          </Card>
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -235,16 +175,10 @@ function WaitingRow({
       })}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.subheading, ...font("semibold"), color: p.text }}
-        >
+        <Text role="heading" lines={1}>
           {line.itemName}
         </Text>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-        >
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           Batch {line.batchNo}
           {line.bestBefore ? ` · best before ${line.bestBefore}` : ""}
         </Text>
@@ -262,22 +196,14 @@ function WaitingRow({
         </View>
       </View>
 
-      <Text
-        style={{
-          fontSize: type.heading,
-          ...font("bold"),
-          color: p.text,
-          marginRight: space.sm,
-          ...tabular,
-        }}
-      >
+      <Text role="heading" numeric style={{ marginRight: space.sm }}>
         {line.qty}
-        <Text style={{ fontSize: type.caption, ...font("medium"), color: p.textMuted }}>
+        <Text role="caption" tone="muted" weight="medium">
           {" "}
           {line.uomCode}
         </Text>
       </Text>
-      <Ionicons name="chevron-forward" size={18} color={p.textFaint} />
+      <Ionicons name="chevron-forward" size={18} color={p.textMuted} />
     </Pressable>
   );
 }
@@ -340,10 +266,8 @@ function DestinationPanel({
   return (
     <>
       <Card>
-        <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>
-          {line.itemName}
-        </Text>
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}>
+        <Text role="title">{line.itemName}</Text>
+        <Text role="caption" tone="muted" style={{ marginTop: 2 }}>
           Batch {line.batchNo} · {line.qty} {line.uomCode} at {line.locationCode}
         </Text>
 
@@ -378,7 +302,7 @@ function DestinationPanel({
         {busy ? (
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <ActivityIndicator color={p.accent} />
-            <Text style={{ fontSize: type.caption, color: p.textMuted, marginLeft: space.sm }}>
+            <Text role="caption" tone="muted" style={{ marginLeft: space.sm }}>
               Recording…
             </Text>
           </View>

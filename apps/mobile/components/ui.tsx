@@ -312,6 +312,119 @@ export function Header({
   );
 }
 
+/**
+ * The frame every screen wears: a header band, a content column, and an optional
+ * sticky footer.
+ *
+ * This was copy-pasted twenty-five times, and the copies had drifted — four different top
+ * paddings, four incompatible ways of reserving room at the bottom of the scroll, and
+ * seven hand-built action bars that each decided their own height and inset. That is not
+ * untidiness; it is why the screens do not look like one product.
+ *
+ * The band's top inset is the subtle part. On a phone the shell draws a top bar which has
+ * already consumed the status bar, so adding it again here would push every title down by
+ * the height of the notch. Only the desktop layout, where the content pane starts at the
+ * very top of the window, needs it.
+ */
+export function Screen({
+  title,
+  subtitle,
+  onBack,
+  actions,
+  band,
+  footer,
+  children,
+  wide = false,
+  scroll = true,
+}: {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  /** Right of the title — an add button, a filter. */
+  actions?: ReactNode;
+  /** Under the title, inside the band — a search field, a segmented control. */
+  band?: ReactNode;
+  /** Pinned to the bottom, above the safe area. The screen's commit action. */
+  footer?: ReactNode;
+  children: ReactNode;
+  /** 1080px instead of the 720px reading measure, for grids and tables. */
+  wide?: boolean;
+  /** Off when the child scrolls itself — a FlatList, a split pane. */
+  scroll?: boolean;
+}) {
+  const p = usePalette();
+  const insets = useSafeAreaInsets();
+  const expanded = useIsExpanded();
+
+  const body = (
+    <Page wide={wide}>
+      {children}
+      {/* Enough room to scroll the last row clear of a sticky footer. */}
+      {scroll ? <View style={{ height: footer ? space.xxl : space.xl }} /> : null}
+    </Page>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: p.background }}>
+      <View
+        style={[
+          {
+            backgroundColor: p.surface,
+            paddingTop: (expanded ? insets.top : 0) + space.lg,
+            paddingHorizontal: space.lg,
+            paddingBottom: band ? space.md : space.sm,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: p.border,
+          },
+          elevation(1, p),
+        ]}
+      >
+        <Page wide={wide}>
+          <Header
+            title={title}
+            {...(subtitle === undefined ? {} : { subtitle })}
+            {...(onBack === undefined ? {} : { onBack })}
+            {...(actions === undefined ? {} : { right: actions })}
+          />
+          {band}
+        </Page>
+      </View>
+
+      {scroll ? (
+        <ScrollView
+          contentContainerStyle={{
+            padding: space.lg,
+            paddingBottom: footer ? space.lg : insets.bottom + space.lg,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {body}
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1, padding: space.lg }}>{body}</View>
+      )}
+
+      {footer ? (
+        <View
+          style={[
+            {
+              backgroundColor: p.surface,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: p.border,
+              paddingHorizontal: space.lg,
+              paddingTop: space.md,
+              paddingBottom: space.md + insets.bottom,
+            },
+            elevation(2, p),
+          ]}
+        >
+          <Page wide={wide}>{footer}</Page>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function Section({
   title,
   hint,
@@ -1207,6 +1320,100 @@ export function Dialog({
 // ---------------------------------------------------------------------------
 // Feedback
 // ---------------------------------------------------------------------------
+
+/**
+ * One line that says what just happened, or what is about to.
+ *
+ * Distinct from `Notice`, which is a block that fills an empty screen. This is the strip
+ * that appears above a list after a put-away posts, or when the outbox is behind — a
+ * pattern that had been rebuilt seven times with its own padding, its own icon size and
+ * its own idea of which surface tint goes with which colour.
+ *
+ * `accessibilityLiveRegion` matters more than it looks: the storekeeper who just scanned
+ * a bin is looking at the scanner, not the screen, and a confirmation nobody is told about
+ * is a confirmation that did not happen.
+ */
+export function Banner({
+  icon,
+  tone = "info",
+  children,
+}: {
+  icon: IoniconName;
+  tone?: "good" | "warn" | "bad" | "info";
+  children: ReactNode;
+}) {
+  const p = usePalette();
+  const colour =
+    tone === "good"
+      ? p.success
+      : tone === "warn"
+        ? p.warning
+        : tone === "bad"
+          ? p.danger
+          : p.accent;
+  const surface =
+    tone === "good"
+      ? p.successSurface
+      : tone === "warn"
+        ? p.warningSurface
+        : tone === "bad"
+          ? p.dangerSurface
+          : p.accentSurface;
+
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.sm,
+        backgroundColor: surface,
+        borderRadius: radius.md,
+        padding: space.md,
+        marginBottom: space.lg,
+      }}
+    >
+      <Ionicons name={icon} size={18} color={colour} />
+      <RNText
+        style={{
+          flex: 1,
+          fontSize: textStyles.label.fontSize,
+          lineHeight: textStyles.label.lineHeight,
+          color: colour,
+          ...font("semibold"),
+        }}
+      >
+        {children}
+      </RNText>
+    </View>
+  );
+}
+
+/**
+ * Waiting, said once and the same way everywhere.
+ *
+ * There were twenty-four bare `ActivityIndicator`s across the screens in three sizes and
+ * two colours, some centred, some not, some with a word beside them and most without. A
+ * spinner is the first thing a user sees on every screen in this app; it should not be the
+ * least considered thing on it.
+ */
+export function Loading({ label }: { label?: string }) {
+  const p = usePalette();
+  return (
+    <View
+      style={{ paddingVertical: space.xxxl, alignItems: "center", gap: space.md }}
+      accessibilityRole="progressbar"
+      accessibilityLabel={label ?? "Loading"}
+    >
+      <ActivityIndicator size="large" color={p.accent} />
+      {label ? (
+        <Text role="label" tone="muted">
+          {label}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
 export function FieldError({ message }: { message: string }) {
   const p = usePalette();
