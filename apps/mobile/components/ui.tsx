@@ -16,6 +16,9 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEscape } from "../lib/escape";
+import { useIsExpanded } from "../lib/responsive";
 import {
   elevation,
   font,
@@ -975,73 +978,230 @@ export function SelectRow({
       </Pressable>
       {error ? <FieldError message={error} /> : null}
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: p.background }}>
-          <View
-            style={{
-              paddingTop: space.xxxl,
-              paddingHorizontal: space.lg,
-              paddingBottom: space.md,
-              backgroundColor: p.surface,
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: p.border,
-            }}
-          >
-            <Header title={label} right={<CloseButton onPress={() => setOpen(false)} />} />
-            {choices.length > 8 ? (
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search"
-                placeholderTextColor={p.textFaint}
-                accessibilityLabel="Search options"
-                style={
-                  {
-                    minHeight: touch.desk,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderRadius: radius.md,
-                    paddingHorizontal: space.md,
-                    fontSize: type.body,
-                    backgroundColor: p.surfaceSunken,
-                    borderColor: p.border,
-                    color: p.text,
-                    outlineStyle: "none",
-                  } as never
-                }
-              />
-            ) : null}
-          </View>
-          <ScrollView
-            contentContainerStyle={{ padding: space.lg }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <Page>
-              <Card padded={false}>
-                {filtered.map((c, i) => (
-                  <Row
-                    key={c.id}
-                    label={c.label}
-                    {...(c.sublabel ? { value: c.sublabel } : {})}
-                    selected={c.id === value}
-                    divider={i < filtered.length - 1}
-                    onPress={() => {
-                      onSelect(c.id);
-                      setQuery("");
-                      setOpen(false);
-                    }}
-                  />
-                ))}
-              </Card>
-            </Page>
-          </ScrollView>
-        </View>
-      </Modal>
+      <Dialog
+        visible={open}
+        title={label}
+        onClose={() => setOpen(false)}
+        {...(choices.length > 8
+          ? {
+              header: (
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search"
+                  placeholderTextColor={p.textFaint}
+                  accessibilityLabel="Search options"
+                  style={
+                    {
+                      minHeight: touch.desk,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderRadius: radius.md,
+                      paddingHorizontal: space.md,
+                      marginTop: space.sm,
+                      fontSize: type.body,
+                      backgroundColor: p.surfaceSunken,
+                      borderColor: p.border,
+                      color: p.text,
+                      outlineStyle: "none",
+                    } as never
+                  }
+                />
+              ),
+            }
+          : {})}
+      >
+        <Card padded={false}>
+          {filtered.map((c, i) => (
+            <Row
+              key={c.id}
+              label={c.label}
+              {...(c.sublabel ? { value: c.sublabel } : {})}
+              selected={c.id === value}
+              divider={i < filtered.length - 1}
+              onPress={() => {
+                onSelect(c.id);
+                setQuery("");
+                setOpen(false);
+              }}
+            />
+          ))}
+          {filtered.length === 0 ? (
+            <View style={{ padding: space.lg }}>
+              <Text tone="muted" align="center">
+                Nothing matches “{query.trim()}”.
+              </Text>
+            </View>
+          ) : null}
+        </Card>
+      </Dialog>
     </View>
   );
 }
 
 export function CloseButton({ onPress }: { onPress: () => void }) {
   return <IconButton icon="close" label="Close" onPress={onPress} />;
+}
+
+// ---------------------------------------------------------------------------
+// Overlays
+// ---------------------------------------------------------------------------
+
+/**
+ * The dimmed ground behind an overlay. Warm, because every neutral in this palette is.
+ *
+ * Exported so the shell's drawer and every dialog dim the page by the same amount — two
+ * overlays that disagree about how dark "behind" is look like a bug the moment one opens
+ * over the other.
+ */
+export const SCRIM = "rgba(31, 27, 24, 0.55)";
+
+/**
+ * Something on top, sized to the screen it is on.
+ *
+ * Every overlay in this app was a full-screen `animationType="slide"` `Modal`, which is
+ * the right thing on a phone and absurd on a laptop: choosing one of six reject reasons
+ * took over 1440×900, and a twelve-line goods receipt meant twelve of those takeovers in a
+ * row. There was also no Escape and no click-outside anywhere, so on a keyboard the only
+ * way out was to find a small × with the mouse.
+ *
+ * So: a centred panel with a backdrop when there is room, the familiar bottom sheet when
+ * there is not. Same component, same props, one decision.
+ *
+ * Deliberately not an anchored popover. That needs trigger measurement, viewport
+ * collision and close-on-scroll, and it is the most expensive item in the plan for a
+ * fraction of the gain — this removes the takeover, which was the actual complaint.
+ */
+export function Dialog({
+  visible,
+  title,
+  onClose,
+  children,
+  header,
+  footer,
+  scroll = true,
+}: {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  /** Extra band content under the title — a search field, a filter row. */
+  header?: ReactNode;
+  footer?: ReactNode;
+  /** Off when the child is itself a list that scrolls. */
+  scroll?: boolean;
+}) {
+  const p = usePalette();
+  const expanded = useIsExpanded();
+  const insets = useSafeAreaInsets();
+
+  useEscape(visible, onClose);
+
+  const body = scroll ? (
+    <ScrollView contentContainerStyle={{ padding: space.lg }} keyboardShouldPersistTaps="handled">
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={{ flex: 1 }}>{children}</View>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType={expanded ? "fade" : "slide"}
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View
+        style={{
+          flex: 1,
+          justifyContent: expanded ? "center" : "flex-end",
+          alignItems: "center",
+          padding: expanded ? space.xl : 0,
+        }}
+      >
+        {/*
+         * The backdrop is a sibling under the panel rather than its parent, so a press
+         * that lands on the panel is never also a press on the backdrop. Wrapping the
+         * panel in a Pressable is the usual way to write this and the usual way to make a
+         * dialog close when you click its own heading.
+         */}
+        <Pressable
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM }]}
+        />
+        <View
+          // Screen readers stop at the panel instead of wandering into the page behind it.
+          accessibilityViewIsModal
+          style={[
+            {
+              width: "100%",
+              maxWidth: expanded ? 560 : undefined,
+              maxHeight: expanded ? "88%" : "90%",
+              backgroundColor: p.background,
+              borderTopLeftRadius: radius.lg,
+              borderTopRightRadius: radius.lg,
+              borderBottomLeftRadius: expanded ? radius.lg : 0,
+              borderBottomRightRadius: expanded ? radius.lg : 0,
+              overflow: "hidden",
+            },
+            elevation(2, p),
+          ]}
+        >
+          <View
+            style={{
+              paddingHorizontal: space.lg,
+              paddingTop: space.md,
+              paddingBottom: header ? space.md : space.xs,
+              backgroundColor: p.surface,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: p.border,
+            }}
+          >
+            {/* The grab handle is a phone affordance and a distraction on a desktop. */}
+            {expanded ? null : (
+              <View
+                style={{
+                  alignSelf: "center",
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: p.border,
+                  marginBottom: space.sm,
+                }}
+              />
+            )}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text role="heading" accessibilityRole="header" style={{ flex: 1 }} lines={1}>
+                {title}
+              </Text>
+              <CloseButton onPress={onClose} />
+            </View>
+            {header}
+          </View>
+
+          {body}
+
+          {footer ? (
+            <View
+              style={{
+                paddingHorizontal: space.lg,
+                paddingTop: space.md,
+                paddingBottom: space.md + (expanded ? 0 : insets.bottom),
+                backgroundColor: p.surface,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: p.border,
+              }}
+            >
+              {footer}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 // ---------------------------------------------------------------------------

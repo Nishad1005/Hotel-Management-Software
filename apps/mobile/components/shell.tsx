@@ -18,7 +18,7 @@ import { activeHref, navigationFor, type NavGroup, type NavItem } from "../lib/n
 import { useIsExpanded } from "../lib/responsive";
 import { useSession } from "../lib/session";
 import { radius, space, touch, usePalette } from "../theme";
-import { IconButton, Text } from "./ui";
+import { IconButton, SCRIM, Text } from "./ui";
 
 /**
  * The frame the app lives in.
@@ -56,7 +56,6 @@ const TOPBAR_HEIGHT = 56;
  */
 const NAV_HOVER = "rgba(255, 255, 255, 0.08)";
 const NAV_DIVIDER = "rgba(255, 255, 255, 0.12)";
-const SCRIM = "rgba(31, 27, 24, 0.55)";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { activeProperty, isPlatformAdmin } = useSession();
