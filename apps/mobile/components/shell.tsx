@@ -211,7 +211,7 @@ function Drawer({
 }
 
 function SidebarBody({ groups, current }: { groups: NavGroup[]; current: string | null }) {
-  const { activeProperty, properties, session, signOut } = useSession();
+  const { activeProperty, properties, session, setActiveProperty, signOut } = useSession();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -226,7 +226,10 @@ function SidebarBody({ groups, current }: { groups: NavGroup[]; current: string 
           code={activeProperty.propertyCode}
           name={activeProperty.propertyName}
           switchable={properties.length > 1}
-          onPress={() => router.push("/choose-property")}
+          // Clearing the choice rather than routing to the chooser, because the guard in
+          // `_layout` sends anyone who *has* a property away from `/choose-property` —
+          // pushing it directly would bounce straight back here.
+          onPress={() => setActiveProperty("")}
         />
       ) : null}
 

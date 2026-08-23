@@ -375,9 +375,19 @@ export function Card({ children, padded = true }: { children: ReactNode; padded?
   );
 }
 
-/** Constrains content on wide screens. Full-width text is unreadable on a laptop. */
-export function Page({ children }: { children: ReactNode }) {
-  return <View style={{ width: "100%", maxWidth: 720, alignSelf: "center" }}>{children}</View>;
+/**
+ * Constrains content on wide screens. Full-width text is unreadable on a laptop.
+ *
+ * 720px is a reading measure — right for a form, a receipt or a column of prose, and it is
+ * what every screen has used. It is wrong for a grid of figures, which has no measure to
+ * respect and simply wants the room, so a dashboard can ask for `wide` instead.
+ */
+export function Page({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
+  return (
+    <View style={{ width: "100%", maxWidth: wide ? 1080 : 720, alignSelf: "center" }}>
+      {children}
+    </View>
+  );
 }
 
 // ---------------------------------------------------------------------------
