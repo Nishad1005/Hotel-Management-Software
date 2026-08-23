@@ -1097,6 +1097,74 @@ export function Toggle({
   );
 }
 
+/**
+ * The band's search box.
+ *
+ * Two screens had built this by hand and the copies had already diverged — a 16px glyph
+ * against a 17px one, and only one of them offering a way to clear the field. It belongs
+ * in the header band rather than the scroll, because a filter that scrolls away is a
+ * filter you cannot tell is still applied.
+ */
+export function SearchField({
+  value,
+  onChangeText,
+  placeholder,
+  label = "Search",
+}: {
+  value: string;
+  onChangeText: (next: string) => void;
+  placeholder: string;
+  label?: string;
+}) {
+  const p = usePalette();
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
+        borderColor: focused ? p.focus : p.border,
+        borderRadius: radius.md,
+        backgroundColor: p.surfaceSunken,
+        paddingHorizontal: space.md,
+      }}
+    >
+      <Ionicons name="search" size={17} color={p.textMuted} />
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={p.textMuted}
+        autoCapitalize="none"
+        autoCorrect={false}
+        accessibilityLabel={label}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={
+          {
+            flex: 1,
+            minHeight: touch.desk,
+            paddingHorizontal: space.sm,
+            fontSize: textStyles.body.fontSize,
+            color: p.text,
+            outlineStyle: "none",
+          } as never
+        }
+      />
+      {value ? (
+        <IconButton
+          icon="close-circle"
+          label="Clear the search"
+          size={17}
+          onPress={() => onChangeText("")}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 export interface Choice {
   id: string;
   label: string;

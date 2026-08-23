@@ -1,17 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
+  Card,
+  IconButton,
+  Loading,
+  Notice,
+  PrimaryButton,
+  Screen,
+  SearchField,
+  StatusPill,
   Text,
-  TextInput,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../../components/ui";
+} from "../../components/ui";
 import {
   listCategories,
   listItems,
@@ -19,7 +20,7 @@ import {
   type ItemListRow,
 } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { elevation, font, radius, space, touch, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The item master.
@@ -29,9 +30,7 @@ import { elevation, font, radius, space, touch, type, usePalette } from "../../t
  * hundreds of rows, not at a gate in the dark, so it should show many at once.
  */
 export default function ItemsList() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { canEditMasters } = useSession();
 
   const [items, setItems] = useState<ItemListRow[]>([]);
@@ -65,103 +64,37 @@ export default function ItemsList() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Items"
-            {...(loading
-              ? {}
-              : { subtitle: `${items.length} item${items.length === 1 ? "" : "s"}` })}
-            onBack={() => router.back()}
-            {...(canEditMasters
-              ? {
-                  right: (
-                    <Pressable
-                      onPress={() => router.push("/items/import")}
-                      accessibilityRole="button"
-                      accessibilityLabel="Import items from a spreadsheet"
-                      hitSlop={8}
-                      style={({ pressed }) => ({
-                        flexDirection: "row",
-                        alignItems: "center",
-                        minHeight: 44,
-                        paddingHorizontal: space.md,
-                        borderRadius: radius.md,
-                        backgroundColor: pressed ? p.accentSurface : "transparent",
-                        cursor: "pointer",
-                      })}
-                    >
-                      <Ionicons name="cloud-upload-outline" size={18} color={p.accent} />
-                      <Text
-                        style={{
-                          fontSize: type.label,
-                          ...font("semibold"),
-                          color: p.accent,
-                          marginLeft: space.xs,
-                        }}
-                      >
-                        Import
-                      </Text>
-                    </Pressable>
-                  ),
-                }
-              : {})}
+    <Screen
+      title="Items"
+      {...(loading ? {} : { subtitle: `${items.length} item${items.length === 1 ? "" : "s"}` })}
+      onBack={() => router.back()}
+      {...(canEditMasters
+        ? {
+            actions: (
+              <IconButton
+                icon="cloud-upload-outline"
+                label="Import items from a spreadsheet"
+                tone="accent"
+                onPress={() => router.push("/items/import")}
+              />
+            ),
+            footer: (
+              <PrimaryButton
+                label="Add item"
+                icon="add"
+                onPress={() => router.push("/items/new")}
+              />
+            ),
+          }
+        : {})}
+      band={
+        <>
+          <SearchField
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Name or code"
+            label="Search items"
           />
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: p.border,
-              borderRadius: radius.md,
-              backgroundColor: p.surfaceSunken,
-              paddingHorizontal: space.md,
-            }}
-          >
-            <Ionicons name="search" size={16} color={p.textFaint} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search by name or code"
-              placeholderTextColor={p.textFaint}
-              accessibilityLabel="Search items"
-              style={
-                {
-                  flex: 1,
-                  minHeight: touch.desk,
-                  paddingHorizontal: space.sm,
-                  fontSize: type.body,
-                  color: p.text,
-                  outlineStyle: "none",
-                } as never
-              }
-            />
-            {search ? (
-              <Pressable
-                onPress={() => setSearch("")}
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-                hitSlop={10}
-              >
-                <Ionicons name="close-circle" size={16} color={p.textFaint} />
-              </Pressable>
-            ) : null}
-          </View>
-
           {categories.length > 0 ? (
             <ScrollView
               horizontal
@@ -179,59 +112,38 @@ export default function ItemsList() {
               ))}
             </ScrollView>
           ) : null}
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}>
-        <Page>
-          {loading ? (
-            <ActivityIndicator style={{ marginTop: space.xxl }} color={p.accent} />
-          ) : error ? (
-            <Notice
-              icon="alert-circle-outline"
-              tone="bad"
-              title="Could not load items"
-              body={error}
+        </>
+      }
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="alert-circle-outline" tone="bad" title="Could not load items" body={error} />
+      ) : items.length === 0 ? (
+        <Notice
+          icon="cube-outline"
+          title={search || categoryId ? "Nothing matches" : "No items yet"}
+          body={
+            search || categoryId
+              ? "Try a different search, or clear the category filter."
+              : canEditMasters
+                ? "Add the items this property receives. Nothing can be received against an item that does not exist here."
+                : "An administrator needs to add items before anything can be received."
+          }
+        />
+      ) : (
+        <Card padded={false}>
+          {items.map((item, i) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              divider={i < items.length - 1}
+              onPress={() => router.push(`/items/${item.id}`)}
             />
-          ) : items.length === 0 ? (
-            <Notice
-              icon="cube-outline"
-              title={search || categoryId ? "Nothing matches" : "No items yet"}
-              body={
-                search || categoryId
-                  ? "Try a different search, or clear the category filter."
-                  : canEditMasters
-                    ? "Add the items this property receives. Nothing can be received against an item that does not exist here."
-                    : "An administrator needs to add items before anything can be received."
-              }
-            />
-          ) : (
-            <Card padded={false}>
-              {items.map((item, i) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  divider={i < items.length - 1}
-                  onPress={() => router.push(`/items/${item.id}`)}
-                />
-              ))}
-            </Card>
-          )}
-        </Page>
-      </ScrollView>
-
-      {canEditMasters ? (
-        <View
-          style={{
-            position: "absolute",
-            right: space.lg,
-            bottom: insets.bottom + space.lg,
-          }}
-        >
-          <PrimaryButton label="Add item" icon="add" onPress={() => router.push("/items/new")} />
-        </View>
-      ) : null}
-    </View>
+          ))}
+        </Card>
+      )}
+    </Screen>
   );
 }
 
@@ -267,17 +179,13 @@ function ItemRow({
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text weight="semibold" lines={1}>
             {item.name}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
-            <Text style={{ fontVariant: ["tabular-nums"] }}>{item.code}</Text>
+          <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
+            <Text role="caption" tone="muted" numeric>
+              {item.code}
+            </Text>
             {"  ·  "}
             {item.categoryName}
             {"  ·  "}
@@ -302,7 +210,7 @@ function ItemRow({
           ) : null}
           {item.isColdChain ? <StatusPill icon="snow-outline" label="Cold" tone="neutral" /> : null}
           {!item.isActive ? <StatusPill label="Inactive" tone="bad" /> : null}
-          <Ionicons name="chevron-forward" size={16} color={p.textFaint} />
+          <Ionicons name="chevron-forward" size={16} color={p.textMuted} />
         </View>
       </View>
     </Pressable>
@@ -326,13 +234,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
         backgroundColor: active ? p.accentSurface : pressed ? p.surfaceSunken : "transparent",
       })}
     >
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: active ? p.accent : p.textMuted,
-        }}
-      >
+      <Text role="label" weight="semibold" tone={active ? "accent" : "muted"}>
         {label}
       </Text>
     </Pressable>
