@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -273,30 +274,34 @@ export function Header({
   onBack?: () => void;
   right?: ReactNode;
 }) {
-  const p = usePalette();
+  const router = useRouter();
+
+  /**
+   * A back chevron only when there is genuinely something behind you.
+   *
+   * Every screen passes `onBack`, which was right when the chevron was the *only* way to
+   * leave a screen. With a sidebar it is not, and on web a link opened or reloaded
+   * directly — `/receipts/{id}` mailed to the accountant — has an empty history, so the
+   * chevron was offering a journey that did not exist. `canGoBack()` is the question
+   * actually being asked.
+   */
+  const showBack = !!onBack && router.canGoBack();
+
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.lg }}>
-      {onBack ? (
+      {showBack && onBack ? (
         <View style={{ marginLeft: -space.sm, marginRight: space.xs }}>
           <IconButton icon="chevron-back" label="Back" size={24} onPress={onBack} />
         </View>
       ) : null}
-      <View style={{ flex: 1 }}>
-        <RNText
-          accessibilityRole="header"
-          style={{
-            fontSize: type.title,
-            ...font("bold"),
-            color: p.text,
-            letterSpacing: -0.4,
-          }}
-        >
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text role="title" accessibilityRole="header">
           {title}
-        </RNText>
+        </Text>
         {subtitle ? (
-          <RNText style={{ fontSize: type.label, color: p.textMuted, marginTop: space.xxs }}>
+          <Text role="label" tone="muted" style={{ marginTop: space.xxs }}>
             {subtitle}
-          </RNText>
+          </Text>
         ) : null}
       </View>
       {right}

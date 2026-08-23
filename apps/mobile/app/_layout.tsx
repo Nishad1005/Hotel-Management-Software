@@ -9,8 +9,9 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AppShell } from "../components/shell";
 import { SessionProvider, useSession } from "../lib/session";
 import { useSyncEngine } from "../lib/sync";
 import { usePalette } from "../theme";
@@ -102,5 +103,19 @@ function Guard({ fontsLoaded }: { fontsLoaded: boolean }) {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }} />;
+  const stack = <Stack screenOptions={{ headerShown: false, animation: TRANSITION }} />;
+
+  // Sign-in and the property chooser are outside the app: there is no property yet, so a
+  // sidebar would have nothing true to say and its destinations would all be refused.
+  const framed = !!session && !!activeProperty && !onSignIn && !onChooser;
+
+  return framed ? <AppShell>{stack}</AppShell> : stack;
 }
+
+/**
+ * `slide_from_right` is a phone idiom. On a desktop, where the content sits in a pane
+ * beside a sidebar that does not move, sliding it horizontally reads as a rendering fault
+ * rather than as navigation — so web gets no transition at all until there is a
+ * cross-fade worth having.
+ */
+const TRANSITION = Platform.OS === "web" ? "none" : "slide_from_right";
