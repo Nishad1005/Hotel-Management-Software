@@ -425,6 +425,85 @@ export function Screen({
   );
 }
 
+/**
+ * What just happened, and its number.
+ *
+ * Seven screens ended in a success panel and all seven were built separately — different
+ * circle sizes, different eyebrow tracking, one that centred its caption and one that did
+ * not, and only some of them making the document number selectable. The number is the
+ * whole point of these screens: it is what gets written onto a challan by hand, read down
+ * a phone, or pasted into an email, so it is `selectable`, tabular and the largest thing
+ * on the page.
+ */
+export function Result({
+  icon = "checkmark",
+  tone = "good",
+  eyebrow,
+  value,
+  caption,
+  children,
+  actions,
+}: {
+  icon?: IoniconName;
+  tone?: "good" | "warn";
+  /** The state reached — "Issued", "Recorded", "Posted". */
+  eyebrow: string;
+  /** The document number. */
+  value: string;
+  caption?: string;
+  children?: ReactNode;
+  actions?: ReactNode;
+}) {
+  const p = usePalette();
+  const insets = useSafeAreaInsets();
+  const colour = tone === "warn" ? p.warning : p.success;
+  const surface = tone === "warn" ? p.warningSurface : p.successSurface;
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: p.background }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        justifyContent: "center",
+        padding: space.lg,
+        paddingBottom: insets.bottom + space.lg,
+      }}
+    >
+      <Page>
+        <Card>
+          <View style={{ alignItems: "center", marginBottom: space.lg }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: radius.xl,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: surface,
+              }}
+            >
+              <Ionicons name={icon} size={30} color={colour} />
+            </View>
+            <Text role="overline" tone="muted" style={{ marginTop: space.lg }}>
+              {eyebrow}
+            </Text>
+            <Text role="title" weight="heavy" numeric selectable style={{ marginTop: space.xs }}>
+              {value}
+            </Text>
+            {caption ? (
+              <Text role="label" tone="muted" align="center" style={{ marginTop: space.xs }}>
+                {caption}
+              </Text>
+            ) : null}
+          </View>
+          {children}
+        </Card>
+        {actions ? <View style={{ marginTop: space.xl }}>{actions}</View> : null}
+      </Page>
+    </ScrollView>
+  );
+}
+
 export function Section({
   title,
   hint,
