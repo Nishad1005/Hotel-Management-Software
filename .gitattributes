@@ -1,0 +1,23 @@
+# Line endings are LF everywhere, including in a Windows working tree.
+#
+# Without this, `core.autocrlf=true` — the Windows default, and set on at least one
+# machine here — hands the working tree CRLF while Prettier is configured for LF. The
+# result is that `pnpm format:check` fails locally on 55 files nobody has edited, and
+# passes in CI on Linux. A verification step that disagrees with CI is worse than none:
+# it trains you to ignore it, and then it stops catching the real failures too.
+#
+# `eol=lf` makes checkout produce LF regardless of the local autocrlf setting, so the
+# working tree, the repository and CI all agree.
+* text=auto eol=lf
+
+# Binary, so never touched by any of the above.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
