@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
-import { Card, Notice, PrimaryButton, Screen, StatusPill } from "../../../components/ui";
+import { ActivityIndicator, View } from "react-native";
+import { Card, Notice, PrimaryButton, Screen, StatusPill, Text } from "../../../components/ui";
 import {
   REASON_LABELS,
   REJECT_LABELS,
@@ -11,7 +11,7 @@ import {
 } from "../../../lib/registers";
 import { useSession } from "../../../lib/session";
 import { STATE_LABELS } from "../../../lib/stock-report";
-import { font, space, tabular, type, usePalette } from "../../../theme";
+import { space, usePalette } from "../../../theme";
 
 /**
  * The forward trace — PRD section 7.5.
@@ -96,7 +96,7 @@ export default function BatchTrace() {
                 books on day one — and a trace with empty fields reads as missing data
                 rather than as an honest answer.
               */
-          <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
+          <Text role="caption" tone="muted">
             Recorded as opening stock. There is no vendor or gate entry behind it: this batch was
             counted onto the books when the property started using Golai, not received through the
             gate. Everything after that point is traced below.
@@ -161,7 +161,7 @@ export default function BatchTrace() {
       <Label>Everywhere it went</Label>
       {steps.length === 0 ? (
         <Card>
-          <Text style={{ fontSize: type.caption, color: p.textMuted }}>
+          <Text role="caption" tone="muted">
             No movements recorded against this batch yet.
           </Text>
         </Card>
@@ -178,14 +178,7 @@ export default function BatchTrace() {
         </Card>
       )}
 
-      <Text
-        style={{
-          fontSize: type.caption,
-          color: p.textMuted,
-          marginTop: space.lg,
-          lineHeight: 18,
-        }}
-      >
+      <Text role="caption" tone="muted" style={{ marginTop: space.lg }}>
         Nothing on this screen was entered for a register. Every line is a record made at a gate for
         an operational reason, read back — which is what makes it worth showing to an inspector.
       </Text>
@@ -242,14 +235,12 @@ function Step({ step, first, last }: { step: TraceStep; first: boolean; last: bo
           paddingTop: space.sm,
         }}
       >
-        <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
-          {REASON_LABELS[step.reason]}
-        </Text>
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}>
+        <Text weight="semibold">{REASON_LABELS[step.reason]}</Text>
+        <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
           {origin ? `${origin} → ` : ""}
           {destination}
         </Text>
-        <Text style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}>
+        <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
           {dateTime(step.occurredAt)}
           {step.recordedByName ? ` · ${step.recordedByName}` : ""}
         </Text>
@@ -280,7 +271,7 @@ function Step({ step, first, last }: { step: TraceStep; first: boolean; last: bo
         </View>
 
         {step.note ? (
-          <Text style={{ fontSize: type.micro, color: p.textMuted, marginTop: space.xs }}>
+          <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
             {step.note}
           </Text>
         ) : null}
@@ -300,24 +291,17 @@ function Fact({
   hint?: string;
   mono?: boolean;
 }) {
-  const p = usePalette();
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: space.sm }}>
-      <Text style={{ width: 128, fontSize: type.caption, color: p.textMuted }}>{label}</Text>
+      <Text role="caption" tone="muted" style={{ width: 128 }}>
+        {label}
+      </Text>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          selectable
-          style={{
-            fontSize: type.caption,
-            ...font("semibold"),
-            color: p.text,
-            ...(mono ? tabular : {}),
-          }}
-        >
+        <Text selectable role="label" weight="semibold" numeric={mono === true}>
           {value}
         </Text>
         {hint ? (
-          <Text style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1, lineHeight: 15 }}>
+          <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
             {hint}
           </Text>
         ) : null}
@@ -327,18 +311,12 @@ function Fact({
 }
 
 function Label({ children }: { children: string }) {
-  const p = usePalette();
   return (
     <Text
       accessibilityRole="header"
-      style={{
-        fontSize: type.micro,
-        ...font("bold"),
-        letterSpacing: 0.9,
-        textTransform: "uppercase",
-        color: p.textFaint,
-        marginBottom: space.sm,
-      }}
+      role="overline"
+      tone="muted"
+      style={{ marginBottom: space.sm }}
     >
       {children}
     </Text>

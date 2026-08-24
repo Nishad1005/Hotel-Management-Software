@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Field, FieldError, Notice, PrimaryButton } from "../components/ui";
+import { Card, Field, FieldError, Notice, PrimaryButton, Text } from "../components/ui";
 import { useSession } from "../lib/session";
-import { font, radius, space, type, usePalette } from "../theme";
+import { radius, space, usePalette } from "../theme";
 
 export default function SignIn() {
   const p = usePalette();
@@ -86,26 +86,10 @@ export default function SignIn() {
         >
           <Ionicons name="cube" size={29} color={p.onAccent} />
         </View>
-        <Text
-          style={{
-            fontSize: type.display,
-            ...font("heavy"),
-            color: p.onBrand,
-            marginTop: space.lg,
-            letterSpacing: -1.2,
-          }}
-        >
+        <Text role="display" tone="onBrand" style={{ marginTop: space.lg }}>
           Golai
         </Text>
-        <Text
-          style={{
-            fontSize: type.label,
-            ...font("medium"),
-            color: p.onBrandMuted,
-            marginTop: space.xxs,
-            letterSpacing: 0.2,
-          }}
-        >
+        <Text role="label" tone="onBrandMuted" weight="medium" style={{ marginTop: space.xxs }}>
           Quantity. Movement. Accountability.
         </Text>
       </View>
@@ -145,15 +129,7 @@ export default function SignIn() {
           />
         </Card>
 
-        <Text
-          style={{
-            fontSize: type.caption,
-            color: p.textFaint,
-            marginTop: space.xl,
-            textAlign: "center",
-            lineHeight: 18,
-          }}
-        >
+        <Text role="caption" tone="muted" align="center" style={{ marginTop: space.xl }}>
           Accounts are created by an administrator.{"\n"}There is no public sign-up.
         </Text>
       </View>

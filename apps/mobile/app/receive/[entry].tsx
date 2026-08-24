@@ -29,7 +29,7 @@ import {
 } from "../../lib/receiving";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 import type { GrnLineDecision, RejectReason } from "@golai/db";
 
 /**
@@ -254,8 +254,6 @@ const DECISIONS: {
 ];
 
 function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: DraftLine) => void }) {
-  const p = usePalette();
-
   const [itemId, setItemId] = useState("");
   const [qtyChallan, setQtyChallan] = useState("");
   const [qtyPhysical, setQtyPhysical] = useState("");
@@ -438,14 +436,7 @@ function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: Draf
         </View>
       ) : null}
 
-      <Text
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         Decision
       </Text>
       <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.lg }}>
@@ -710,24 +701,17 @@ function SummaryLine({
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={{ flex: 1, fontSize: type.body, color: p.text, ...font("medium") }}>
+        <Text weight="medium" style={{ flex: 1 }}>
           {label}
         </Text>
         {value ? (
-          <Text
-            style={{
-              fontSize: type.subheading,
-              ...font("bold"),
-              color: tone === "bad" ? p.danger : p.text,
-              ...tabular,
-            }}
-          >
+          <Text role="heading" weight="bold" numeric tone={tone === "bad" ? "danger" : "default"}>
             {value}
           </Text>
         ) : null}
       </View>
       {hint ? (
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2, lineHeight: 17 }}>
+        <Text role="caption" tone="muted" style={{ marginTop: 2 }}>
           {hint}
         </Text>
       ) : null}
@@ -759,15 +743,7 @@ function RecordedNotice({ text }: { text: string }) {
       }}
     >
       <Ionicons name="information-circle" size={15} color={p.warning} style={{ marginTop: 1 }} />
-      <Text
-        style={{
-          flex: 1,
-          fontSize: type.caption,
-          color: p.warning,
-          marginLeft: space.xs,
-          lineHeight: 17,
-        }}
-      >
+      <Text role="caption" tone="warning" style={{ flex: 1, marginLeft: space.xs }}>
         {text}
       </Text>
     </View>
@@ -775,18 +751,12 @@ function RecordedNotice({ text }: { text: string }) {
 }
 
 function SectionLabel({ children }: { children: string }) {
-  const p = usePalette();
   return (
     <Text
       accessibilityRole="header"
-      style={{
-        fontSize: type.micro,
-        ...font("bold"),
-        letterSpacing: 0.9,
-        textTransform: "uppercase",
-        color: p.textFaint,
-        marginBottom: space.sm,
-      }}
+      role="overline"
+      tone="muted"
+      style={{ marginBottom: space.sm }}
     >
       {children}
     </Text>

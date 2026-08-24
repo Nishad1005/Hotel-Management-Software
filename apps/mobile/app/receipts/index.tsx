@@ -1,11 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
-import { Card, Loading, Notice, PrimaryButton, Screen, StatusPill } from "../../components/ui";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  Card,
+  Loading,
+  Notice,
+  PrimaryButton,
+  Screen,
+  StatusPill,
+  Text,
+} from "../../components/ui";
 import { listReceipts, type ReceiptSummary } from "../../lib/receipts";
 import { useSession } from "../../lib/session";
-import { font, space, tabular, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * Posted receipts.
@@ -122,35 +130,26 @@ function ReceiptRow({
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} weight="semibold">
             {receipt.vendorName ?? "Vendor not named"}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1, ...tabular }}
-          >
+          <Text lines={1} role="caption" tone="muted" numeric style={{ marginTop: 1 }}>
             {receipt.grnNo}
             {receipt.gateEntryNo ? ` · ${receipt.gateEntryNo}` : ""} ·{" "}
             {new Date(receipt.postedAt).toLocaleDateString()}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {receipt.lineCount} line{receipt.lineCount === 1 ? "" : "s"}
             {receipt.postedByName ? ` · ${receipt.postedByName}` : ""}
           </Text>
         </View>
 
         <View style={{ alignItems: "flex-end", marginRight: space.sm }}>
-          <Text style={{ fontSize: type.body, ...font("bold"), color: p.text, ...tabular }}>
+          <Text weight="bold" numeric>
             {fmt(receipt.totalAccepted)}
           </Text>
           {receipt.totalRejected > 0 ? (
-            <Text style={{ fontSize: type.micro, color: p.danger, ...tabular }}>
+            <Text role="caption" tone="danger" numeric>
               {fmt(receipt.totalRejected)} back
             </Text>
           ) : null}

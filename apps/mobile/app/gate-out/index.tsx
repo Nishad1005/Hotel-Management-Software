@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Card,
   Field,
@@ -11,6 +11,7 @@ import {
   PrimaryButton,
   Screen,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import {
   DISPATCH_TYPES,
@@ -20,7 +21,7 @@ import {
 } from "../../lib/dispatch";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * Gate 10 — Security passes it out.
@@ -97,39 +98,13 @@ export default function GateOut() {
             >
               <Ionicons name="checkmark" size={30} color={p.success} />
             </View>
-            <Text
-              style={{
-                fontSize: type.caption,
-                ...font("bold"),
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-                color: p.textMuted,
-                marginTop: space.lg,
-              }}
-            >
+            <Text role="overline" tone="muted" style={{ marginTop: space.lg }}>
               Gate pass issued
             </Text>
-            <Text
-              selectable
-              style={{
-                fontSize: type.title,
-                ...font("heavy"),
-                color: p.text,
-                marginTop: space.xs,
-                ...tabular,
-              }}
-            >
+            <Text selectable role="title" weight="heavy" numeric style={{ marginTop: space.xs }}>
               {passed.no}
             </Text>
-            <Text
-              style={{
-                fontSize: type.caption,
-                color: p.textMuted,
-                marginTop: space.sm,
-                textAlign: "center",
-                lineHeight: 18,
-              }}
-            >
+            <Text role="caption" tone="muted" align="center" style={{ marginTop: space.sm }}>
               {passed.dispatch} has left the property. Write this number on the driver&apos;s copy —
               it is what ties the vehicle at the gate to the goods that went with it.
             </Text>
@@ -208,17 +183,11 @@ function StagedRow({
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.subheading, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} role="heading">
             {kind}
             {dispatch.recipientName ? ` · ${dispatch.recipientName}` : ""}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {dispatch.dispatchNo} · {dispatch.lineCount} line
             {dispatch.lineCount === 1 ? "" : "s"} · staged by {dispatch.stagedByName ?? "someone"}
           </Text>
@@ -293,10 +262,8 @@ function PassPanel({
   return (
     <>
       <Card>
-        <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>
-          {dispatch.dispatchNo}
-        </Text>
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}>
+        <Text role="title">{dispatch.dispatchNo}</Text>
+        <Text role="caption" tone="muted" style={{ marginTop: 2 }}>
           {dispatch.lineCount} line{dispatch.lineCount === 1 ? "" : "s"} · {dispatch.totalQty} in
           total · staged by {dispatch.stagedByName ?? "someone"}
         </Text>
@@ -313,15 +280,7 @@ function PassPanel({
             }}
           >
             <Ionicons name="lock-closed" size={15} color={p.danger} style={{ marginTop: 1 }} />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: type.caption,
-                color: p.danger,
-                marginLeft: space.xs,
-                lineHeight: 17,
-              }}
-            >
+            <Text role="caption" tone="danger" style={{ flex: 1, marginLeft: space.xs }}>
               You staged this consignment, so you cannot also verify it out. Two people is the
               control, and there is no override.
             </Text>

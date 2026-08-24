@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { GrnLineDecision } from "@golai/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import {
   Card,
   Field,
@@ -12,6 +12,7 @@ import {
   PrimaryButton,
   Screen,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import {
   amendReceipt,
@@ -24,7 +25,7 @@ import {
 import { REJECT_LABELS } from "../../lib/registers";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * One receipt, and correcting it.
@@ -201,21 +202,12 @@ export default function ReceiptDetail() {
               >
                 <Ionicons name="checkmark" size={30} color={p.success} />
               </View>
-              <Text
-                selectable
-                style={{
-                  fontSize: type.title,
-                  ...font("heavy"),
-                  color: p.text,
-                  marginTop: space.md,
-                  ...tabular,
-                }}
-              >
+              <Text selectable role="title" weight="heavy" numeric style={{ marginTop: space.md }}>
                 {done}
               </Text>
             </View>
             <View style={{ height: space.md }} />
-            <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
+            <Text role="caption" tone="muted">
               {receipt.grnNo} has not been changed — it still says what was posted. {done}
               &nbsp;supersedes it, carries your reason, and the stock difference was recorded as a
               correction against the batch. Both stay on the register.
@@ -246,23 +238,26 @@ export default function ReceiptDetail() {
         <View style={{ marginBottom: space.lg }}>
           <Card>
             {receipt.amendsGrnNo ? (
-              <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
+              <Text role="caption" tone="muted">
                 This receipt corrects{" "}
-                <Text style={{ ...font("semibold"), color: p.text }}>{receipt.amendsGrnNo}</Text>
+                <Text role="caption" weight="semibold">
+                  {receipt.amendsGrnNo}
+                </Text>
                 {receipt.amendmentReason ? ` — ${receipt.amendmentReason}` : ""}.
               </Text>
             ) : null}
             {superseded ? (
               <Text
-                style={{
-                  fontSize: type.caption,
-                  color: p.warning,
-                  lineHeight: 18,
-                  marginTop: receipt.amendsGrnNo ? space.sm : 0,
-                }}
+                role="caption"
+                tone="warning"
+                style={{ marginTop: receipt.amendsGrnNo ? space.sm : 0 }}
               >
-                Superseded by <Text style={font("semibold")}>{receipt.supersededByGrnNo}</Text>. It
-                stays on the record because it is what was posted; correct the newer one instead.
+                Superseded by{" "}
+                <Text role="caption" weight="semibold">
+                  {receipt.supersededByGrnNo}
+                </Text>
+                . It stays on the record because it is what was posted; correct the newer one
+                instead.
               </Text>
             ) : null}
           </Card>
@@ -338,14 +333,7 @@ export default function ReceiptDetail() {
               );
             }}
           />
-          <Text
-            style={{
-              fontSize: type.caption,
-              color: p.textMuted,
-              marginTop: space.sm,
-              lineHeight: 17,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
             Nothing here is edited. A correction posts a new receipt that supersedes this one, and
             both stay on the register.
           </Text>
@@ -356,7 +344,7 @@ export default function ReceiptDetail() {
               it can be fixed and by whom, not to find the screen has no button on it.
             */
         <View style={{ marginTop: space.xl }}>
-          <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
+          <Text role="caption" tone="muted">
             A posted receipt is corrected by an owner, an administrator or the general manager —
             deliberately not the person who posted it. Ask one of them if a figure here is wrong.
           </Text>
@@ -392,23 +380,17 @@ function LineRow({
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} weight="semibold">
             {line.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {line.itemCode} · batch {line.batchNo ?? "—"}
           </Text>
         </View>
         {!amending ? (
-          <Text style={{ fontSize: type.body, ...font("bold"), color: p.text, ...tabular }}>
+          <Text weight="bold" numeric>
             {fmt(line.qtyAccepted)}
-            <Text style={{ fontSize: type.micro, ...font("regular"), color: p.textMuted }}>
+            <Text role="caption" tone="muted">
               {" "}
               {line.uomCode}
             </Text>

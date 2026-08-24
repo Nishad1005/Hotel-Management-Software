@@ -3,7 +3,7 @@ import { GOLAI_ROLES, looksLikePhone } from "@golai/domain";
 import type { MembershipRole } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import {
   Card,
   Field,
@@ -14,10 +14,11 @@ import {
   Section,
   SelectRow,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import { useSession } from "../../lib/session";
 import { createUser, listTeam, type CreatedUser, type TeamMember } from "../../lib/users";
-import { font, radius, space, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * Who works here, and adding somebody.
@@ -114,56 +115,26 @@ export default function Users() {
         >
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
             <Ionicons name="key" size={18} color={p.accent} />
-            <Text
-              style={{
-                fontSize: type.body,
-                ...font("bold"),
-                color: p.accent,
-                marginLeft: space.sm,
-              }}
-            >
+            <Text tone="accent" weight="bold" style={{ marginLeft: space.sm }}>
               {created.fullName} can now sign in
             </Text>
           </View>
 
-          <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.xs }}>
+          <Text role="caption" tone="muted" style={{ marginBottom: space.xs }}>
             They sign in with
           </Text>
-          <Text
-            selectable
-            style={{
-              fontSize: type.subheading,
-              ...font("semibold"),
-              color: p.text,
-              marginBottom: space.md,
-            }}
-          >
+          <Text selectable role="heading" style={{ marginBottom: space.md }}>
             {created.loginId}
           </Text>
 
-          <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.xs }}>
+          <Text role="caption" tone="muted" style={{ marginBottom: space.xs }}>
             Temporary password — read it out now
           </Text>
-          <Text
-            selectable
-            style={{
-              fontSize: type.title,
-              ...font("heavy"),
-              color: p.text,
-              letterSpacing: 0.5,
-            }}
-          >
+          <Text selectable role="title" weight="heavy">
             {created.tempPassword}
           </Text>
 
-          <Text
-            style={{
-              fontSize: type.caption,
-              color: p.textMuted,
-              marginTop: space.md,
-              lineHeight: 18,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
             This is shown once and is not stored anywhere. If it is lost, set a new one rather than
             looking it up.
           </Text>
@@ -250,20 +221,17 @@ export default function Users() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    style={{ fontSize: type.body, ...font("semibold"), color: p.text, flex: 1 }}
-                    numberOfLines={1}
-                  >
+                  <Text lines={1} weight="semibold" style={{ flex: 1 }}>
                     {member.fullName}
                     {member.isSelf ? (
-                      <Text style={{ color: p.textFaint, ...font("regular") }}> · you</Text>
+                      <Text role="caption" tone="muted">
+                        {" "}
+                        · you
+                      </Text>
                     ) : null}
                   </Text>
                 </View>
-                <Text
-                  style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-                  numberOfLines={1}
-                >
+                <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
                   {member.phone ?? member.email ?? "No sign-in identifier"}
                 </Text>
                 <View

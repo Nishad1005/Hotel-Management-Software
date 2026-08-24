@@ -8,7 +8,7 @@ import {
 } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ChoiceTile,
@@ -18,13 +18,14 @@ import {
   Row,
   Section,
   Stepper,
+  Text,
   Text as UIText,
 } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { drainOnce } from "../../lib/sync";
-import { font, radius, space, touch, type, usePalette } from "../../theme";
+import { radius, space, touch, type, usePalette } from "../../theme";
 
 /**
  * Gate 0 — Security capture. PRD section 4.
@@ -158,8 +159,8 @@ export default function NewGateEntry() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>New arrival</Text>
-        <Text style={{ fontSize: type.label, color: p.textMuted, marginBottom: space.lg }}>
+        <Text role="title">New arrival</Text>
+        <Text role="label" tone="muted" style={{ marginBottom: space.lg }}>
           Record what arrived before anything is unloaded.
         </Text>
 
@@ -229,7 +230,7 @@ export default function NewGateEntry() {
           </View>
           {vehicleMode && vehicleMode !== "HAND_CART" ? (
             <View style={{ marginTop: space.sm }}>
-              <Text style={{ fontSize: type.label, color: p.text, marginBottom: space.xs }}>
+              <Text role="label" style={{ marginBottom: space.xs }}>
                 Vehicle number
               </Text>
               <TextInput

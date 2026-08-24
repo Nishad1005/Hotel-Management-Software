@@ -13,7 +13,7 @@ import {
 } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import {
   Card,
   ChoiceTile,
@@ -25,6 +25,7 @@ import {
   Screen,
   Section,
   SelectRow,
+  Text,
 } from "../../components/ui";
 import { printer } from "../../lib/print";
 import {
@@ -36,7 +37,7 @@ import {
   type ZoneSummary,
 } from "../../lib/location-admin";
 import { useSession } from "../../lib/session";
-import { font, radius, space, touch, type, usePalette } from "../../theme";
+import { radius, space, touch, usePalette } from "../../theme";
 
 /**
  * Zones and locations — the store, laid out in its own words.
@@ -168,13 +169,10 @@ export default function Locations() {
         >
           <Ionicons name="checkmark-circle" size={17} color={p.accent} />
           <Text
-            style={{
-              fontSize: type.caption,
-              ...font("semibold"),
-              color: p.accent,
-              marginLeft: space.sm,
-              flex: 1,
-            }}
+            role="caption"
+            tone="accent"
+            weight="semibold"
+            style={{ marginLeft: space.sm, flex: 1 }}
           >
             {result}
           </Text>
@@ -220,12 +218,12 @@ export default function Locations() {
                 }
               >
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
+                  <Text weight="semibold">
                     {z.children.length === 0
                       ? "No locations inside yet"
                       : `${z.children.length} location${z.children.length === 1 ? "" : "s"}`}
                   </Text>
-                  <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}>
+                  <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
                     {z.regime.toLowerCase()} · {z.fixtureType}
                   </Text>
                 </View>
@@ -270,16 +268,7 @@ export default function Locations() {
 
                   {canEditMasters ? (
                     <>
-                      <Text
-                        style={{
-                          fontSize: type.caption,
-                          ...font("bold"),
-                          letterSpacing: 1.1,
-                          textTransform: "uppercase",
-                          color: p.textMuted,
-                          marginBottom: space.md,
-                        }}
-                      >
+                      <Text role="overline" tone="muted" style={{ marginBottom: space.md }}>
                         Add locations
                       </Text>
 
@@ -335,23 +324,10 @@ export default function Locations() {
                             marginBottom: space.lg,
                           }}
                         >
-                          <Text
-                            style={{
-                              fontSize: type.caption,
-                              color: p.textMuted,
-                              marginBottom: space.xxs,
-                            }}
-                          >
+                          <Text role="caption" tone="muted" style={{ marginBottom: space.xxs }}>
                             Will create {plan.count} location{plan.count === 1 ? "" : "s"}
                           </Text>
-                          <Text
-                            style={{
-                              fontSize: type.body,
-                              ...font("semibold"),
-                              color: p.text,
-                              fontVariant: ["tabular-nums"],
-                            }}
-                          >
+                          <Text weight="semibold" numeric>
                             {plan.first}
                             {plan.count > 1 ? `  …  ${plan.last}` : ""}
                           </Text>
@@ -429,7 +405,6 @@ function NewZone({
   onCreated: (code: string) => void;
   onError: (message: string) => void;
 }) {
-  const p = usePalette();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [suffix, setSuffix] = useState("");
@@ -506,14 +481,7 @@ function NewZone({
           refuses a regime mismatch outright — so the mistake surfaces as a refusal at the
           dock rather than as a question here.
         */}
-        <Text
-          style={{
-            fontSize: type.label,
-            ...font("semibold"),
-            color: p.text,
-            marginBottom: space.xs,
-          }}
-        >
+        <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
           How is it stored?
         </Text>
         <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.lg }}>
@@ -577,7 +545,6 @@ function NewZone({
  * cannot come back quietly.
  */
 function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName: string }) {
-  const p = usePalette();
   const [sizeId, setSizeId] = useState<LabelSizeId>("thermal-100x50");
   const [error, setError] = useState<string | null>(null);
 
@@ -601,16 +568,7 @@ function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName:
 
   return (
     <View style={{ marginBottom: space.xl }}>
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("bold"),
-          letterSpacing: 1.1,
-          textTransform: "uppercase",
-          color: p.textMuted,
-          marginBottom: space.md,
-        }}
-      >
+      <Text role="overline" tone="muted" style={{ marginBottom: space.md }}>
         Print labels
       </Text>
 
@@ -629,9 +587,7 @@ function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName:
         onPress={() => void run()}
       />
 
-      <Text
-        style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.sm, lineHeight: 17 }}
-      >
+      <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
         Choose &ldquo;Save as PDF&rdquo; in the print dialog to send them to a print shop instead.
       </Text>
 
@@ -663,14 +619,7 @@ function BinChip({
         backgroundColor: p.surfaceSunken,
       }}
     >
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: p.text,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
+      <Text role="caption" weight="semibold" numeric>
         {node.code}
       </Text>
       {!disabled ? (

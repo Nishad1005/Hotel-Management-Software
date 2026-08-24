@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { PrimaryButton } from "../../components/ui";
-import { font, radius, space, type, usePalette } from "../../theme";
+import { PrimaryButton, Text } from "../../components/ui";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The gate entry number, immediately after capture.
@@ -31,14 +31,7 @@ export default function GateEntryRecorded() {
       >
         <View style={{ alignItems: "center", marginBottom: space.xl }}>
           <Ionicons name="checkmark-circle" size={64} color={p.success} />
-          <Text
-            style={{
-              fontSize: type.heading,
-              ...font("bold"),
-              color: p.text,
-              marginTop: space.sm,
-            }}
-          >
+          <Text role="heading" weight="bold" style={{ marginTop: space.sm }}>
             Arrival recorded
           </Text>
         </View>
@@ -53,29 +46,16 @@ export default function GateEntryRecorded() {
             alignItems: "center",
           }}
         >
-          <Text
-            style={{
-              fontSize: type.caption,
-              ...font("bold"),
-              letterSpacing: 1.2,
-              textTransform: "uppercase",
-              color: p.textMuted,
-            }}
-          >
+          <Text role="overline" tone="muted">
             Gate entry number
           </Text>
           <Text
             selectable
             accessibilityLabel={`Gate entry number ${number ?? "unknown"}`}
-            style={{
-              fontSize: type.display,
-              ...font("heavy"),
-              color: p.text,
-              marginTop: space.sm,
-              letterSpacing: 1,
-              fontVariant: ["tabular-nums"],
-              textAlign: "center",
-            }}
+            role="display"
+            numeric
+            align="center"
+            style={{ marginTop: space.sm }}
           >
             {number ?? "—"}
           </Text>
@@ -92,7 +72,7 @@ export default function GateEntryRecorded() {
           }}
         >
           <Ionicons name="create-outline" size={24} color={p.warning} />
-          <Text style={{ color: p.warning, fontSize: type.body, marginLeft: space.sm, flex: 1 }}>
+          <Text tone="warning" style={{ marginLeft: space.sm, flex: 1 }}>
             Write this number on the vendor&apos;s bill or challan now, before the vehicle moves.
           </Text>
         </View>

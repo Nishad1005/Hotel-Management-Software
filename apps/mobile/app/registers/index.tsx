@@ -1,8 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
-import { Card, Loading, Notice, Screen, StatGrid, StatTile, StatusPill } from "../../components/ui";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  Card,
+  Loading,
+  Notice,
+  Screen,
+  StatGrid,
+  StatTile,
+  StatusPill,
+  Text,
+} from "../../components/ui";
 import { DISPATCH_TYPES } from "../../lib/dispatch";
 import {
   listInwardRegister,
@@ -12,7 +21,7 @@ import {
   type WasteRow,
 } from "../../lib/registers";
 import { useSession } from "../../lib/session";
-import { font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The FSSAI registers.
@@ -251,13 +260,7 @@ function TabChip({
         }) as ViewStyle
       }
     >
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: selected ? p.accent : p.text,
-        }}
-      >
+      <Text role="label" weight="semibold" tone={selected ? "accent" : "default"}>
         {label}
       </Text>
     </Pressable>
@@ -281,38 +284,29 @@ function InwardRowView({
     <>
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} weight="semibold">
             {row.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {row.vendorName ?? "Vendor not named"} · {row.grnNo}
             {row.gateEntryNo ? ` · ${row.gateEntryNo}` : ""}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {new Date(row.receivedAt).toLocaleDateString()} · batch {row.batchNo ?? "—"}
             {row.receivedBy ? ` · ${row.receivedBy}` : ""}
           </Text>
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={{ fontSize: type.body, ...font("bold"), color: p.text, ...tabular }}>
+          <Text weight="bold" numeric>
             {fmt(row.qtyAccepted)}
-            <Text style={{ fontSize: type.micro, ...font("regular"), color: p.textMuted }}>
+            <Text role="caption" tone="muted">
               {" "}
               {row.uomCode}
             </Text>
           </Text>
           {row.qtyRejected > 0 ? (
-            <Text style={{ fontSize: type.micro, color: p.danger, ...tabular }}>
+            <Text role="caption" tone="danger" numeric>
               {fmt(row.qtyRejected)} back
             </Text>
           ) : null}
@@ -409,29 +403,20 @@ function WasteRowView({ row, divider }: { row: WasteRow; divider: boolean }) {
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} weight="semibold">
             {row.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {kind} · {row.recipientName ?? "Handler not named"} · {row.dispatchNo}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {new Date(row.dispatchedAt).toLocaleDateString()} · batch {row.batchNo}
             {row.reasonCode ? ` · ${row.reasonCode}` : ""}
           </Text>
         </View>
-        <Text style={{ fontSize: type.body, ...font("bold"), color: p.text, ...tabular }}>
+        <Text weight="bold" numeric>
           {fmt(row.qty)}
-          <Text style={{ fontSize: type.micro, ...font("regular"), color: p.textMuted }}>
+          <Text role="caption" tone="muted">
             {" "}
             {row.uomCode}
           </Text>

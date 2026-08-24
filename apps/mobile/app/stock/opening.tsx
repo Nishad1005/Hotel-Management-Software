@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import {
   Card,
   Field,
@@ -9,13 +9,14 @@ import {
   PrimaryButton,
   Screen,
   SelectRow,
+  Text,
 } from "../../components/ui";
 import { DateField } from "../../components/date-field";
 import { listItems, type ItemListRow } from "../../lib/masters";
 import { useSession } from "../../lib/session";
 import { listLocations, type LocationOption } from "../../lib/locations";
 import { recordOpeningStock } from "../../lib/stock";
-import { font, space, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * What is already in the store.
@@ -145,7 +146,7 @@ export default function OpeningStock() {
             marginBottom: space.lg,
           }}
         >
-          <Text style={{ fontSize: type.caption, color: p.accent, ...font("semibold"), flex: 1 }}>
+          <Text role="caption" tone="accent" weight="semibold" style={{ flex: 1 }}>
             {saved}
           </Text>
         </View>

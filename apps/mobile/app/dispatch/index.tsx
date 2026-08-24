@@ -28,7 +28,7 @@ import {
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { font, radius, space, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * Gate 9 — staging at Terminal 2.
@@ -445,18 +445,12 @@ function DraftRow({
 }
 
 function Label({ children }: { children: string }) {
-  const p = usePalette();
   return (
     <Text
       accessibilityRole="header"
-      style={{
-        fontSize: type.micro,
-        ...font("bold"),
-        letterSpacing: 0.9,
-        textTransform: "uppercase",
-        color: p.textFaint,
-        marginBottom: space.sm,
-      }}
+      role="overline"
+      tone="muted"
+      style={{ marginBottom: space.sm }}
     >
       {children}
     </Text>

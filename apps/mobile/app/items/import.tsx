@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { readItemSheet, type ItemSheet } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, View, type ViewStyle } from "react-native";
+import { ActivityIndicator, StyleSheet, TextInput, View, type ViewStyle } from "react-native";
 import {
   Card,
   FieldError,
@@ -14,6 +14,7 @@ import {
   StatGrid,
   StatTile,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import { fileTextPicker } from "../../lib/file-text";
 import {
@@ -25,7 +26,7 @@ import {
 } from "../../lib/item-import";
 import { listCategories, listUoms, type CategoryOption, type UomOption } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, tabular, type, usePalette } from "../../theme";
 
 /**
  * Importing a property's item list.
@@ -167,29 +168,18 @@ export default function ImportItems() {
       ) : (
         <>
           <Card>
-            <Text
-              style={{
-                fontSize: type.body,
-                ...font("semibold"),
-                color: p.text,
-                marginBottom: 4,
-              }}
-            >
+            <Text weight="semibold" style={{ marginBottom: 4 }}>
               Paste the rows, or choose the file
             </Text>
-            <Text
-              style={{
-                fontSize: type.caption,
-                color: p.textMuted,
-                lineHeight: 18,
-                marginBottom: space.md,
-              }}
-            >
+            <Text role="caption" tone="muted" style={{ marginBottom: space.md }}>
               Open the spreadsheet, select everything including the heading row, and paste it here.
               Headings can say whatever they already say — Item Name, Particulars, Description all
-              read the same. A <Text style={font("semibold")}>Shelf Life (days)</Text> column is
-              what makes an item perishable and puts it in the expiry watchlist; without one,
-              everything imports as non-perishable and has to be marked by hand.
+              read the same. A{" "}
+              <Text role="caption" weight="semibold">
+                Shelf Life (days)
+              </Text>{" "}
+              column is what makes an item perishable and puts it in the expiry watchlist; without
+              one, everything imports as non-perishable and has to be marked by hand.
             </Text>
 
             <TextInput
@@ -247,14 +237,7 @@ export default function ImportItems() {
 
               <View style={{ height: space.xl }} />
               <Card>
-                <Text
-                  style={{
-                    fontSize: type.body,
-                    ...font("semibold"),
-                    color: p.text,
-                    marginBottom: space.md,
-                  }}
-                >
+                <Text weight="semibold" style={{ marginBottom: space.md }}>
                   For rows that match nothing
                 </Text>
                 <SelectRow
@@ -288,12 +271,10 @@ export default function ImportItems() {
                   <View style={{ alignItems: "center" }}>
                     <ActivityIndicator color={p.accent} />
                     <Text
-                      style={{
-                        fontSize: type.caption,
-                        color: p.textMuted,
-                        marginTop: space.sm,
-                      }}
                       accessibilityLiveRegion="polite"
+                      role="caption"
+                      tone="muted"
+                      style={{ marginTop: space.sm }}
                     >
                       {progress}% — writing in batches, so a bad row does not take the rest with it.
                     </Text>
@@ -398,16 +379,10 @@ function Preview({ sheet, resolution }: { sheet: ItemSheet; resolution: Resoluti
               borderBottomColor: p.border,
             }}
           >
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-            >
+            <Text lines={1} weight="semibold">
               {r.name}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-            >
+            <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
               <Text style={tabular}>{r.code}</Text> · {r.categoryLabel} · {r.uomLabel}
               {r.shelfLifeDays !== null ? ` · ${r.shelfLifeDays} days` : ""}
             </Text>
@@ -420,7 +395,7 @@ function Preview({ sheet, resolution }: { sheet: ItemSheet; resolution: Resoluti
         ))}
         {resolution.rows.length > sample.length ? (
           <View style={{ paddingHorizontal: space.lg, paddingVertical: space.sm }}>
-            <Text style={{ fontSize: type.caption, color: p.textFaint }}>
+            <Text role="caption" tone="muted">
               …and {resolution.rows.length - sample.length} more
             </Text>
           </View>
@@ -460,51 +435,28 @@ function Outcome({
               color={outcome.failures.length > 0 ? p.warning : p.success}
             />
           </View>
-          <Text
-            style={{
-              fontSize: type.display,
-              ...font("heavy"),
-              color: p.text,
-              marginTop: space.md,
-              ...tabular,
-            }}
-          >
+          <Text role="display" numeric style={{ marginTop: space.md }}>
             {outcome.inserted}
           </Text>
-          <Text style={{ fontSize: type.label, color: p.textMuted }}>
+          <Text role="label" tone="muted">
             item{outcome.inserted === 1 ? "" : "s"} added to the master
           </Text>
         </View>
 
         {outcome.failures.length > 0 ? (
           <>
-            <Text
-              style={{
-                fontSize: type.label,
-                ...font("semibold"),
-                color: p.text,
-                marginBottom: space.sm,
-              }}
-            >
+            <Text role="label" weight="semibold" style={{ marginBottom: space.sm }}>
               {outcome.failures.length} refused
             </Text>
             {outcome.failures.slice(0, 12).map((f) => (
-              <Text
-                key={f.code}
-                style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}
-              >
-                <Text style={{ ...font("semibold"), color: p.text }}>{f.code}</Text> {f.name} —{" "}
-                {f.reason}
+              <Text key={f.code} role="caption" tone="muted">
+                <Text role="caption" weight="semibold">
+                  {f.code}
+                </Text>{" "}
+                {f.name} — {f.reason}
               </Text>
             ))}
-            <Text
-              style={{
-                fontSize: type.caption,
-                color: p.textMuted,
-                marginTop: space.md,
-                lineHeight: 18,
-              }}
-            >
+            <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
               The rest are in. Fix these rows and paste them again — anything already imported is
               skipped rather than duplicated.
             </Text>
@@ -542,15 +494,7 @@ function Warn({ text }: { text: string }) {
       }
     >
       <Ionicons name="alert-circle" size={15} color={p.warning} style={{ marginTop: 1 }} />
-      <Text
-        style={{
-          flex: 1,
-          fontSize: type.caption,
-          color: p.warning,
-          marginLeft: space.xs,
-          lineHeight: 17,
-        }}
-      >
+      <Text role="caption" tone="warning" style={{ flex: 1, marginLeft: space.xs }}>
         {text}
       </Text>
     </View>

@@ -6,7 +6,7 @@ import {
 } from "@golai/domain";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import {
   ChoiceTile,
   Field,
@@ -16,6 +16,7 @@ import {
   PrimaryButton,
   Screen,
   SelectRow,
+  Text,
   Toggle,
 } from "../../components/ui";
 import {
@@ -28,7 +29,7 @@ import {
   type UomOption,
 } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { font, space, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 const ERROR_TEXT: Record<ItemError, string> = {
   CODE_REQUIRED: "Give the item a code.",
@@ -266,14 +267,7 @@ export default function ItemForm() {
         {...(has("BASE_UOM_REQUIRED") ? { error: ERROR_TEXT.BASE_UOM_REQUIRED } : {})}
       />
 
-      <Text
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         Stored at
       </Text>
       <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.md }}>

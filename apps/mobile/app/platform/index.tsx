@@ -24,7 +24,7 @@ import {
   type ProvisionedTenant,
   type Tenant,
 } from "../../lib/platform";
-import { font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The vendor console.
@@ -296,7 +296,6 @@ function NewTenantForm({
   onCancel: () => void;
   onCreated: (result: ProvisionedTenant) => void;
 }) {
-  const p = usePalette();
   const [orgName, setOrgName] = useState("");
   const [propertyName, setPropertyName] = useState("");
   const [code, setCode] = useState("");
@@ -373,16 +372,7 @@ function NewTenantForm({
       />
 
       <View style={{ height: space.sm }} />
-      <Text
-        style={{
-          fontSize: type.micro,
-          ...font("bold"),
-          letterSpacing: 0.9,
-          textTransform: "uppercase",
-          color: p.textFaint,
-          marginBottom: space.sm,
-        }}
-      >
+      <Text role="overline" tone="muted" style={{ marginBottom: space.sm }}>
         Their first login
       </Text>
 
@@ -442,15 +432,7 @@ function Onboarded({ result, onDone }: { result: ProvisionedTenant; onDone: () =
     <Card>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
         <Ionicons name="checkmark-circle" size={22} color={p.success} />
-        <Text
-          style={{
-            fontSize: type.body,
-            ...font("semibold"),
-            color: p.text,
-            marginLeft: space.sm,
-            flex: 1,
-          }}
-        >
+        <Text weight="semibold" style={{ marginLeft: space.sm, flex: 1 }}>
           {result.propertyCode} is ready to be set up
         </Text>
       </View>
@@ -462,52 +444,35 @@ function Onboarded({ result, onDone }: { result: ProvisionedTenant; onDone: () =
           padding: space.md,
         }}
       >
-        <Text style={{ fontSize: type.caption, color: p.textMuted }}>Signs in with</Text>
-        <Text selectable style={{ fontSize: type.subheading, ...font("bold"), color: p.text }}>
+        <Text role="caption" tone="muted">
+          Signs in with
+        </Text>
+        <Text selectable role="heading" weight="bold">
           {result.ownerLoginId}
         </Text>
 
         {result.tempPassword ? (
           <>
-            <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.md }}>
+            <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
               Temporary password
             </Text>
-            <Text
-              selectable
-              style={{ fontSize: type.subheading, ...font("bold"), color: p.text, ...tabular }}
-            >
+            <Text selectable role="heading" weight="bold" numeric>
               {result.tempPassword}
             </Text>
-            <Text
-              style={{
-                fontSize: type.micro,
-                color: p.warning,
-                marginTop: space.sm,
-                lineHeight: 15,
-              }}
-            >
+            <Text role="caption" tone="warning" style={{ marginTop: space.sm }}>
               Shown once and stored nowhere. Write it down now — if it is lost it has to be reset,
               not looked up.
             </Text>
           </>
         ) : (
-          <Text
-            style={{
-              fontSize: type.micro,
-              color: p.textMuted,
-              marginTop: space.sm,
-              lineHeight: 15,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
             They already had a login, so their existing password still works. This property has been
             added to it.
           </Text>
         )}
       </View>
 
-      <Text
-        style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.md, lineHeight: 18 }}
-      >
+      <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
         Their units, categories, storage zones and departments are seeded. What they still need is
         their item list, their bins and their vendors — all of which they do themselves from inside
         the app.
