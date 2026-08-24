@@ -2,18 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import type { PropertyLifecycle } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
 import {
   Card,
   Field,
   FieldError,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   StatGrid,
   StatTile,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import {
   listTenants,
@@ -23,7 +24,7 @@ import {
   type ProvisionedTenant,
   type Tenant,
 } from "../../lib/platform";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { font, radius, space, tabular, type, usePalette } from "../../theme";
 
 /**
  * The vendor console.
@@ -45,7 +46,6 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
 export default function PlatformConsole() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,143 +99,108 @@ export default function PlatformConsole() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.brand,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          {/*
-            The one screen carrying the brand band rather than the page surface. It is a
-            different product from the one below it, and looking different is how somebody
-            with both kinds of access knows which they are in.
-          */}
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Back"
-              hitSlop={10}
-              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-            >
-              <Ionicons name="chevron-back" size={24} color={p.onBrand} />
-            </Pressable>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: type.title, ...font("bold"), color: p.onBrand }}>
-                Customers
-              </Text>
-              <Text style={{ fontSize: type.caption, color: p.onBrandMuted, marginTop: 1 }}>
-                {loading
-                  ? "Loading"
-                  : `${tenants.length} propert${tenants.length === 1 ? "y" : "ies"} across ${summary.orgs} customer${summary.orgs === 1 ? "" : "s"}`}
-              </Text>
-            </View>
-          </View>
-        </Page>
-      </View>
+    /*
+      The one screen carrying the brand band rather than the page surface. It is a
+      different product from the one below it, and looking different is how somebody with
+      both kinds of access knows which they are in.
+    */
+    <Screen
+      title="Customers"
+      subtitle={
+        loading
+          ? "Loading"
+          : `${tenants.length} propert${tenants.length === 1 ? "y" : "ies"} across ${summary.orgs} customer${summary.orgs === 1 ? "" : "s"}`
+      }
+      onBack={() => router.back()}
+      onBrand
+      wide
+    >
+      {created ? (
+        <View style={{ marginBottom: space.xl }}>
+          <Onboarded result={created} onDone={() => setCreated(null)} />
+        </View>
+      ) : null}
 
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {created ? (
-            <View style={{ marginBottom: space.xl }}>
-              <Onboarded result={created} onDone={() => setCreated(null)} />
-            </View>
-          ) : null}
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
+      ) : (
+        <>
+          <StatGrid>
+            <StatTile
+              icon="business-outline"
+              label="Live"
+              value={summary.live}
+              caption="Running on it"
+              tone="accent"
+            />
+            <StatTile
+              icon="hourglass-outline"
+              label="Onboarding"
+              value={tenants.length - summary.live}
+              caption="Not yet live"
+              tone="neutral"
+            />
+            <StatTile
+              icon="alert-circle-outline"
+              label="Stalled"
+              value={summary.stalled}
+              caption="Created, nothing has moved"
+              tone={summary.stalled ? "bad" : "neutral"}
+            />
+          </StatGrid>
 
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
+          <View style={{ height: space.xl }} />
+
+          {adding ? (
+            <NewTenantForm
+              onCancel={() => setAdding(false)}
+              onCreated={(r) => {
+                setAdding(false);
+                setCreated(r);
+                void load();
+              }}
+            />
           ) : (
-            <>
-              <StatGrid>
-                <StatTile
-                  icon="business-outline"
-                  label="Live"
-                  value={summary.live}
-                  caption="Running on it"
-                  tone="accent"
-                />
-                <StatTile
-                  icon="hourglass-outline"
-                  label="Onboarding"
-                  value={tenants.length - summary.live}
-                  caption="Not yet live"
-                  tone="neutral"
-                />
-                <StatTile
-                  icon="alert-circle-outline"
-                  label="Stalled"
-                  value={summary.stalled}
-                  caption="Created, nothing has moved"
-                  tone={summary.stalled ? "bad" : "neutral"}
-                />
-              </StatGrid>
-
-              <View style={{ height: space.xl }} />
-
-              {adding ? (
-                <NewTenantForm
-                  onCancel={() => setAdding(false)}
-                  onCreated={(r) => {
-                    setAdding(false);
-                    setCreated(r);
-                    void load();
-                  }}
-                />
-              ) : (
-                <PrimaryButton
-                  label="Onboard a customer"
-                  icon="add"
-                  density="field"
-                  onPress={() => {
-                    setAdding(true);
-                    setCreated(null);
-                  }}
-                />
-              )}
-
-              <View style={{ height: space.xl }} />
-
-              {tenants.length === 0 ? (
-                <Notice
-                  icon="business-outline"
-                  title="No customers yet"
-                  body="Onboarding one creates their organisation, their property, their owner's login and the seed masters that let them work on the first morning."
-                />
-              ) : (
-                tenants.map((t) => (
-                  <TenantCard
-                    key={t.propertyId}
-                    tenant={t}
-                    onLifecycle={async (state) => {
-                      try {
-                        await setPropertyLifecycle(t.propertyId, state);
-                        await load();
-                      } catch (e) {
-                        setError(e instanceof Error ? e.message : String(e));
-                      }
-                    }}
-                  />
-                ))
-              )}
-            </>
+            <PrimaryButton
+              label="Onboard a customer"
+              icon="add"
+              density="field"
+              onPress={() => {
+                setAdding(true);
+                setCreated(null);
+              }}
+            />
           )}
-        </Page>
-      </ScrollView>
-    </View>
+
+          <View style={{ height: space.xl }} />
+
+          {tenants.length === 0 ? (
+            <Notice
+              icon="business-outline"
+              title="No customers yet"
+              body="Onboarding one creates their organisation, their property, their owner's login and the seed masters that let them work on the first morning."
+            />
+          ) : (
+            tenants.map((t) => (
+              <TenantCard
+                key={t.propertyId}
+                tenant={t}
+                onLifecycle={async (state) => {
+                  try {
+                    await setPropertyLifecycle(t.propertyId, state);
+                    await load();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : String(e));
+                  }
+                }}
+              />
+            ))
+          )}
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -246,7 +211,6 @@ function TenantCard({
   tenant: Tenant;
   onLifecycle: (state: PropertyLifecycle) => void | Promise<void>;
 }) {
-  const p = usePalette();
   const checks = readiness(tenant);
   const ready = checks.filter((c) => c.done).length;
   const live = tenant.propertyLifecycle === "LIVE";
@@ -257,22 +221,16 @@ function TenantCard({
       <Card>
         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.heading, ...font("bold"), color: p.text }}
-            >
+            <Text role="heading" lines={1}>
               {tenant.propertyName}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-            >
-              <Text style={tabular}>{tenant.propertyCode}</Text> · {tenant.orgName}
+            <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
+              <Text role="caption" tone="muted" numeric>
+                {tenant.propertyCode}
+              </Text>{" "}
+              · {tenant.orgName}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-            >
+            <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
               Created {new Date(tenant.createdAt).toLocaleDateString()}
               {tenant.lastActivity
                 ? ` · last movement ${new Date(tenant.lastActivity).toLocaleDateString()}`
@@ -306,7 +264,7 @@ function TenantCard({
 
         <View style={{ height: space.md }} />
 
-        <Text style={{ fontSize: type.caption, color: p.textMuted, ...tabular }}>
+        <Text role="caption" tone="muted" numeric>
           {tenant.items} items · {tenant.bins} bins · {tenant.vendors} vendors · {tenant.people}{" "}
           people · {tenant.receipts} receipts
         </Text>
@@ -320,14 +278,7 @@ function TenantCard({
             />
           </View>
         ) : !live ? (
-          <Text
-            style={{
-              fontSize: type.micro,
-              color: p.textFaint,
-              marginTop: space.sm,
-              lineHeight: 15,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
             {checks.length - ready} thing{checks.length - ready === 1 ? "" : "s"} still to do before
             this property is live. A property goes live when it can actually receive, not when it
             was created.

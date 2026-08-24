@@ -271,11 +271,20 @@ export function Header({
   subtitle,
   onBack,
   right,
+  onBrand = false,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /**
+   * Painted for the brand band rather than the page surface.
+   *
+   * Exactly one screen needs it — the vendor console, which is a different product from
+   * the one below it, and looking different is how somebody holding both kinds of access
+   * knows which they are in.
+   */
+  onBrand?: boolean;
 }) {
   const router = useRouter();
 
@@ -294,15 +303,25 @@ export function Header({
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.lg }}>
       {showBack && onBack ? (
         <View style={{ marginLeft: -space.sm, marginRight: space.xs }}>
-          <IconButton icon="chevron-back" label="Back" size={24} onPress={onBack} />
+          <IconButton
+            icon="chevron-back"
+            label="Back"
+            size={24}
+            tone={onBrand ? "onBrand" : "default"}
+            onPress={onBack}
+          />
         </View>
       ) : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text role="title" accessibilityRole="header">
+        <Text role="title" tone={onBrand ? "onBrand" : "default"} accessibilityRole="header">
           {title}
         </Text>
         {subtitle ? (
-          <Text role="label" tone="muted" style={{ marginTop: space.xxs }}>
+          <Text
+            role="label"
+            tone={onBrand ? "onBrandMuted" : "muted"}
+            style={{ marginTop: space.xxs }}
+          >
             {subtitle}
           </Text>
         ) : null}
@@ -336,6 +355,7 @@ export function Screen({
   children,
   wide = false,
   scroll = true,
+  onBrand = false,
 }: {
   title: string;
   subtitle?: string;
@@ -351,6 +371,8 @@ export function Screen({
   wide?: boolean;
   /** Off when the child scrolls itself — a FlatList, a split pane. */
   scroll?: boolean;
+  /** The brand band. See `Header`'s `onBrand` — one screen uses it. */
+  onBrand?: boolean;
 }) {
   const p = usePalette();
   const insets = useSafeAreaInsets();
@@ -369,12 +391,12 @@ export function Screen({
       <View
         style={[
           {
-            backgroundColor: p.surface,
+            backgroundColor: onBrand ? p.brand : p.surface,
             paddingTop: (expanded ? insets.top : 0) + space.lg,
             paddingHorizontal: space.lg,
             paddingBottom: band ? space.md : space.sm,
             borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
+            borderBottomColor: onBrand ? p.brand : p.border,
           },
           elevation(1, p),
         ]}
@@ -382,6 +404,7 @@ export function Screen({
         <Page wide={wide}>
           <Header
             title={title}
+            onBrand={onBrand}
             {...(subtitle === undefined ? {} : { subtitle })}
             {...(onBack === undefined ? {} : { onBack })}
             {...(actions === undefined ? {} : { right: actions })}

@@ -2,20 +2,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { meetsMinimumShelfLife, shelfLifeRemainingPct } from "@golai/domain";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, View } from "react-native";
 import { DateField } from "../../components/date-field";
 import {
   Card,
   ChoiceTile,
   Field,
   FieldError,
-  Header,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Result,
+  Screen,
   SelectRow,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import { listItems, type ItemListRow } from "../../lib/masters";
 import {
@@ -28,7 +29,7 @@ import {
 } from "../../lib/receiving";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { font, radius, space, tabular, type, usePalette } from "../../theme";
 import type { GrnLineDecision, RejectReason } from "@golai/db";
 
 /**
@@ -44,7 +45,6 @@ import type { GrnLineDecision, RejectReason } from "@golai/db";
 export default function ReceiveArrival() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
   const { entry } = useLocalSearchParams<{ entry: string }>();
 
@@ -118,7 +118,7 @@ export default function ReceiveArrival() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: p.background, justifyContent: "center" }}>
-        <ActivityIndicator size="large" color={p.accent} />
+        <Loading />
       </View>
     );
   }
@@ -155,113 +155,80 @@ export default function ReceiveArrival() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title={arrival.partyName ?? "Vendor not named"}
-            subtitle={`${arrival.gateEntryNo} · ${arrival.packageCount} package${
-              arrival.packageCount === 1 ? "" : "s"
-            }${arrival.vehicleNumber ? ` · ${arrival.vehicleNumber}` : ""}`}
-            onBack={() => router.back()}
+    <Screen
+      title={arrival.partyName ?? "Vendor not named"}
+      subtitle={`${arrival.gateEntryNo} · ${arrival.packageCount} package${
+        arrival.packageCount === 1 ? "" : "s"
+      }${arrival.vehicleNumber ? ` · ${arrival.vehicleNumber}` : ""}`}
+      onBack={() => router.back()}
+      {...(lines.length > 0
+        ? {
+            footer: (
+              <>
+                <Text
+                  role="caption"
+                  tone="muted"
+                  style={{ marginBottom: space.sm }}
+                  accessibilityLiveRegion="polite"
+                >
+                  {lines.length} line{lines.length === 1 ? "" : "s"} · {fmt(totals.accepted)}{" "}
+                  accepted
+                  {totals.rejected > 0 ? ` · ${fmt(totals.rejected)} rejected` : ""}
+                </Text>
+                <PrimaryButton
+                  label="Post receipt"
+                  icon="checkmark"
+                  density="field"
+                  onPress={() => void post()}
+                  loading={posting}
+                />
+              </>
+            ),
+          }
+        : {})}
+    >
+      {items.length === 0 ? (
+        <Notice
+          icon="cube-outline"
+          title="The item master is empty"
+          body="An item must exist before it can be received. Nothing is created at the dock — that is a hard rule, and it is what stops a delivery inventing a product nobody agreed to buy."
+          action={<PrimaryButton label="Go to items" onPress={() => router.push("/items")} />}
+        />
+      ) : (
+        <>
+          {lines.length > 0 ? (
+            <View style={{ marginBottom: space.xl }}>
+              <SectionLabel>On this receipt</SectionLabel>
+              <Card padded={false}>
+                {lines.map((l, i) => (
+                  <LineRow
+                    key={`${l.itemId}-${i}`}
+                    line={l}
+                    divider={i < lines.length - 1}
+                    onRemove={() => setLines((prev) => prev.filter((_, j) => j !== i))}
+                  />
+                ))}
+              </Card>
+            </View>
+          ) : null}
+
+          <SectionLabel>{lines.length === 0 ? "First line" : "Add another line"}</SectionLabel>
+          <LineEditor
+            items={items}
+            onAdd={(line) => {
+              setLines((prev) => [...prev, line]);
+              setPostError(null);
+            }}
           />
-        </Page>
-      </View>
 
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 120 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {items.length === 0 ? (
-            <Notice
-              icon="cube-outline"
-              title="The item master is empty"
-              body="An item must exist before it can be received. Nothing is created at the dock — that is a hard rule, and it is what stops a delivery inventing a product nobody agreed to buy."
-              action={<PrimaryButton label="Go to items" onPress={() => router.push("/items")} />}
-            />
-          ) : (
-            <>
-              {lines.length > 0 ? (
-                <View style={{ marginBottom: space.xl }}>
-                  <SectionLabel>On this receipt</SectionLabel>
-                  <Card padded={false}>
-                    {lines.map((l, i) => (
-                      <LineRow
-                        key={`${l.itemId}-${i}`}
-                        line={l}
-                        divider={i < lines.length - 1}
-                        onRemove={() => setLines((prev) => prev.filter((_, j) => j !== i))}
-                      />
-                    ))}
-                  </Card>
-                </View>
-              ) : null}
-
-              <SectionLabel>{lines.length === 0 ? "First line" : "Add another line"}</SectionLabel>
-              <LineEditor
-                items={items}
-                onAdd={(line) => {
-                  setLines((prev) => [...prev, line]);
-                  setPostError(null);
-                }}
-              />
-
-              {postError ? (
-                <View style={{ marginTop: space.lg }}>
-                  <FieldError message={postError} />
-                </View>
-              ) : null}
-            </>
-          )}
-        </Page>
-      </ScrollView>
-
-      {lines.length > 0 ? (
-        <View
-          style={[
-            {
-              backgroundColor: p.surface,
-              paddingHorizontal: space.lg,
-              paddingTop: space.md,
-              paddingBottom: insets.bottom + space.md,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: p.border,
-            },
-            elevation(2, p),
-          ]}
-        >
-          <Page>
-            <Text
-              style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.sm }}
-              accessibilityLiveRegion="polite"
-            >
-              {lines.length} line{lines.length === 1 ? "" : "s"} · {fmt(totals.accepted)} accepted
-              {totals.rejected > 0 ? ` · ${fmt(totals.rejected)} rejected` : ""}
-            </Text>
-            <PrimaryButton
-              label={posting ? "Posting…" : "Post receipt"}
-              icon="checkmark"
-              density="field"
-              onPress={() => void post()}
-              disabled={posting}
-            />
-          </Page>
-        </View>
-      ) : null}
-    </View>
+          {postError ? (
+            <View style={{ marginTop: space.lg }}>
+              <FieldError message={postError} />
+            </View>
+          ) : null}
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -627,7 +594,7 @@ function LineRow({
       }}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
+        <Text weight="semibold" lines={1}>
           {line.itemName}
         </Text>
         <View
@@ -685,99 +652,40 @@ function PostedPanel({
   lineCount: number;
   onDone: () => void;
 }) {
-  const p = usePalette();
-  const insets = useSafeAreaInsets();
-
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: p.background,
-        justifyContent: "center",
-        padding: space.lg,
-        paddingBottom: insets.bottom + space.lg,
-      }}
-    >
-      <Page>
-        <Card>
-          <View style={{ alignItems: "center", marginBottom: space.xl }}>
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: radius.xl,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: p.successSurface,
-              }}
-            >
-              <Ionicons name="checkmark" size={30} color={p.success} />
-            </View>
-            <Text
-              style={{
-                fontSize: type.caption,
-                ...font("bold"),
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-                color: p.textMuted,
-                marginTop: space.lg,
-              }}
-            >
-              Goods receipt posted
-            </Text>
-            <Text
-              selectable
-              style={{
-                fontSize: type.title,
-                ...font("heavy"),
-                color: p.text,
-                marginTop: space.xs,
-                ...tabular,
-              }}
-            >
-              {receipt.grnNo}
-            </Text>
-          </View>
-
-          <SummaryLine label={`${lineCount} line${lineCount === 1 ? "" : "s"}`} value="" />
-          <SummaryLine
-            label="Into quarantine at Terminal 1"
-            value={fmt(accepted)}
-            hint="On the books, not yet issuable. Put it away to make it available."
-          />
-          {rejected > 0 ? (
-            <SummaryLine
-              label="Into the reject hold"
-              value={fmt(rejected)}
-              hint="Supplier liability. It can never reach a zone, and it leaves on a gate pass."
-              tone="bad"
-            />
-          ) : null}
-        </Card>
-
-        <View style={{ marginTop: space.xl }}>
+    <Result
+      eyebrow="Goods receipt posted"
+      value={receipt.grnNo}
+      actions={
+        <>
           <PrimaryButton
             label="Back to receiving"
             icon="arrow-back"
             density="field"
             onPress={onDone}
           />
-        </View>
-
-        <Text
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            textAlign: "center",
-            marginTop: space.lg,
-            lineHeight: 17,
-          }}
-        >
-          This receipt cannot be edited. A correction is a fresh receipt that supersedes it,
-          carrying a reason and the name of whoever authorised it.
-        </Text>
-      </Page>
-    </View>
+          <Text role="caption" tone="muted" align="center" style={{ marginTop: space.lg }}>
+            This receipt cannot be edited. A correction is a fresh receipt that supersedes it,
+            carrying a reason and the name of whoever authorised it.
+          </Text>
+        </>
+      }
+    >
+      <SummaryLine label={`${lineCount} line${lineCount === 1 ? "" : "s"}`} value="" />
+      <SummaryLine
+        label="Into quarantine at Terminal 1"
+        value={fmt(accepted)}
+        hint="On the books, not yet issuable. Put it away to make it available."
+      />
+      {rejected > 0 ? (
+        <SummaryLine
+          label="Into the reject hold"
+          value={fmt(rejected)}
+          hint="Supplier liability. It can never reach a zone, and it leaves on a gate pass."
+          tone="bad"
+        />
+      ) : null}
+    </Result>
   );
 }
 

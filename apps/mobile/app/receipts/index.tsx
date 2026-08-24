@@ -1,20 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../../components/ui";
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { Card, Loading, Notice, PrimaryButton, Screen, StatusPill } from "../../components/ui";
 import { listReceipts, type ReceiptSummary } from "../../lib/receipts";
 import { useSession } from "../../lib/session";
-import { elevation, font, space, tabular, type, usePalette } from "../../theme";
+import { font, space, tabular, type, usePalette } from "../../theme";
 
 /**
  * Posted receipts.
@@ -31,9 +22,7 @@ function defaultFrom(): string {
 }
 
 export default function Receipts() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [receipts, setReceipts] = useState<ReceiptSummary[]>([]);
@@ -64,65 +53,39 @@ export default function Receipts() {
   const amended = receipts.filter((r) => r.supersededByGrnNo !== null).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Goods receipts"
-            subtitle={
-              loading
-                ? "Loading"
-                : `${receipts.length} in sixty days${amended > 0 ? ` · ${amended} corrected` : ""}`
-            }
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}>
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
-          ) : receipts.length === 0 ? (
-            <Notice
-              icon="clipboard-outline"
-              title="Nothing received yet"
-              body="Receipts appear here as they are posted. A posted receipt cannot be edited — it is corrected by a new one that supersedes it, and both stay on the record."
-              action={
-                <PrimaryButton label="Go to receiving" onPress={() => router.push("/receive")} />
-              }
+    <Screen
+      title="Goods receipts"
+      subtitle={
+        loading
+          ? "Loading"
+          : `${receipts.length} in sixty days${amended > 0 ? ` · ${amended} corrected` : ""}`
+      }
+      onBack={() => router.back()}
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
+      ) : receipts.length === 0 ? (
+        <Notice
+          icon="clipboard-outline"
+          title="Nothing received yet"
+          body="Receipts appear here as they are posted. A posted receipt cannot be edited — it is corrected by a new one that supersedes it, and both stay on the record."
+          action={<PrimaryButton label="Go to receiving" onPress={() => router.push("/receive")} />}
+        />
+      ) : (
+        <Card padded={false}>
+          {receipts.map((r, i) => (
+            <ReceiptRow
+              key={r.grnId}
+              receipt={r}
+              divider={i < receipts.length - 1}
+              onPress={() => router.push(`/receipts/${r.grnId}`)}
             />
-          ) : (
-            <Card padded={false}>
-              {receipts.map((r, i) => (
-                <ReceiptRow
-                  key={r.grnId}
-                  receipt={r}
-                  divider={i < receipts.length - 1}
-                  onPress={() => router.push(`/receipts/${r.grnId}`)}
-                />
-              ))}
-            </Card>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+          ))}
+        </Card>
+      )}
+    </Screen>
   );
 }
 

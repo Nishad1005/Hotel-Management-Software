@@ -2,16 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import type { GrnLineDecision } from "@golai/db";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import {
   Card,
   Field,
   FieldError,
-  Header,
   Notice,
   Page,
   PrimaryButton,
+  Screen,
   StatusPill,
 } from "../../components/ui";
 import {
@@ -25,7 +24,7 @@ import {
 import { REJECT_LABELS } from "../../lib/registers";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { font, radius, space, tabular, type, usePalette } from "../../theme";
 
 /**
  * One receipt, and correcting it.
@@ -44,7 +43,6 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
 export default function ReceiptDetail() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty, canEditMasters } = useSession();
   const { grn } = useLocalSearchParams<{ grn: string }>();
 
@@ -239,161 +237,132 @@ export default function ReceiptDetail() {
   const superseded = receipt.supersededByGrnNo !== null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title={receipt.grnNo}
-            subtitle={`${receipt.vendorName ?? "Vendor not named"} · ${new Date(receipt.postedAt).toLocaleDateString()}`}
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {receipt.amendsGrnNo || superseded ? (
-            <View style={{ marginBottom: space.lg }}>
-              <Card>
-                {receipt.amendsGrnNo ? (
-                  <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
-                    This receipt corrects{" "}
-                    <Text style={{ ...font("semibold"), color: p.text }}>
-                      {receipt.amendsGrnNo}
-                    </Text>
-                    {receipt.amendmentReason ? ` — ${receipt.amendmentReason}` : ""}.
-                  </Text>
-                ) : null}
-                {superseded ? (
-                  <Text
-                    style={{
-                      fontSize: type.caption,
-                      color: p.warning,
-                      lineHeight: 18,
-                      marginTop: receipt.amendsGrnNo ? space.sm : 0,
-                    }}
-                  >
-                    Superseded by <Text style={font("semibold")}>{receipt.supersededByGrnNo}</Text>.
-                    It stays on the record because it is what was posted; correct the newer one
-                    instead.
-                  </Text>
-                ) : null}
-              </Card>
-            </View>
-          ) : null}
-
-          <Card padded={false}>
-            {lines.map((l, i) => (
-              <LineRow
-                key={l.lineId}
-                line={l}
-                amending={amending}
-                edit={edits[l.lineId]}
-                onEdit={(next) => setEdits((prev) => ({ ...prev, [l.lineId]: next }))}
-                divider={i < lines.length - 1}
-              />
-            ))}
-          </Card>
-
-          {amending ? (
-            <>
-              <View style={{ height: space.xl }} />
-              <Card>
-                <Field
-                  label="Why is it being corrected?"
-                  value={reason}
-                  onChangeText={setReason}
-                  placeholder="Typed 400 instead of 40"
-                  autoCapitalize="sentences"
-                  hint="It goes on the new receipt permanently, next to your name."
-                />
-
-                {error ? <FieldError message={error} /> : null}
-                {problems.slice(0, 3).map((msg) => (
-                  <FieldError key={msg} message={msg} />
-                ))}
-
-                <PrimaryButton
-                  label={saving ? "Posting…" : "Post the correction"}
-                  icon="checkmark"
-                  density="field"
-                  onPress={() => void amend()}
-                  disabled={saving || problems.length > 0}
-                />
-                <View style={{ height: space.sm }} />
-                <PrimaryButton
-                  label="Cancel"
-                  tone="neutral"
-                  onPress={() => {
-                    setAmending(false);
-                    setEdits({});
-                    setReason("");
-                    setError(null);
-                  }}
-                />
-              </Card>
-            </>
-          ) : superseded ? null : canEditMasters ? (
-            <View style={{ marginTop: space.xl }}>
-              <PrimaryButton
-                label="Correct this receipt"
-                icon="create-outline"
-                tone="neutral"
-                onPress={() => {
-                  setAmending(true);
-                  setEdits(
-                    Object.fromEntries(
-                      lines.map((l) => [
-                        l.lineId,
-                        { accepted: String(l.qtyAccepted), rejected: String(l.qtyRejected) },
-                      ]),
-                    ),
-                  );
-                }}
-              />
+    <Screen
+      title={receipt.grnNo}
+      subtitle={`${receipt.vendorName ?? "Vendor not named"} · ${new Date(receipt.postedAt).toLocaleDateString()}`}
+      onBack={() => router.back()}
+    >
+      {receipt.amendsGrnNo || superseded ? (
+        <View style={{ marginBottom: space.lg }}>
+          <Card>
+            {receipt.amendsGrnNo ? (
+              <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
+                This receipt corrects{" "}
+                <Text style={{ ...font("semibold"), color: p.text }}>{receipt.amendsGrnNo}</Text>
+                {receipt.amendmentReason ? ` — ${receipt.amendmentReason}` : ""}.
+              </Text>
+            ) : null}
+            {superseded ? (
               <Text
                 style={{
                   fontSize: type.caption,
-                  color: p.textMuted,
-                  marginTop: space.sm,
-                  lineHeight: 17,
+                  color: p.warning,
+                  lineHeight: 18,
+                  marginTop: receipt.amendsGrnNo ? space.sm : 0,
                 }}
               >
-                Nothing here is edited. A correction posts a new receipt that supersedes this one,
-                and both stay on the register.
+                Superseded by <Text style={font("semibold")}>{receipt.supersededByGrnNo}</Text>. It
+                stays on the record because it is what was posted; correct the newer one instead.
               </Text>
-            </View>
-          ) : (
-            /*
+            ) : null}
+          </Card>
+        </View>
+      ) : null}
+
+      <Card padded={false}>
+        {lines.map((l, i) => (
+          <LineRow
+            key={l.lineId}
+            line={l}
+            amending={amending}
+            edit={edits[l.lineId]}
+            onEdit={(next) => setEdits((prev) => ({ ...prev, [l.lineId]: next }))}
+            divider={i < lines.length - 1}
+          />
+        ))}
+      </Card>
+
+      {amending ? (
+        <>
+          <View style={{ height: space.xl }} />
+          <Card>
+            <Field
+              label="Why is it being corrected?"
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Typed 400 instead of 40"
+              autoCapitalize="sentences"
+              hint="It goes on the new receipt permanently, next to your name."
+            />
+
+            {error ? <FieldError message={error} /> : null}
+            {problems.slice(0, 3).map((msg) => (
+              <FieldError key={msg} message={msg} />
+            ))}
+
+            <PrimaryButton
+              label={saving ? "Posting…" : "Post the correction"}
+              icon="checkmark"
+              density="field"
+              onPress={() => void amend()}
+              disabled={saving || problems.length > 0}
+            />
+            <View style={{ height: space.sm }} />
+            <PrimaryButton
+              label="Cancel"
+              tone="neutral"
+              onPress={() => {
+                setAmending(false);
+                setEdits({});
+                setReason("");
+                setError(null);
+              }}
+            />
+          </Card>
+        </>
+      ) : superseded ? null : canEditMasters ? (
+        <View style={{ marginTop: space.xl }}>
+          <PrimaryButton
+            label="Correct this receipt"
+            icon="create-outline"
+            tone="neutral"
+            onPress={() => {
+              setAmending(true);
+              setEdits(
+                Object.fromEntries(
+                  lines.map((l) => [
+                    l.lineId,
+                    { accepted: String(l.qtyAccepted), rejected: String(l.qtyRejected) },
+                  ]),
+                ),
+              );
+            }}
+          />
+          <Text
+            style={{
+              fontSize: type.caption,
+              color: p.textMuted,
+              marginTop: space.sm,
+              lineHeight: 17,
+            }}
+          >
+            Nothing here is edited. A correction posts a new receipt that supersedes this one, and
+            both stay on the register.
+          </Text>
+        </View>
+      ) : (
+        /*
               Said rather than hidden. The person looking at a wrong receipt needs to know
               it can be fixed and by whom, not to find the screen has no button on it.
             */
-            <View style={{ marginTop: space.xl }}>
-              <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
-                A posted receipt is corrected by an owner, an administrator or the general manager —
-                deliberately not the person who posted it. Ask one of them if a figure here is
-                wrong.
-              </Text>
-            </View>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+        <View style={{ marginTop: space.xl }}>
+          <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
+            A posted receipt is corrected by an owner, an administrator or the general manager —
+            deliberately not the person who posted it. Ask one of them if a figure here is wrong.
+          </Text>
+        </View>
+      )}
+    </Screen>
   );
 }
 
