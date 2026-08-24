@@ -86,8 +86,8 @@ export default function SignIn() {
         >
           <Ionicons name="cube" size={29} color={p.onAccent} />
         </View>
-        <Text role="display" tone="onBrand" style={{ marginTop: space.lg }}>
-          Golai
+        <Text role="display" tone="onBrand" style={{ marginTop: space.lg, letterSpacing: 1.5 }}>
+          PARGOLAI
         </Text>
         <Text role="label" tone="onBrandMuted" weight="medium" style={{ marginTop: space.xxs }}>
           Quantity. Movement. Accountability.
@@ -123,9 +123,10 @@ export default function SignIn() {
           ) : null}
 
           <PrimaryButton
-            label={busy ? "Signing in…" : "Sign in"}
+            label="Sign in"
             onPress={submit}
-            disabled={busy || email.trim().length === 0 || password.length === 0}
+            loading={busy}
+            disabled={email.trim().length === 0 || password.length === 0}
           />
         </Card>
 

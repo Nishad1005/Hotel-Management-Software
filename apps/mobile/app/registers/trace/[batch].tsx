@@ -98,8 +98,8 @@ export default function BatchTrace() {
               */
           <Text role="caption" tone="muted">
             Recorded as opening stock. There is no vendor or gate entry behind it: this batch was
-            counted onto the books when the property started using Golai, not received through the
-            gate. Everything after that point is traced below.
+            counted onto the books when the property started using PARGOLAI, not received through
+            the gate. Everything after that point is traced below.
           </Text>
         ) : (
           <>
