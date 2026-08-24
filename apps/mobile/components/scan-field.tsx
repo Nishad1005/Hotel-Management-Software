@@ -6,14 +6,13 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   View,
   type TextInput as TextInputRef,
 } from "react-native";
 import { cameraScanner } from "../lib/barcode-camera";
 import { font, radius, space, touch, type, usePalette } from "../theme";
-import { CloseButton, PrimaryButton } from "./ui";
+import { CloseButton, PrimaryButton, Text } from "./ui";
 
 /**
  * One field, three ways in: a wedge scanner, the camera, and a keyboard.
@@ -99,14 +98,11 @@ export function ScanField({
   return (
     <View style={{ marginBottom: space.lg }}>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.xs }}>
-        <Text style={{ flex: 1, fontSize: type.label, ...font("semibold"), color: p.text }}>
+        <Text role="label" weight="semibold" style={{ flex: 1 }}>
           {label}
         </Text>
         {value.trim() ? (
-          <Text
-            style={{ fontSize: type.micro, ...font("semibold"), color: p.textFaint }}
-            accessibilityLiveRegion="polite"
-          >
+          <Text accessibilityLiveRegion="polite" role="caption" tone="muted" weight="semibold">
             {method === "HARDWARE" ? "Scanned" : "Typed"}
           </Text>
         ) : null}
@@ -187,14 +183,7 @@ export function ScanField({
       </View>
 
       {hint ? (
-        <Text
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            marginTop: space.xs,
-            lineHeight: 17,
-          }}
-        >
+        <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
           {hint}
         </Text>
       ) : null}
@@ -272,7 +261,7 @@ function CameraSheet({
             paddingBottom: space.md,
           }}
         >
-          <Text style={{ flex: 1, fontSize: type.heading, ...font("semibold"), color: "#FFF" }}>
+          <Text role="heading" style={{ flex: 1, color: "#FFF" }}>
             Point at the label
           </Text>
           <CloseButton onPress={onClose} />
@@ -286,7 +275,9 @@ function CameraSheet({
 
         {error ? (
           <View style={{ padding: space.lg, backgroundColor: p.dangerSurface }}>
-            <Text style={{ fontSize: type.caption, color: p.danger, lineHeight: 17 }}>{error}</Text>
+            <Text role="caption" tone="danger">
+              {error}
+            </Text>
           </View>
         ) : (
           <View style={{ padding: space.lg }}>

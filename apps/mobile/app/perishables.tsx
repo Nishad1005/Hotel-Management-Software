@@ -9,12 +9,11 @@ import {
 import type { ExpiryState } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../components/ui";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Card, Loading, Notice, PrimaryButton, Screen, StatusPill, Text } from "../components/ui";
 import { useSession } from "../lib/session";
 import { listStockOnHand, moveStockOut, newSubmissionId, type StockLine } from "../lib/stock";
-import { elevation, font, radius, space, touch, type, usePalette } from "../theme";
+import { radius, space, touch, usePalette } from "../theme";
 
 /**
  * What is expiring, and in what order to use it.
@@ -61,7 +60,6 @@ const BUCKETS: {
 export default function Perishables() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [lines, setLines] = useState<StockLine[]>([]);
@@ -132,177 +130,135 @@ export default function Perishables() {
   const atRisk = (grouped.get("EXPIRED")?.length ?? 0) + (grouped.get("CRITICAL")?.length ?? 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Expiring soon"
-            {...(loading
-              ? {}
-              : {
-                  subtitle:
-                    totalTracked === 0
-                      ? "Nothing in stock yet"
-                      : `${atRisk} of ${totalTracked} need attention`,
-                })}
-            onBack={() => router.back()}
-          />
-
-          {/*
-            The verdict, before any scrolling. A bucket with nothing in it is shown
-            greyed rather than hidden, so the row keeps the same shape every visit and
-            "zero expired" is something you can see rather than infer from an absence.
-          */}
-          {!loading && totalTracked > 0 ? (
-            <View style={{ flexDirection: "row", gap: space.sm, marginTop: space.md }}>
-              <CountChip label="Expired" count={grouped.get("EXPIRED")?.length ?? 0} tone="bad" />
-              <CountChip
-                label="Use today"
-                count={grouped.get("CRITICAL")?.length ?? 0}
-                tone="warn"
-              />
-              <CountChip
-                label="This week"
-                count={grouped.get("NEARING")?.length ?? 0}
-                tone="neutral"
-              />
-            </View>
-          ) : null}
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}>
-        <Page>
-          {loading ? (
-            <ActivityIndicator style={{ marginTop: space.xxl }} color={p.accent} />
-          ) : error ? (
-            <Notice
-              icon="alert-circle-outline"
-              tone="bad"
-              title="Could not load stock"
-              body={error}
-            />
-          ) : totalTracked === 0 ? (
-            <Notice
-              icon="cube-outline"
-              title="No stock recorded"
-              body="Record what is physically in the store — item, quantity, location and best-before — and it will appear here."
-              action={
-                <PrimaryButton
-                  label="Record opening stock"
-                  icon="download-outline"
-                  onPress={() => router.push("/stock/opening")}
+    <Screen
+      title="Expiring soon"
+      {...(loading
+        ? {}
+        : {
+            subtitle:
+              totalTracked === 0
+                ? "Nothing in stock yet"
+                : `${atRisk} of ${totalTracked} need attention`,
+          })}
+      onBack={() => router.back()}
+      {...(!loading && totalTracked > 0
+        ? {
+            band: (
+              /*
+                The verdict, before any scrolling. A bucket with nothing in it is shown
+                greyed rather than hidden, so the row keeps the same shape every visit and
+                "zero expired" is something you can see rather than infer from an absence.
+              */
+              <View style={{ flexDirection: "row", gap: space.sm }}>
+                <CountChip label="Expired" count={grouped.get("EXPIRED")?.length ?? 0} tone="bad" />
+                <CountChip
+                  label="Use today"
+                  count={grouped.get("CRITICAL")?.length ?? 0}
+                  tone="warn"
                 />
-              }
+                <CountChip
+                  label="This week"
+                  count={grouped.get("NEARING")?.length ?? 0}
+                  tone="neutral"
+                />
+              </View>
+            ),
+          }
+        : {})}
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="alert-circle-outline" tone="bad" title="Could not load stock" body={error} />
+      ) : totalTracked === 0 ? (
+        <Notice
+          icon="cube-outline"
+          title="No stock recorded"
+          body="Record what is physically in the store — item, quantity, location and best-before — and it will appear here."
+          action={
+            <PrimaryButton
+              label="Record opening stock"
+              icon="download-outline"
+              onPress={() => router.push("/stock/opening")}
             />
-          ) : (
-            BUCKETS.map((bucket) => {
-              const rows = grouped.get(bucket.state) ?? [];
-              if (rows.length === 0) return null;
-              if (bucket.state === "FRESH" && !showFresh) {
-                return (
-                  <Pressable
-                    key={bucket.state}
-                    onPress={() => setShowFresh(true)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Show ${rows.length} fresh items`}
-                    style={({ pressed }) =>
-                      ({
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        minHeight: touch.desk,
-                        marginTop: space.md,
-                        borderRadius: radius.md,
-                        backgroundColor: pressed ? p.surfaceSunken : "transparent",
-                        cursor: "pointer",
-                      }) as never
-                    }
-                  >
-                    <Text style={{ fontSize: type.label, color: p.textMuted, ...font("medium") }}>
-                      {rows.length} fresh — show
-                    </Text>
-                    <Ionicons name="chevron-down" size={16} color={p.textMuted} />
-                  </Pressable>
-                );
-              }
+          }
+        />
+      ) : (
+        BUCKETS.map((bucket) => {
+          const rows = grouped.get(bucket.state) ?? [];
+          if (rows.length === 0) return null;
+          if (bucket.state === "FRESH" && !showFresh) {
+            return (
+              <Pressable
+                key={bucket.state}
+                onPress={() => setShowFresh(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`Show ${rows.length} fresh items`}
+                style={({ pressed }) =>
+                  ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: touch.desk,
+                    marginTop: space.md,
+                    borderRadius: radius.md,
+                    backgroundColor: pressed ? p.surfaceSunken : "transparent",
+                    cursor: "pointer",
+                  }) as never
+                }
+              >
+                <Text role="label" tone="muted" weight="medium">
+                  {rows.length} fresh — show
+                </Text>
+                <Ionicons name="chevron-down" size={16} color={p.textMuted} />
+              </Pressable>
+            );
+          }
 
-              return (
-                <View key={bucket.state} style={{ marginBottom: space.xl }}>
-                  <View
-                    style={{ flexDirection: "row", alignItems: "center", marginBottom: space.sm }}
-                  >
-                    <Ionicons
-                      name={bucket.icon}
-                      size={16}
-                      color={
-                        bucket.tone === "bad"
-                          ? p.danger
-                          : bucket.tone === "warn"
-                            ? p.warning
-                            : bucket.tone === "good"
-                              ? p.success
-                              : p.textMuted
-                      }
-                    />
-                    <Text
-                      style={{
-                        fontSize: type.micro,
-                        ...font("bold"),
-                        letterSpacing: 0.9,
-                        textTransform: "uppercase",
-                        color: p.textFaint,
-                        marginLeft: space.xs,
-                        flex: 1,
-                      }}
-                    >
-                      {bucket.title} · {rows.length}
-                    </Text>
-                  </View>
-                  {bucket.blurb ? (
-                    <Text
-                      style={{
-                        fontSize: type.caption,
-                        color: p.textMuted,
-                        marginBottom: space.sm,
-                      }}
-                    >
-                      {bucket.blurb}
-                    </Text>
-                  ) : null}
+          return (
+            <View key={bucket.state} style={{ marginBottom: space.xl }}>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.sm }}>
+                <Ionicons
+                  name={bucket.icon}
+                  size={16}
+                  color={
+                    bucket.tone === "bad"
+                      ? p.danger
+                      : bucket.tone === "warn"
+                        ? p.warning
+                        : bucket.tone === "good"
+                          ? p.success
+                          : p.textMuted
+                  }
+                />
+                <Text role="overline" tone="muted" style={{ marginLeft: space.xs, flex: 1 }}>
+                  {bucket.title} · {rows.length}
+                </Text>
+              </View>
+              {bucket.blurb ? (
+                <Text role="caption" tone="muted" style={{ marginBottom: space.sm }}>
+                  {bucket.blurb}
+                </Text>
+              ) : null}
 
-                  <Card padded={false}>
-                    {rows.map((line, i) => (
-                      <StockRow
-                        key={`${line.batchId}-${line.locationId}`}
-                        line={line}
-                        now={now}
-                        bucket={bucket.state}
-                        divider={i < rows.length - 1}
-                        busy={busyBatch === line.batchId}
-                        onWriteOff={() => void writeOff(line)}
-                      />
-                    ))}
-                  </Card>
-                </View>
-              );
-            })
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+              <Card padded={false}>
+                {rows.map((line, i) => (
+                  <StockRow
+                    key={`${line.batchId}-${line.locationId}`}
+                    line={line}
+                    now={now}
+                    bucket={bucket.state}
+                    divider={i < rows.length - 1}
+                    busy={busyBatch === line.batchId}
+                    onWriteOff={() => void writeOff(line)}
+                  />
+                ))}
+              </Card>
+            </View>
+          );
+        })
+      )}
+    </Screen>
   );
 }
 
@@ -343,21 +299,10 @@ function CountChip({
         backgroundColor: wash,
       }}
     >
-      <Text
-        style={{
-          fontSize: type.heading,
-          ...font("heavy"),
-          color: ink,
-          letterSpacing: -0.5,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
+      <Text role="heading" weight="heavy" numeric style={{ color: ink }}>
         {count}
       </Text>
-      <Text
-        style={{ fontSize: type.micro, ...font("semibold"), color: live ? ink : p.textFaint }}
-        numberOfLines={1}
-      >
+      <Text role="caption" weight="semibold" lines={1} style={{ color: live ? ink : p.textMuted }}>
         {label}
       </Text>
     </View>
@@ -408,19 +353,13 @@ function StockRow({
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0, paddingRight: space.sm }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.subheading, ...font("semibold"), color: p.text }}
-          >
+          <Text role="heading" lines={1}>
             {line.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}
-          >
+          <Text role="caption" tone="muted" lines={1} style={{ marginTop: 2 }}>
             {/* Quantity first and in the stronger weight: it is the figure somebody
                 acts on, and it was previously last behind two codes. */}
-            <Text style={{ ...font("semibold"), color: p.text, fontVariant: ["tabular-nums"] }}>
+            <Text role="caption" weight="semibold" numeric>
               {line.qty} {line.uomCode}
             </Text>
             {"  ·  "}
@@ -432,26 +371,14 @@ function StockRow({
 
         <View style={{ alignItems: "flex-end" }}>
           {/* The thing the eye is hunting for down a long list, so it is set largest. */}
-          <Text
-            style={{
-              fontSize: type.title,
-              ...font("heavy"),
-              color: tone,
-              letterSpacing: -0.6,
-              lineHeight: type.title + 2,
-              fontVariant: ["tabular-nums"],
-            }}
-          >
+          <Text role="title" weight="heavy" numeric style={{ color: tone }}>
             {left === null ? "—" : left < 0 ? Math.abs(left) : left}
             {left === null ? "" : "d"}
           </Text>
           <Text
-            style={{
-              fontSize: type.micro,
-              ...font("semibold"),
-              color: left !== null && left < 0 ? tone : p.textFaint,
-              letterSpacing: 0.3,
-            }}
+            role="caption"
+            weight="semibold"
+            style={{ color: left !== null && left < 0 ? tone : p.textMuted }}
           >
             {left === null ? "no date" : left < 0 ? "ago" : pct !== null ? `${pct}% left` : "left"}
           </Text>

@@ -1,17 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
+  Card,
+  Loading,
+  Notice,
+  Screen,
+  StatGrid,
+  StatTile,
+  StatusPill,
   Text,
-  View,
-  type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, StatGrid, StatTile, StatusPill } from "../../components/ui";
+} from "../../components/ui";
 import { DISPATCH_TYPES } from "../../lib/dispatch";
 import {
   listInwardRegister,
@@ -21,7 +21,7 @@ import {
   type WasteRow,
 } from "../../lib/registers";
 import { useSession } from "../../lib/session";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The FSSAI registers.
@@ -55,9 +55,7 @@ function defaultFrom(): string {
 }
 
 export default function Registers() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [tab, setTab] = useState<Tab>("INWARD");
@@ -114,145 +112,121 @@ export default function Registers() {
   }, [inward, waste]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Registers"
-            subtitle="The last thirty days — nothing here was entered twice"
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}>
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice
-              icon="cloud-offline-outline"
-              title="Could not load the registers"
-              body={error}
-              tone="bad"
+    <Screen
+      title="Registers"
+      subtitle="The last thirty days — nothing here was entered twice"
+      onBack={() => router.back()}
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice
+          icon="cloud-offline-outline"
+          title="Could not load the registers"
+          body={error}
+          tone="bad"
+        />
+      ) : (
+        <>
+          <StatGrid>
+            <StatTile
+              icon="clipboard-outline"
+              label="Lines received"
+              value={summary.lines}
+              caption="Inward material check"
+              tone="accent"
             />
-          ) : (
-            <>
-              <StatGrid>
-                <StatTile
-                  icon="clipboard-outline"
-                  label="Lines received"
-                  value={summary.lines}
-                  caption="Inward material check"
-                  tone="accent"
-                />
-                <StatTile
-                  icon="thermometer-outline"
-                  label="Out of range"
-                  value={summary.outOfRange}
-                  caption={`${summary.probed} probe reading${summary.probed === 1 ? "" : "s"}`}
-                  tone={summary.outOfRange ? "warn" : "neutral"}
-                />
-                <StatTile
-                  icon="close-circle-outline"
-                  label="Turned away"
-                  value={summary.rejected}
-                  caption="Non-conforming material"
-                  tone={summary.rejected ? "warn" : "neutral"}
-                />
-                <StatTile
-                  icon="trash-outline"
-                  label="Waste out"
-                  value={summary.waste}
-                  caption="Food waste, UCO, condemned"
-                  tone="neutral"
-                />
-              </StatGrid>
+            <StatTile
+              icon="thermometer-outline"
+              label="Out of range"
+              value={summary.outOfRange}
+              caption={`${summary.probed} probe reading${summary.probed === 1 ? "" : "s"}`}
+              tone={summary.outOfRange ? "warn" : "neutral"}
+            />
+            <StatTile
+              icon="close-circle-outline"
+              label="Turned away"
+              value={summary.rejected}
+              caption="Non-conforming material"
+              tone={summary.rejected ? "warn" : "neutral"}
+            />
+            <StatTile
+              icon="trash-outline"
+              label="Waste out"
+              value={summary.waste}
+              caption="Food waste, UCO, condemned"
+              tone="neutral"
+            />
+          </StatGrid>
 
-              <View style={{ height: space.xl }} />
+          <View style={{ height: space.xl }} />
 
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
-                {TABS.map((t) => (
-                  <TabChip
-                    key={t.id}
-                    label={t.label}
-                    hint={t.hint}
-                    selected={tab === t.id}
-                    onPress={() => setTab(t.id)}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+            {TABS.map((t) => (
+              <TabChip
+                key={t.id}
+                label={t.label}
+                hint={t.hint}
+                selected={tab === t.id}
+                onPress={() => setTab(t.id)}
+              />
+            ))}
+          </View>
+
+          <View style={{ height: space.lg }} />
+
+          {tab === "WASTE" ? (
+            waste.length === 0 ? (
+              <Notice
+                icon="trash-outline"
+                title="No waste has left in thirty days"
+                body="Food waste, used cooking oil and condemned stock appear here as they leave through Terminal 2. Nothing is logged separately — this is the dispatch record, filtered."
+              />
+            ) : (
+              <Card padded={false}>
+                {waste.map((w, i) => (
+                  <WasteRowView
+                    key={`${w.dispatchNo}-${w.batchNo}-${i}`}
+                    row={w}
+                    divider={i < waste.length - 1}
                   />
                 ))}
-              </View>
-
-              <View style={{ height: space.lg }} />
-
-              {tab === "WASTE" ? (
-                waste.length === 0 ? (
-                  <Notice
-                    icon="trash-outline"
-                    title="No waste has left in thirty days"
-                    body="Food waste, used cooking oil and condemned stock appear here as they leave through Terminal 2. Nothing is logged separately — this is the dispatch record, filtered."
-                  />
-                ) : (
-                  <Card padded={false}>
-                    {waste.map((w, i) => (
-                      <WasteRowView
-                        key={`${w.dispatchNo}-${w.batchNo}-${i}`}
-                        row={w}
-                        divider={i < waste.length - 1}
-                      />
-                    ))}
-                  </Card>
-                )
-              ) : rows.length === 0 ? (
-                <Notice
-                  icon="clipboard-outline"
-                  title={
-                    tab === "NONCONFORMING"
-                      ? "Nothing was turned away"
-                      : tab === "TEMPERATURE"
-                        ? "No probe readings yet"
-                        : "Nothing received in thirty days"
-                  }
-                  body={
-                    tab === "TEMPERATURE"
-                      ? "A probe reading is taken on every cold-chain line at Gate 3, and appears here without anybody recording it twice."
-                      : "Every goods receipt writes this register as it posts. Receive a delivery and it fills itself."
+              </Card>
+            )
+          ) : rows.length === 0 ? (
+            <Notice
+              icon="clipboard-outline"
+              title={
+                tab === "NONCONFORMING"
+                  ? "Nothing was turned away"
+                  : tab === "TEMPERATURE"
+                    ? "No probe readings yet"
+                    : "Nothing received in thirty days"
+              }
+              body={
+                tab === "TEMPERATURE"
+                  ? "A probe reading is taken on every cold-chain line at Gate 3, and appears here without anybody recording it twice."
+                  : "Every goods receipt writes this register as it posts. Receive a delivery and it fills itself."
+              }
+            />
+          ) : (
+            <Card padded={false}>
+              {rows.map((r, i) => (
+                <InwardRowView
+                  key={`${r.grnNo}-${r.itemCode}-${r.batchNo}-${i}`}
+                  row={r}
+                  showTemperature={tab === "TEMPERATURE"}
+                  divider={i < rows.length - 1}
+                  onPress={
+                    r.batchId ? () => router.push(`/registers/trace/${r.batchId}`) : undefined
                   }
                 />
-              ) : (
-                <Card padded={false}>
-                  {rows.map((r, i) => (
-                    <InwardRowView
-                      key={`${r.grnNo}-${r.itemCode}-${r.batchNo}-${i}`}
-                      row={r}
-                      showTemperature={tab === "TEMPERATURE"}
-                      divider={i < rows.length - 1}
-                      onPress={
-                        r.batchId ? () => router.push(`/registers/trace/${r.batchId}`) : undefined
-                      }
-                    />
-                  ))}
-                </Card>
-              )}
-            </>
+              ))}
+            </Card>
           )}
-        </Page>
-      </ScrollView>
-    </View>
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -286,13 +260,7 @@ function TabChip({
         }) as ViewStyle
       }
     >
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: selected ? p.accent : p.text,
-        }}
-      >
+      <Text role="label" weight="semibold" tone={selected ? "accent" : "default"}>
         {label}
       </Text>
     </Pressable>
@@ -316,38 +284,29 @@ function InwardRowView({
     <>
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} weight="semibold">
             {row.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {row.vendorName ?? "Vendor not named"} · {row.grnNo}
             {row.gateEntryNo ? ` · ${row.gateEntryNo}` : ""}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {new Date(row.receivedAt).toLocaleDateString()} · batch {row.batchNo ?? "—"}
             {row.receivedBy ? ` · ${row.receivedBy}` : ""}
           </Text>
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={{ fontSize: type.body, ...font("bold"), color: p.text, ...tabular }}>
+          <Text weight="bold" numeric>
             {fmt(row.qtyAccepted)}
-            <Text style={{ fontSize: type.micro, ...font("regular"), color: p.textMuted }}>
+            <Text role="caption" tone="muted">
               {" "}
               {row.uomCode}
             </Text>
           </Text>
           {row.qtyRejected > 0 ? (
-            <Text style={{ fontSize: type.micro, color: p.danger, ...tabular }}>
+            <Text role="caption" tone="danger" numeric>
               {fmt(row.qtyRejected)} back
             </Text>
           ) : null}
@@ -444,29 +403,20 @@ function WasteRowView({ row, divider }: { row: WasteRow; divider: boolean }) {
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} weight="semibold">
             {row.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {kind} · {row.recipientName ?? "Handler not named"} · {row.dispatchNo}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {new Date(row.dispatchedAt).toLocaleDateString()} · batch {row.batchNo}
             {row.reasonCode ? ` · ${row.reasonCode}` : ""}
           </Text>
         </View>
-        <Text style={{ fontSize: type.body, ...font("bold"), color: p.text, ...tabular }}>
+        <Text weight="bold" numeric>
           {fmt(row.qty)}
-          <Text style={{ fontSize: type.micro, ...font("regular"), color: p.textMuted }}>
+          <Text role="caption" tone="muted">
             {" "}
             {row.uomCode}
           </Text>

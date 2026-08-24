@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Golai",
+    "name": "PARGOLAI",
     "slug": "golai",
     "version": "0.0.0",
     "scheme": "golai",
@@ -16,7 +16,7 @@
     "android": {
       "package": "in.golai.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#33241D",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -26,7 +26,14 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "PARGOLAI",
+      "shortName": "PARGOLAI",
+      "description": "Material flow control for hotels — gate to dock to zone to department, with the FSSAI registers as a by-product.",
+      "display": "standalone",
+      "lang": "en-IN",
+      "themeColor": "#33241D",
+      "backgroundColor": "#FAF7F4"
     }
   }
 }

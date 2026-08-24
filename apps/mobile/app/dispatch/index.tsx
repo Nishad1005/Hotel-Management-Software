@@ -2,27 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import type { DispatchType } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import { DateField } from "../../components/date-field";
 import {
   Card,
   Field,
   FieldError,
-  Header,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Result,
+  Screen,
   SelectRow,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import {
   DISPATCH_TYPES,
@@ -35,7 +28,7 @@ import {
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * Gate 9 — staging at Terminal 2.
@@ -48,9 +41,7 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
  * being made at all.
  */
 export default function StageDispatch() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [lots, setLots] = useState<DispatchableLot[]>([]);
@@ -129,78 +120,19 @@ export default function StageDispatch() {
 
   if (staged) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: p.background,
-          justifyContent: "center",
-          padding: space.lg,
-        }}
-      >
-        <Page>
-          <Card>
-            <View style={{ alignItems: "center" }}>
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: radius.xl,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: p.accentSurface,
-                }}
-              >
-                <Ionicons name="albums-outline" size={28} color={p.accent} />
-              </View>
-              <Text
-                style={{
-                  fontSize: type.caption,
-                  ...font("bold"),
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                  color: p.textMuted,
-                  marginTop: space.lg,
-                }}
-              >
-                Staged at Terminal 2
-              </Text>
-              <Text
-                selectable
-                style={{
-                  fontSize: type.title,
-                  ...font("heavy"),
-                  color: p.text,
-                  marginTop: space.xs,
-                  ...tabular,
-                }}
-              >
-                {staged.no}
-              </Text>
-            </View>
-
-            <View style={{ height: space.lg }} />
-            {/*
-              The distinction the whole gate rests on. Staged stock is still the
-              property's — still counted, still on the books — and a screen that said
-              "dispatched" here would be the app asserting something untrue for as long as
-              the crates sit by the door.
-            */}
-            <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
-              {staged.lines} line{staged.lines === 1 ? "" : "s"} moved to the dispatch bay. It has
-              not left: it is still on the property and still counted, until Security verifies it
-              out on a gate pass.
-            </Text>
-          </Card>
-
-          <View style={{ marginTop: space.xl }}>
+      <Result
+        icon="albums-outline"
+        eyebrow="Staged at Terminal 2"
+        value={staged.no}
+        actions={
+          <>
             <PrimaryButton
               label="Go to gate out"
               icon="exit-outline"
               density="field"
               onPress={() => router.replace("/gate-out")}
             />
-          </View>
-          <View style={{ marginTop: space.md }}>
+            <View style={{ height: space.md }} />
             <PrimaryButton
               label="Stage something else"
               tone="neutral"
@@ -214,176 +146,148 @@ export default function StageDispatch() {
                 void refresh();
               }}
             />
-          </View>
-        </Page>
-      </View>
+          </>
+        }
+      >
+        {/*
+          The distinction the whole gate rests on. Staged stock is still the property's —
+          still counted, still on the books — and a screen that said "dispatched" here would
+          be the app asserting something untrue for as long as the crates sit by the door.
+        */}
+        <Text role="caption" tone="muted">
+          {staged.lines} line{staged.lines === 1 ? "" : "s"} moved to the dispatch bay. It has not
+          left: it is still on the property and still counted, until Security verifies it out on a
+          gate pass.
+        </Text>
+      </Result>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Send out"
-            subtitle="Gate 9 — stage it at Terminal 2"
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{
-          padding: space.lg,
-          paddingBottom: insets.bottom + (lines.length > 0 ? 140 : 48),
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : loadError ? (
-            <Notice
-              icon="cloud-offline-outline"
-              title="Could not load the store"
-              body={loadError}
-              tone="bad"
-            />
-          ) : lots.length === 0 ? (
-            <Notice
-              icon="checkmark-circle-outline"
-              title="Nothing to send out"
-              body="Rejected goods, empties, linen and equipment appear here. Nothing is waiting."
-            />
-          ) : (
-            <>
-              {lines.length > 0 ? (
-                <View style={{ marginBottom: space.xl }}>
-                  <Label>Leaving</Label>
-                  <Card padded={false}>
-                    {lines.map((l, i) => (
-                      <DraftRow
-                        key={`${key(l.lot)}-${i}`}
-                        line={l}
-                        divider={i < lines.length - 1}
-                        onRemove={() => setLines((prev) => prev.filter((_, j) => j !== i))}
-                      />
-                    ))}
-                  </Card>
-                </View>
-              ) : null}
-
-              <Card>
-                <SelectRow
-                  label="What kind of departure"
-                  value={dispatchType}
-                  placeholder="Choose"
-                  choices={DISPATCH_TYPES.map((d) => ({
-                    id: d.id,
-                    label: d.label,
-                    sublabel: d.hint,
-                  }))}
-                  onSelect={(id) => setDispatchType(id as DispatchType)}
+    <Screen
+      title="Send out"
+      subtitle="Gate 9 — stage it at Terminal 2"
+      onBack={() => router.back()}
+      {...(lines.length > 0
+        ? {
+            footer: (
+              <>
+                <Text role="caption" tone="muted" style={{ marginBottom: space.sm }}>
+                  {problems[0] ??
+                    `${lines.length} line${lines.length === 1 ? "" : "s"} to Terminal 2`}
+                </Text>
+                <PrimaryButton
+                  label="Stage at Terminal 2"
+                  icon="arrow-forward"
+                  density="field"
+                  onPress={() => void send()}
+                  loading={sending}
+                  disabled={problems.length > 0}
                 />
-
-                <SelectRow
-                  label="Who is receiving it"
-                  value={recipientId || null}
-                  placeholder="Vendor, laundry, handler — optional"
-                  choices={parties.map((v) => ({ id: v.id, label: v.name, sublabel: v.code }))}
-                  onSelect={setRecipientId}
-                />
-
-                <Field
-                  label="Why"
-                  value={reason}
-                  onChangeText={setReason}
-                  placeholder="Arrived at 11 degrees"
-                  autoCapitalize="sentences"
-                  hint="What you would say to the vendor. It goes on the dispatch note."
-                />
-
-                {returnable ? (
-                  <DateField
-                    label="Expected back"
-                    value={returnDate}
-                    onChange={setReturnDate}
-                    hint="This kind of departure comes back, so it stays on the returnable register until it does."
-                  />
-                ) : null}
-              </Card>
-
-              <View style={{ height: space.xl }} />
-
-              <Label>Pick what is going</Label>
+              </>
+            ),
+          }
+        : {})}
+    >
+      {loading ? (
+        <Loading />
+      ) : loadError ? (
+        <Notice
+          icon="cloud-offline-outline"
+          title="Could not load the store"
+          body={loadError}
+          tone="bad"
+        />
+      ) : lots.length === 0 ? (
+        <Notice
+          icon="checkmark-circle-outline"
+          title="Nothing to send out"
+          body="Rejected goods, empties, linen and equipment appear here. Nothing is waiting."
+        />
+      ) : (
+        <>
+          {lines.length > 0 ? (
+            <View style={{ marginBottom: space.xl }}>
+              <Label>Leaving</Label>
               <Card padded={false}>
-                {lots.map((lot, i) => (
-                  <LotRow
-                    key={key(lot)}
-                    lot={lot}
-                    alreadyTaken={taken.get(key(lot)) ?? 0}
-                    divider={i < lots.length - 1}
-                    onAdd={(qty) => {
-                      setLines((prev) => [...prev, { lot, qty }]);
-                      setError(null);
-                    }}
+                {lines.map((l, i) => (
+                  <DraftRow
+                    key={`${key(l.lot)}-${i}`}
+                    line={l}
+                    divider={i < lines.length - 1}
+                    onRemove={() => setLines((prev) => prev.filter((_, j) => j !== i))}
                   />
                 ))}
               </Card>
+            </View>
+          ) : null}
 
-              {error ? (
-                <View style={{ marginTop: space.lg }}>
-                  <FieldError message={error} />
-                </View>
-              ) : null}
-            </>
-          )}
-        </Page>
-      </ScrollView>
-
-      {lines.length > 0 ? (
-        <View
-          style={[
-            {
-              backgroundColor: p.surface,
-              paddingHorizontal: space.lg,
-              paddingTop: space.md,
-              paddingBottom: insets.bottom + space.md,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: p.border,
-            },
-            elevation(2, p),
-          ]}
-        >
-          <Page>
-            <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.sm }}>
-              {problems[0] ?? `${lines.length} line${lines.length === 1 ? "" : "s"} to Terminal 2`}
-            </Text>
-            <PrimaryButton
-              label={sending ? "Staging…" : "Stage at Terminal 2"}
-              icon="arrow-forward"
-              density="field"
-              onPress={() => void send()}
-              disabled={sending || problems.length > 0}
+          <Card>
+            <SelectRow
+              label="What kind of departure"
+              value={dispatchType}
+              placeholder="Choose"
+              choices={DISPATCH_TYPES.map((d) => ({
+                id: d.id,
+                label: d.label,
+                sublabel: d.hint,
+              }))}
+              onSelect={(id) => setDispatchType(id as DispatchType)}
             />
-          </Page>
-        </View>
-      ) : null}
-    </View>
+
+            <SelectRow
+              label="Who is receiving it"
+              value={recipientId || null}
+              placeholder="Vendor, laundry, handler — optional"
+              choices={parties.map((v) => ({ id: v.id, label: v.name, sublabel: v.code }))}
+              onSelect={setRecipientId}
+            />
+
+            <Field
+              label="Why"
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Arrived at 11 degrees"
+              autoCapitalize="sentences"
+              hint="What you would say to the vendor. It goes on the dispatch note."
+            />
+
+            {returnable ? (
+              <DateField
+                label="Expected back"
+                value={returnDate}
+                onChange={setReturnDate}
+                hint="This kind of departure comes back, so it stays on the returnable register until it does."
+              />
+            ) : null}
+          </Card>
+
+          <View style={{ height: space.xl }} />
+
+          <Label>Pick what is going</Label>
+          <Card padded={false}>
+            {lots.map((lot, i) => (
+              <LotRow
+                key={key(lot)}
+                lot={lot}
+                alreadyTaken={taken.get(key(lot)) ?? 0}
+                divider={i < lots.length - 1}
+                onAdd={(qty) => {
+                  setLines((prev) => [...prev, { lot, qty }]);
+                  setError(null);
+                }}
+              />
+            ))}
+          </Card>
+
+          {error ? (
+            <View style={{ marginTop: space.lg }}>
+              <FieldError message={error} />
+            </View>
+          ) : null}
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -434,16 +338,10 @@ function LotRow({
         }
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text weight="semibold" lines={1}>
             {lot.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
             {lot.batchNo} · {lot.locationCode}
           </Text>
           <View style={{ marginTop: space.xs }}>
@@ -455,17 +353,9 @@ function LotRow({
           </View>
         </View>
 
-        <Text
-          style={{
-            fontSize: type.subheading,
-            ...font("bold"),
-            color: p.text,
-            marginRight: space.sm,
-            ...tabular,
-          }}
-        >
+        <Text role="heading" numeric style={{ marginRight: space.sm }}>
           {left}
-          <Text style={{ fontSize: type.caption, ...font("medium"), color: p.textMuted }}>
+          <Text role="caption" tone="muted" weight="medium">
             {" "}
             {lot.uomCode}
           </Text>
@@ -524,13 +414,10 @@ function DraftRow({
       }}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
+        <Text weight="semibold" lines={1}>
           {line.qty} {line.lot.uomCode} · {line.lot.itemName}
         </Text>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-        >
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           {line.lot.batchNo} from {line.lot.locationCode}
         </Text>
       </View>
@@ -558,18 +445,12 @@ function DraftRow({
 }
 
 function Label({ children }: { children: string }) {
-  const p = usePalette();
   return (
     <Text
       accessibilityRole="header"
-      style={{
-        fontSize: type.micro,
-        ...font("bold"),
-        letterSpacing: 0.9,
-        textTransform: "uppercase",
-        color: p.textFaint,
-        marginBottom: space.sm,
-      }}
+      role="overline"
+      tone="muted"
+      style={{ marginBottom: space.sm }}
     >
       {children}
     </Text>

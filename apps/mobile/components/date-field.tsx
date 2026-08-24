@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { font, radius, space, touch, type, usePalette } from "../theme";
-import { CloseButton, Header, PrimaryButton } from "./ui";
+import { Dialog, PrimaryButton, Text } from "./ui";
 
 /**
  * A calendar picker, built from primitives rather than pulled from a package.
@@ -55,14 +55,7 @@ export function DateField({
 
   return (
     <View style={{ marginBottom: space.lg }}>
-      <Text
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         {label}
       </Text>
 
@@ -111,161 +104,121 @@ export function DateField({
       </Pressable>
 
       {hint && !error ? (
-        <Text
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            marginTop: space.xs,
-            lineHeight: 17,
-          }}
-        >
+        <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
           {hint}
         </Text>
       ) : null}
       {error ? (
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: space.xs }}>
           <Ionicons name="alert-circle" size={15} color={p.danger} />
-          <Text style={{ color: p.danger, fontSize: type.caption, marginLeft: space.xs, flex: 1 }}>
+          <Text role="caption" tone="danger" style={{ marginLeft: space.xs, flex: 1 }}>
             {error}
           </Text>
         </View>
       ) : null}
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: p.background }}>
-          <View
-            style={{
-              paddingTop: space.xxxl,
-              paddingHorizontal: space.lg,
-              paddingBottom: space.sm,
-              backgroundColor: p.surface,
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: p.border,
-            }}
-          >
-            <Header title={label} right={<CloseButton onPress={() => setOpen(false)} />} />
-          </View>
-
-          <ScrollView contentContainerStyle={{ padding: space.lg }}>
-            <View style={{ width: "100%", maxWidth: 380, alignSelf: "center" }}>
-              {/*
+      <Dialog visible={open} title={label} onClose={() => setOpen(false)}>
+        <View style={{ width: "100%", maxWidth: 380, alignSelf: "center" }}>
+          {/*
                 Shortcuts first. Best-before dates cluster a few days or weeks out, so
                 most entries never need the grid at all.
               */}
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
-                {[
-                  { label: "Today", days: 0 },
-                  { label: "+3 days", days: 3 },
-                  { label: "+1 week", days: 7 },
-                  { label: "+1 month", days: 30 },
-                ].map((q) => (
-                  <Pressable
-                    key={q.label}
-                    onPress={() => {
-                      onChange(addDays(todayIso(), q.days));
-                      setOpen(false);
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={q.label}
-                    style={({ pressed }) =>
-                      ({
-                        paddingHorizontal: space.md,
-                        paddingVertical: space.sm,
-                        borderRadius: radius.pill,
-                        borderWidth: StyleSheet.hairlineWidth,
-                        borderColor: p.border,
-                        backgroundColor: pressed ? p.surfaceSunken : p.surface,
-                        cursor: "pointer",
-                      }) as never
-                    }
-                  >
-                    <Text
-                      style={{ fontSize: type.caption, ...font("semibold"), color: p.textMuted }}
-                    >
-                      {q.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginTop: space.xl,
-                  marginBottom: space.md,
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+            {[
+              { label: "Today", days: 0 },
+              { label: "+3 days", days: 3 },
+              { label: "+1 week", days: 7 },
+              { label: "+1 month", days: 30 },
+            ].map((q) => (
+              <Pressable
+                key={q.label}
+                onPress={() => {
+                  onChange(addDays(todayIso(), q.days));
+                  setOpen(false);
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={q.label}
+                style={({ pressed }) =>
+                  ({
+                    paddingHorizontal: space.md,
+                    paddingVertical: space.sm,
+                    borderRadius: radius.pill,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: p.border,
+                    backgroundColor: pressed ? p.surfaceSunken : p.surface,
+                    cursor: "pointer",
+                  }) as never
+                }
               >
-                <MonthArrow icon="chevron-back" onPress={() => setCursor(shiftMonth(cursor, -1))} />
-                <Text
-                  style={{
-                    flex: 1,
-                    textAlign: "center",
-                    fontSize: type.subheading,
-                    ...font("semibold"),
-                    color: p.text,
-                  }}
-                >
-                  {MONTHS[cursor.month]} {cursor.year}
+                <Text role="caption" tone="muted" weight="semibold">
+                  {q.label}
                 </Text>
-                <MonthArrow
-                  icon="chevron-forward"
-                  onPress={() => setCursor(shiftMonth(cursor, 1))}
+              </Pressable>
+            ))}
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: space.xl,
+              marginBottom: space.md,
+            }}
+          >
+            <MonthArrow icon="chevron-back" onPress={() => setCursor(shiftMonth(cursor, -1))} />
+            <Text role="heading" align="center" style={{ flex: 1 }}>
+              {MONTHS[cursor.month]} {cursor.year}
+            </Text>
+            <MonthArrow icon="chevron-forward" onPress={() => setCursor(shiftMonth(cursor, 1))} />
+          </View>
+
+          <View style={{ flexDirection: "row" }}>
+            {WEEKDAYS.map((d, i) => (
+              <Text
+                key={`${d}-${i}`}
+                role="caption"
+                tone="muted"
+                weight="bold"
+                align="center"
+                style={{ flex: 1, marginBottom: space.sm }}
+              >
+                {d}
+              </Text>
+            ))}
+          </View>
+
+          {weeksOf(cursor).map((week, wi) => (
+            <View key={wi} style={{ flexDirection: "row" }}>
+              {week.map((iso, di) => (
+                <DayCell
+                  key={iso ?? `blank-${di}`}
+                  iso={iso}
+                  selected={iso !== null && iso === selected}
+                  today={iso === todayIso()}
+                  onPress={() => {
+                    if (!iso) return;
+                    onChange(iso);
+                    setOpen(false);
+                  }}
                 />
-              </View>
-
-              <View style={{ flexDirection: "row" }}>
-                {WEEKDAYS.map((d, i) => (
-                  <Text
-                    key={`${d}-${i}`}
-                    style={{
-                      flex: 1,
-                      textAlign: "center",
-                      fontSize: type.micro,
-                      ...font("bold"),
-                      color: p.textFaint,
-                      marginBottom: space.sm,
-                    }}
-                  >
-                    {d}
-                  </Text>
-                ))}
-              </View>
-
-              {weeksOf(cursor).map((week, wi) => (
-                <View key={wi} style={{ flexDirection: "row" }}>
-                  {week.map((iso, di) => (
-                    <DayCell
-                      key={iso ?? `blank-${di}`}
-                      iso={iso}
-                      selected={iso !== null && iso === selected}
-                      today={iso === todayIso()}
-                      onPress={() => {
-                        if (!iso) return;
-                        onChange(iso);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                </View>
               ))}
-
-              {optional ? (
-                <View style={{ marginTop: space.xl }}>
-                  <PrimaryButton
-                    label="No expiry date"
-                    tone="neutral"
-                    onPress={() => {
-                      onChange("");
-                      setOpen(false);
-                    }}
-                  />
-                </View>
-              ) : null}
             </View>
-          </ScrollView>
+          ))}
+
+          {optional ? (
+            <View style={{ marginTop: space.xl }}>
+              <PrimaryButton
+                label="No expiry date"
+                tone="neutral"
+                onPress={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+              />
+            </View>
+          ) : null}
         </View>
-      </Modal>
+      </Dialog>
     </View>
   );
 }

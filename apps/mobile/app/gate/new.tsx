@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import {
   formatDocumentNumber,
   validateGateEntryDraft,
@@ -9,14 +8,24 @@ import {
 } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Row, ChoiceTile, FieldError, PrimaryButton, Section, Stepper } from "../../components/ui";
+import {
+  ChoiceTile,
+  Dialog,
+  FieldError,
+  PrimaryButton,
+  Row,
+  Section,
+  Stepper,
+  Text,
+  Text as UIText,
+} from "../../components/ui";
 import { outbox } from "../../lib/outbox";
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { drainOnce } from "../../lib/sync";
-import { font, radius, space, touch, type, usePalette } from "../../theme";
+import { radius, space, touch, type, usePalette } from "../../theme";
 
 /**
  * Gate 0 — Security capture. PRD section 4.
@@ -150,8 +159,8 @@ export default function NewGateEntry() {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>New arrival</Text>
-        <Text style={{ fontSize: type.label, color: p.textMuted, marginBottom: space.lg }}>
+        <Text role="title">New arrival</Text>
+        <Text role="label" tone="muted" style={{ marginBottom: space.lg }}>
           Record what arrived before anything is unloaded.
         </Text>
 
@@ -221,7 +230,7 @@ export default function NewGateEntry() {
           </View>
           {vehicleMode && vehicleMode !== "HAND_CART" ? (
             <View style={{ marginTop: space.sm }}>
-              <Text style={{ fontSize: type.label, color: p.text, marginBottom: space.xs }}>
+              <Text role="label" style={{ marginBottom: space.xs }}>
                 Vehicle number
               </Text>
               <TextInput
@@ -287,93 +296,52 @@ function VendorPicker({
   onPick: (ref: VendorRef, label: string) => void;
 }) {
   const p = usePalette();
-  const insets = useSafeAreaInsets();
 
   return (
-    <Modal visible={open} animationType="slide" onRequestClose={onClose} transparent={false}>
-      <View style={{ flex: 1, backgroundColor: p.background, paddingTop: insets.top }}>
-        <View style={[styles.modalBar, { borderBottomColor: p.border }]}>
-          <Text style={{ fontSize: type.heading, ...font("bold"), color: p.text }}>
-            Choose vendor
-          </Text>
-          <Pressable
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Close vendor list"
-            hitSlop={12}
-            style={{
-              minWidth: touch.field,
-              minHeight: touch.field,
-              alignItems: "flex-end",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="close" size={30} color={p.text} />
-          </Pressable>
-        </View>
+    <Dialog visible={open} title="Choose vendor" onClose={onClose}>
+      {parties.length === 0 ? (
+        <UIText tone="muted" style={{ marginBottom: space.md }}>
+          No vendors are registered yet. Enter the name below — an unregistered vendor can still be
+          received, and registration is chased afterwards.
+        </UIText>
+      ) : null}
 
-        <ScrollView
-          contentContainerStyle={{ padding: space.md }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {parties.length === 0 ? (
-            <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.md }}>
-              No vendors are registered yet. Enter the name below — an unregistered vendor can still
-              be received, and registration is chased afterwards.
-            </Text>
-          ) : null}
+      {parties.map((v) => (
+        <Row
+          key={v.id}
+          icon={v.onHold ? "hand-left" : "business"}
+          label={v.name}
+          // The hold reason where there is one, because a guard needs to know BEFORE
+          // anything comes off the vehicle rather than after. Status is resolved here
+          // at pick time rather than printed on a card, which is what lets a hold
+          // applied this morning stop a delivery this afternoon.
+          value={v.onHold ? `On hold — ${v.holdReason ?? "ask the office"}` : v.code}
+          {...(v.onHold ? { tint: "danger" as const } : {})}
+          onPress={() => onPick({ kind: "REGISTERED", partyId: v.id }, v.name)}
+        />
+      ))}
 
-          {parties.map((v) => (
-            <Row
-              key={v.id}
-              icon={v.onHold ? "hand-left" : "business"}
-              label={v.name}
-              // The hold reason where there is one, because a guard needs to know BEFORE
-              // anything comes off the vehicle rather than after. Status is resolved here
-              // at pick time rather than printed on a card, which is what lets a hold
-              // applied this morning stop a delivery this afternoon.
-              value={v.onHold ? `On hold — ${v.holdReason ?? "ask the office"}` : v.code}
-              {...(v.onHold ? { tint: "danger" as const } : {})}
-              onPress={() => onPick({ kind: "REGISTERED", partyId: v.id }, v.name)}
-            />
-          ))}
-
-          <Text
-            style={{
-              fontSize: type.caption,
-              ...font("bold"),
-              letterSpacing: 1.2,
-              textTransform: "uppercase",
-              color: p.textMuted,
-              marginTop: space.lg,
-              marginBottom: space.sm,
-            }}
-          >
-            Not registered
-          </Text>
-          <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.sm }}>
-            An unregistered vendor can still be received. Registration is chased later.
-          </Text>
-          <TextInput
-            value={name}
-            onChangeText={onChangeName}
-            placeholder="Vendor name"
-            placeholderTextColor={p.textMuted}
-            accessibilityLabel="Unregistered vendor name"
-            style={[
-              styles.input,
-              { backgroundColor: p.surface, borderColor: p.border, color: p.text },
-            ]}
-          />
-          <View style={{ height: space.sm }} />
-          <PrimaryButton
-            label="Use this name"
-            onPress={() => onPick({ kind: "UNREGISTERED", name: name.trim() }, name.trim())}
-            disabled={name.trim().length === 0}
-          />
-        </ScrollView>
-      </View>
-    </Modal>
+      <UIText role="overline" tone="muted" style={{ marginTop: space.lg, marginBottom: space.xs }}>
+        Not registered
+      </UIText>
+      <UIText tone="muted" style={{ marginBottom: space.sm }}>
+        An unregistered vendor can still be received. Registration is chased later.
+      </UIText>
+      <TextInput
+        value={name}
+        onChangeText={onChangeName}
+        placeholder="Vendor name"
+        placeholderTextColor={p.textMuted}
+        accessibilityLabel="Unregistered vendor name"
+        style={[styles.input, { backgroundColor: p.surface, borderColor: p.border, color: p.text }]}
+      />
+      <View style={{ height: space.sm }} />
+      <PrimaryButton
+        label="Use this name"
+        onPress={() => onPick({ kind: "UNREGISTERED", name: name.trim() }, name.trim())}
+        disabled={name.trim().length === 0}
+      />
+    </Dialog>
   );
 }
 
@@ -393,13 +361,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     paddingHorizontal: space.md,
     paddingTop: space.md,
-  },
-  modalBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderBottomWidth: 1,
   },
 });

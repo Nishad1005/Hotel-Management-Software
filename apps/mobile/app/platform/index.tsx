@@ -2,18 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import type { PropertyLifecycle } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
 import {
   Card,
   Field,
   FieldError,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   StatGrid,
   StatTile,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import {
   listTenants,
@@ -23,7 +24,7 @@ import {
   type ProvisionedTenant,
   type Tenant,
 } from "../../lib/platform";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The vendor console.
@@ -45,7 +46,6 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
 export default function PlatformConsole() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,143 +99,108 @@ export default function PlatformConsole() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.brand,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          {/*
-            The one screen carrying the brand band rather than the page surface. It is a
-            different product from the one below it, and looking different is how somebody
-            with both kinds of access knows which they are in.
-          */}
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Pressable
-              onPress={() => router.back()}
-              accessibilityRole="button"
-              accessibilityLabel="Back"
-              hitSlop={10}
-              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-            >
-              <Ionicons name="chevron-back" size={24} color={p.onBrand} />
-            </Pressable>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: type.title, ...font("bold"), color: p.onBrand }}>
-                Customers
-              </Text>
-              <Text style={{ fontSize: type.caption, color: p.onBrandMuted, marginTop: 1 }}>
-                {loading
-                  ? "Loading"
-                  : `${tenants.length} propert${tenants.length === 1 ? "y" : "ies"} across ${summary.orgs} customer${summary.orgs === 1 ? "" : "s"}`}
-              </Text>
-            </View>
-          </View>
-        </Page>
-      </View>
+    /*
+      The one screen carrying the brand band rather than the page surface. It is a
+      different product from the one below it, and looking different is how somebody with
+      both kinds of access knows which they are in.
+    */
+    <Screen
+      title="Customers"
+      subtitle={
+        loading
+          ? "Loading"
+          : `${tenants.length} propert${tenants.length === 1 ? "y" : "ies"} across ${summary.orgs} customer${summary.orgs === 1 ? "" : "s"}`
+      }
+      onBack={() => router.back()}
+      onBrand
+      wide
+    >
+      {created ? (
+        <View style={{ marginBottom: space.xl }}>
+          <Onboarded result={created} onDone={() => setCreated(null)} />
+        </View>
+      ) : null}
 
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {created ? (
-            <View style={{ marginBottom: space.xl }}>
-              <Onboarded result={created} onDone={() => setCreated(null)} />
-            </View>
-          ) : null}
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
+      ) : (
+        <>
+          <StatGrid>
+            <StatTile
+              icon="business-outline"
+              label="Live"
+              value={summary.live}
+              caption="Running on it"
+              tone="accent"
+            />
+            <StatTile
+              icon="hourglass-outline"
+              label="Onboarding"
+              value={tenants.length - summary.live}
+              caption="Not yet live"
+              tone="neutral"
+            />
+            <StatTile
+              icon="alert-circle-outline"
+              label="Stalled"
+              value={summary.stalled}
+              caption="Created, nothing has moved"
+              tone={summary.stalled ? "bad" : "neutral"}
+            />
+          </StatGrid>
 
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
+          <View style={{ height: space.xl }} />
+
+          {adding ? (
+            <NewTenantForm
+              onCancel={() => setAdding(false)}
+              onCreated={(r) => {
+                setAdding(false);
+                setCreated(r);
+                void load();
+              }}
+            />
           ) : (
-            <>
-              <StatGrid>
-                <StatTile
-                  icon="business-outline"
-                  label="Live"
-                  value={summary.live}
-                  caption="Running on it"
-                  tone="accent"
-                />
-                <StatTile
-                  icon="hourglass-outline"
-                  label="Onboarding"
-                  value={tenants.length - summary.live}
-                  caption="Not yet live"
-                  tone="neutral"
-                />
-                <StatTile
-                  icon="alert-circle-outline"
-                  label="Stalled"
-                  value={summary.stalled}
-                  caption="Created, nothing has moved"
-                  tone={summary.stalled ? "bad" : "neutral"}
-                />
-              </StatGrid>
-
-              <View style={{ height: space.xl }} />
-
-              {adding ? (
-                <NewTenantForm
-                  onCancel={() => setAdding(false)}
-                  onCreated={(r) => {
-                    setAdding(false);
-                    setCreated(r);
-                    void load();
-                  }}
-                />
-              ) : (
-                <PrimaryButton
-                  label="Onboard a customer"
-                  icon="add"
-                  density="field"
-                  onPress={() => {
-                    setAdding(true);
-                    setCreated(null);
-                  }}
-                />
-              )}
-
-              <View style={{ height: space.xl }} />
-
-              {tenants.length === 0 ? (
-                <Notice
-                  icon="business-outline"
-                  title="No customers yet"
-                  body="Onboarding one creates their organisation, their property, their owner's login and the seed masters that let them work on the first morning."
-                />
-              ) : (
-                tenants.map((t) => (
-                  <TenantCard
-                    key={t.propertyId}
-                    tenant={t}
-                    onLifecycle={async (state) => {
-                      try {
-                        await setPropertyLifecycle(t.propertyId, state);
-                        await load();
-                      } catch (e) {
-                        setError(e instanceof Error ? e.message : String(e));
-                      }
-                    }}
-                  />
-                ))
-              )}
-            </>
+            <PrimaryButton
+              label="Onboard a customer"
+              icon="add"
+              density="field"
+              onPress={() => {
+                setAdding(true);
+                setCreated(null);
+              }}
+            />
           )}
-        </Page>
-      </ScrollView>
-    </View>
+
+          <View style={{ height: space.xl }} />
+
+          {tenants.length === 0 ? (
+            <Notice
+              icon="business-outline"
+              title="No customers yet"
+              body="Onboarding one creates their organisation, their property, their owner's login and the seed masters that let them work on the first morning."
+            />
+          ) : (
+            tenants.map((t) => (
+              <TenantCard
+                key={t.propertyId}
+                tenant={t}
+                onLifecycle={async (state) => {
+                  try {
+                    await setPropertyLifecycle(t.propertyId, state);
+                    await load();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : String(e));
+                  }
+                }}
+              />
+            ))
+          )}
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -246,7 +211,6 @@ function TenantCard({
   tenant: Tenant;
   onLifecycle: (state: PropertyLifecycle) => void | Promise<void>;
 }) {
-  const p = usePalette();
   const checks = readiness(tenant);
   const ready = checks.filter((c) => c.done).length;
   const live = tenant.propertyLifecycle === "LIVE";
@@ -257,22 +221,16 @@ function TenantCard({
       <Card>
         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.heading, ...font("bold"), color: p.text }}
-            >
+            <Text role="heading" lines={1}>
               {tenant.propertyName}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-            >
-              <Text style={tabular}>{tenant.propertyCode}</Text> · {tenant.orgName}
+            <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
+              <Text role="caption" tone="muted" numeric>
+                {tenant.propertyCode}
+              </Text>{" "}
+              · {tenant.orgName}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}
-            >
+            <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
               Created {new Date(tenant.createdAt).toLocaleDateString()}
               {tenant.lastActivity
                 ? ` · last movement ${new Date(tenant.lastActivity).toLocaleDateString()}`
@@ -306,7 +264,7 @@ function TenantCard({
 
         <View style={{ height: space.md }} />
 
-        <Text style={{ fontSize: type.caption, color: p.textMuted, ...tabular }}>
+        <Text role="caption" tone="muted" numeric>
           {tenant.items} items · {tenant.bins} bins · {tenant.vendors} vendors · {tenant.people}{" "}
           people · {tenant.receipts} receipts
         </Text>
@@ -320,14 +278,7 @@ function TenantCard({
             />
           </View>
         ) : !live ? (
-          <Text
-            style={{
-              fontSize: type.micro,
-              color: p.textFaint,
-              marginTop: space.sm,
-              lineHeight: 15,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
             {checks.length - ready} thing{checks.length - ready === 1 ? "" : "s"} still to do before
             this property is live. A property goes live when it can actually receive, not when it
             was created.
@@ -345,7 +296,6 @@ function NewTenantForm({
   onCancel: () => void;
   onCreated: (result: ProvisionedTenant) => void;
 }) {
-  const p = usePalette();
   const [orgName, setOrgName] = useState("");
   const [propertyName, setPropertyName] = useState("");
   const [code, setCode] = useState("");
@@ -422,16 +372,7 @@ function NewTenantForm({
       />
 
       <View style={{ height: space.sm }} />
-      <Text
-        style={{
-          fontSize: type.micro,
-          ...font("bold"),
-          letterSpacing: 0.9,
-          textTransform: "uppercase",
-          color: p.textFaint,
-          marginBottom: space.sm,
-        }}
-      >
+      <Text role="overline" tone="muted" style={{ marginBottom: space.sm }}>
         Their first login
       </Text>
 
@@ -491,15 +432,7 @@ function Onboarded({ result, onDone }: { result: ProvisionedTenant; onDone: () =
     <Card>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
         <Ionicons name="checkmark-circle" size={22} color={p.success} />
-        <Text
-          style={{
-            fontSize: type.body,
-            ...font("semibold"),
-            color: p.text,
-            marginLeft: space.sm,
-            flex: 1,
-          }}
-        >
+        <Text weight="semibold" style={{ marginLeft: space.sm, flex: 1 }}>
           {result.propertyCode} is ready to be set up
         </Text>
       </View>
@@ -511,52 +444,35 @@ function Onboarded({ result, onDone }: { result: ProvisionedTenant; onDone: () =
           padding: space.md,
         }}
       >
-        <Text style={{ fontSize: type.caption, color: p.textMuted }}>Signs in with</Text>
-        <Text selectable style={{ fontSize: type.subheading, ...font("bold"), color: p.text }}>
+        <Text role="caption" tone="muted">
+          Signs in with
+        </Text>
+        <Text selectable role="heading" weight="bold">
           {result.ownerLoginId}
         </Text>
 
         {result.tempPassword ? (
           <>
-            <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.md }}>
+            <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
               Temporary password
             </Text>
-            <Text
-              selectable
-              style={{ fontSize: type.subheading, ...font("bold"), color: p.text, ...tabular }}
-            >
+            <Text selectable role="heading" weight="bold" numeric>
               {result.tempPassword}
             </Text>
-            <Text
-              style={{
-                fontSize: type.micro,
-                color: p.warning,
-                marginTop: space.sm,
-                lineHeight: 15,
-              }}
-            >
+            <Text role="caption" tone="warning" style={{ marginTop: space.sm }}>
               Shown once and stored nowhere. Write it down now — if it is lost it has to be reset,
               not looked up.
             </Text>
           </>
         ) : (
-          <Text
-            style={{
-              fontSize: type.micro,
-              color: p.textMuted,
-              marginTop: space.sm,
-              lineHeight: 15,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
             They already had a login, so their existing password still works. This property has been
             added to it.
           </Text>
         )}
       </View>
 
-      <Text
-        style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.md, lineHeight: 18 }}
-      >
+      <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
         Their units, categories, storage zones and departments are seeded. What they still need is
         their item list, their bins and their vendors — all of which they do themselves from inside
         the app.

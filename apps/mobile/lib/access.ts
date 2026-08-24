@@ -54,6 +54,12 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   dispatch: "dispatch",
   "gate-out": "gate.pass",
   vendors: "parties.edit",
+  // Both routes have existed and been linked from the home screen since they were built,
+  // and neither was ever listed here — so this table has been quietly incomplete for as
+  // long as it has had no consumer. The sidebar is its first, which is how the gap
+  // surfaced.
+  "admin/locations": "masters.edit",
+  "admin/users": "users.manage",
   // Deliberately absent: `platform` is vendor staff, not a property capability, and the
   // server decides it. A route capability here would imply a property role grants it.
 };

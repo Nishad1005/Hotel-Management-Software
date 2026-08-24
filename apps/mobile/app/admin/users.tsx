@@ -3,23 +3,22 @@ import { GOLAI_ROLES, looksLikePhone } from "@golai/domain";
 import type { MembershipRole } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import {
   Card,
   Field,
   FieldError,
-  Header,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   Section,
   SelectRow,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import { useSession } from "../../lib/session";
 import { createUser, listTeam, type CreatedUser, type TeamMember } from "../../lib/users";
-import { elevation, font, radius, space, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * Who works here, and adding somebody.
@@ -36,7 +35,6 @@ import { elevation, font, radius, space, type, usePalette } from "../../theme";
 export default function Users() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty, canEditMasters } = useSession();
 
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -96,223 +94,168 @@ export default function Users() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="People"
-            subtitle="Who works here, and what they may do"
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}>
-        <Page>
-          {/*
+    <Screen
+      title="People"
+      subtitle="Who works here, and what they may do"
+      onBack={() => router.back()}
+    >
+      {/*
             The password is shown once and stored nowhere, so this panel stays until it
             is dismissed deliberately — navigating away by accident and losing it means
             resetting the account.
           */}
-          {created ? (
-            <View
-              style={{
-                backgroundColor: p.accentSurface,
-                borderRadius: radius.lg,
-                padding: space.lg,
-                marginBottom: space.xl,
-              }}
-            >
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
-                <Ionicons name="key" size={18} color={p.accent} />
-                <Text
+      {created ? (
+        <View
+          style={{
+            backgroundColor: p.accentSurface,
+            borderRadius: radius.lg,
+            padding: space.lg,
+            marginBottom: space.xl,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
+            <Ionicons name="key" size={18} color={p.accent} />
+            <Text tone="accent" weight="bold" style={{ marginLeft: space.sm }}>
+              {created.fullName} can now sign in
+            </Text>
+          </View>
+
+          <Text role="caption" tone="muted" style={{ marginBottom: space.xs }}>
+            They sign in with
+          </Text>
+          <Text selectable role="heading" style={{ marginBottom: space.md }}>
+            {created.loginId}
+          </Text>
+
+          <Text role="caption" tone="muted" style={{ marginBottom: space.xs }}>
+            Temporary password — read it out now
+          </Text>
+          <Text selectable role="title" weight="heavy">
+            {created.tempPassword}
+          </Text>
+
+          <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
+            This is shown once and is not stored anywhere. If it is lost, set a new one rather than
+            looking it up.
+          </Text>
+
+          <View style={{ marginTop: space.lg }}>
+            <PrimaryButton
+              label="I have handed it over"
+              tone="neutral"
+              onPress={() => setCreated(null)}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      {error ? (
+        <View style={{ marginBottom: space.lg }}>
+          <FieldError message={error} />
+        </View>
+      ) : null}
+
+      {canEditMasters ? (
+        <Section title="Add somebody">
+          <Card>
+            <Field
+              label="Full name"
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Ravi Bora"
+            />
+            <Field
+              label="Email or mobile number"
+              value={identifier}
+              onChangeText={setIdentifier}
+              placeholder="9829012345"
+              autoCapitalize="none"
+              hint={
+                identifier.trim().length === 0
+                  ? "Either will do. Most floor staff have no email address."
+                  : asPhone
+                    ? "Read as a mobile number — they will sign in with it."
+                    : "Read as an email address."
+              }
+            />
+            <SelectRow
+              label="Role"
+              value={role}
+              placeholder="Choose a role"
+              choices={GOLAI_ROLES.map((r) => ({
+                id: r,
+                label: ROLE_LABEL[r],
+                sublabel: ROLE_BLURB[r],
+              }))}
+              onSelect={(next) => setRole(next as MembershipRole)}
+            />
+            <PrimaryButton
+              label={busy ? "Creating…" : "Create login"}
+              icon="person-add"
+              onPress={() => void add()}
+              disabled={busy || !ready}
+            />
+          </Card>
+        </Section>
+      ) : null}
+
+      <Section title={loading ? "The team" : `The team · ${team.length}`}>
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: space.xl }} color={p.accent} />
+        ) : team.length === 0 ? (
+          <Notice
+            icon="people-outline"
+            title="Nobody yet"
+            body="Add the storekeeper and the security officer as separate people. If they share one login, the gate entry and the goods receipt are written by the same account, and the check between them stops meaning anything."
+          />
+        ) : (
+          <Card padded={false}>
+            {team.map((member, index) => (
+              <View
+                key={member.userId}
+                style={{
+                  paddingHorizontal: space.lg,
+                  paddingVertical: space.md,
+                  borderBottomWidth: index < team.length - 1 ? StyleSheet.hairlineWidth : 0,
+                  borderBottomColor: p.border,
+                }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text lines={1} weight="semibold" style={{ flex: 1 }}>
+                    {member.fullName}
+                    {member.isSelf ? (
+                      <Text role="caption" tone="muted">
+                        {" "}
+                        · you
+                      </Text>
+                    ) : null}
+                  </Text>
+                </View>
+                <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
+                  {member.phone ?? member.email ?? "No sign-in identifier"}
+                </Text>
+                <View
                   style={{
-                    fontSize: type.body,
-                    ...font("bold"),
-                    color: p.accent,
-                    marginLeft: space.sm,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: space.xs,
+                    marginTop: space.sm,
                   }}
                 >
-                  {created.fullName} can now sign in
-                </Text>
+                  {member.roles.map((r) => (
+                    <StatusPill
+                      key={r}
+                      label={ROLE_LABEL[r]}
+                      tone={r === "SECURITY" ? "warn" : "neutral"}
+                    />
+                  ))}
+                </View>
               </View>
-
-              <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.xs }}>
-                They sign in with
-              </Text>
-              <Text
-                selectable
-                style={{
-                  fontSize: type.subheading,
-                  ...font("semibold"),
-                  color: p.text,
-                  marginBottom: space.md,
-                }}
-              >
-                {created.loginId}
-              </Text>
-
-              <Text style={{ fontSize: type.caption, color: p.textMuted, marginBottom: space.xs }}>
-                Temporary password — read it out now
-              </Text>
-              <Text
-                selectable
-                style={{
-                  fontSize: type.title,
-                  ...font("heavy"),
-                  color: p.text,
-                  letterSpacing: 0.5,
-                }}
-              >
-                {created.tempPassword}
-              </Text>
-
-              <Text
-                style={{
-                  fontSize: type.caption,
-                  color: p.textMuted,
-                  marginTop: space.md,
-                  lineHeight: 18,
-                }}
-              >
-                This is shown once and is not stored anywhere. If it is lost, set a new one rather
-                than looking it up.
-              </Text>
-
-              <View style={{ marginTop: space.lg }}>
-                <PrimaryButton
-                  label="I have handed it over"
-                  tone="neutral"
-                  onPress={() => setCreated(null)}
-                />
-              </View>
-            </View>
-          ) : null}
-
-          {error ? (
-            <View style={{ marginBottom: space.lg }}>
-              <FieldError message={error} />
-            </View>
-          ) : null}
-
-          {canEditMasters ? (
-            <Section title="Add somebody">
-              <Card>
-                <Field
-                  label="Full name"
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Ravi Bora"
-                />
-                <Field
-                  label="Email or mobile number"
-                  value={identifier}
-                  onChangeText={setIdentifier}
-                  placeholder="9829012345"
-                  autoCapitalize="none"
-                  hint={
-                    identifier.trim().length === 0
-                      ? "Either will do. Most floor staff have no email address."
-                      : asPhone
-                        ? "Read as a mobile number — they will sign in with it."
-                        : "Read as an email address."
-                  }
-                />
-                <SelectRow
-                  label="Role"
-                  value={role}
-                  placeholder="Choose a role"
-                  choices={GOLAI_ROLES.map((r) => ({
-                    id: r,
-                    label: ROLE_LABEL[r],
-                    sublabel: ROLE_BLURB[r],
-                  }))}
-                  onSelect={(next) => setRole(next as MembershipRole)}
-                />
-                <PrimaryButton
-                  label={busy ? "Creating…" : "Create login"}
-                  icon="person-add"
-                  onPress={() => void add()}
-                  disabled={busy || !ready}
-                />
-              </Card>
-            </Section>
-          ) : null}
-
-          <Section title={loading ? "The team" : `The team · ${team.length}`}>
-            {loading ? (
-              <ActivityIndicator style={{ marginTop: space.xl }} color={p.accent} />
-            ) : team.length === 0 ? (
-              <Notice
-                icon="people-outline"
-                title="Nobody yet"
-                body="Add the storekeeper and the security officer as separate people. If they share one login, the gate entry and the goods receipt are written by the same account, and the check between them stops meaning anything."
-              />
-            ) : (
-              <Card padded={false}>
-                {team.map((member, index) => (
-                  <View
-                    key={member.userId}
-                    style={{
-                      paddingHorizontal: space.lg,
-                      paddingVertical: space.md,
-                      borderBottomWidth: index < team.length - 1 ? StyleSheet.hairlineWidth : 0,
-                      borderBottomColor: p.border,
-                    }}
-                  >
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <Text
-                        style={{ fontSize: type.body, ...font("semibold"), color: p.text, flex: 1 }}
-                        numberOfLines={1}
-                      >
-                        {member.fullName}
-                        {member.isSelf ? (
-                          <Text style={{ color: p.textFaint, ...font("regular") }}> · you</Text>
-                        ) : null}
-                      </Text>
-                    </View>
-                    <Text
-                      style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-                      numberOfLines={1}
-                    >
-                      {member.phone ?? member.email ?? "No sign-in identifier"}
-                    </Text>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        gap: space.xs,
-                        marginTop: space.sm,
-                      }}
-                    >
-                      {member.roles.map((r) => (
-                        <StatusPill
-                          key={r}
-                          label={ROLE_LABEL[r]}
-                          tone={r === "SECURITY" ? "warn" : "neutral"}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                ))}
-              </Card>
-            )}
-          </Section>
-        </Page>
-      </ScrollView>
-    </View>
+            ))}
+          </Card>
+        )}
+      </Section>
+    </Screen>
   );
 }
 

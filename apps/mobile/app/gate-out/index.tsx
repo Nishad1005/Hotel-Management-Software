@@ -1,17 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, View } from "react-native";
 import {
   Card,
   Field,
   FieldError,
-  Header,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import {
   DISPATCH_TYPES,
@@ -21,7 +21,7 @@ import {
 } from "../../lib/dispatch";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * Gate 10 — Security passes it out.
@@ -37,7 +37,6 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
 export default function GateOut() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty, session } = useSession();
 
   const [waiting, setWaiting] = useState<StagedDispatch[]>([]);
@@ -73,141 +72,88 @@ export default function GateOut() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Gate out"
-            subtitle={
-              loading
-                ? "Loading Terminal 2"
-                : waiting.length === 0
-                  ? "Nothing waiting to leave"
-                  : `${waiting.length} consignment${waiting.length === 1 ? "" : "s"} at the dispatch bay`
-            }
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {passed ? (
-            <Card>
-              <View style={{ alignItems: "center" }}>
-                <View
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: radius.xl,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: p.successSurface,
-                  }}
-                >
-                  <Ionicons name="checkmark" size={30} color={p.success} />
-                </View>
-                <Text
-                  style={{
-                    fontSize: type.caption,
-                    ...font("bold"),
-                    letterSpacing: 1.2,
-                    textTransform: "uppercase",
-                    color: p.textMuted,
-                    marginTop: space.lg,
-                  }}
-                >
-                  Gate pass issued
-                </Text>
-                <Text
-                  selectable
-                  style={{
-                    fontSize: type.title,
-                    ...font("heavy"),
-                    color: p.text,
-                    marginTop: space.xs,
-                    ...tabular,
-                  }}
-                >
-                  {passed.no}
-                </Text>
-                <Text
-                  style={{
-                    fontSize: type.caption,
-                    color: p.textMuted,
-                    marginTop: space.sm,
-                    textAlign: "center",
-                    lineHeight: 18,
-                  }}
-                >
-                  {passed.dispatch} has left the property. Write this number on the driver&apos;s
-                  copy — it is what ties the vehicle at the gate to the goods that went with it.
-                </Text>
-              </View>
-              <View style={{ marginTop: space.lg }}>
-                <PrimaryButton label="Done" tone="neutral" onPress={() => setPassed(null)} />
-              </View>
-            </Card>
-          ) : loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : loadError ? (
-            <Notice
-              icon="cloud-offline-outline"
-              title="Could not load Terminal 2"
-              body={loadError}
-              tone="bad"
-            />
-          ) : waiting.length === 0 ? (
-            <Notice
-              icon="checkmark-circle-outline"
-              title="Nothing is waiting to leave"
-              body="Consignments appear here once they are staged at Terminal 2. Nothing leaves the property except through this screen."
-            />
-          ) : selected ? (
-            <PassPanel
-              dispatch={selected}
-              propertyId={propertyId ?? ""}
-              blocked={me !== null && selected.stagedBy === me}
-              onCancel={() => setSelected(null)}
-              onDone={(no) => {
-                setPassed({ no, dispatch: selected.dispatchNo });
-                setSelected(null);
-                void refresh();
+    <Screen
+      title="Gate out"
+      subtitle={
+        loading
+          ? "Loading Terminal 2"
+          : waiting.length === 0
+            ? "Nothing waiting to leave"
+            : `${waiting.length} consignment${waiting.length === 1 ? "" : "s"} at the dispatch bay`
+      }
+      onBack={() => router.back()}
+    >
+      {passed ? (
+        <Card>
+          <View style={{ alignItems: "center" }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: radius.xl,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: p.successSurface,
               }}
+            >
+              <Ionicons name="checkmark" size={30} color={p.success} />
+            </View>
+            <Text role="overline" tone="muted" style={{ marginTop: space.lg }}>
+              Gate pass issued
+            </Text>
+            <Text selectable role="title" weight="heavy" numeric style={{ marginTop: space.xs }}>
+              {passed.no}
+            </Text>
+            <Text role="caption" tone="muted" align="center" style={{ marginTop: space.sm }}>
+              {passed.dispatch} has left the property. Write this number on the driver&apos;s copy —
+              it is what ties the vehicle at the gate to the goods that went with it.
+            </Text>
+          </View>
+          <View style={{ marginTop: space.lg }}>
+            <PrimaryButton label="Done" tone="neutral" onPress={() => setPassed(null)} />
+          </View>
+        </Card>
+      ) : loading ? (
+        <Loading />
+      ) : loadError ? (
+        <Notice
+          icon="cloud-offline-outline"
+          title="Could not load Terminal 2"
+          body={loadError}
+          tone="bad"
+        />
+      ) : waiting.length === 0 ? (
+        <Notice
+          icon="checkmark-circle-outline"
+          title="Nothing is waiting to leave"
+          body="Consignments appear here once they are staged at Terminal 2. Nothing leaves the property except through this screen."
+        />
+      ) : selected ? (
+        <PassPanel
+          dispatch={selected}
+          propertyId={propertyId ?? ""}
+          blocked={me !== null && selected.stagedBy === me}
+          onCancel={() => setSelected(null)}
+          onDone={(no) => {
+            setPassed({ no, dispatch: selected.dispatchNo });
+            setSelected(null);
+            void refresh();
+          }}
+        />
+      ) : (
+        <Card padded={false}>
+          {waiting.map((d, i) => (
+            <StagedRow
+              key={d.dispatchId}
+              dispatch={d}
+              mine={me !== null && d.stagedBy === me}
+              divider={i < waiting.length - 1}
+              onPress={() => setSelected(d)}
             />
-          ) : (
-            <Card padded={false}>
-              {waiting.map((d, i) => (
-                <StagedRow
-                  key={d.dispatchId}
-                  dispatch={d}
-                  mine={me !== null && d.stagedBy === me}
-                  divider={i < waiting.length - 1}
-                  onPress={() => setSelected(d)}
-                />
-              ))}
-            </Card>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+          ))}
+        </Card>
+      )}
+    </Screen>
   );
 }
 
@@ -237,17 +183,11 @@ function StagedRow({
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.subheading, ...font("semibold"), color: p.text }}
-          >
+          <Text lines={1} role="heading">
             {kind}
             {dispatch.recipientName ? ` · ${dispatch.recipientName}` : ""}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
             {dispatch.dispatchNo} · {dispatch.lineCount} line
             {dispatch.lineCount === 1 ? "" : "s"} · staged by {dispatch.stagedByName ?? "someone"}
           </Text>
@@ -322,10 +262,8 @@ function PassPanel({
   return (
     <>
       <Card>
-        <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>
-          {dispatch.dispatchNo}
-        </Text>
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 2 }}>
+        <Text role="title">{dispatch.dispatchNo}</Text>
+        <Text role="caption" tone="muted" style={{ marginTop: 2 }}>
           {dispatch.lineCount} line{dispatch.lineCount === 1 ? "" : "s"} · {dispatch.totalQty} in
           total · staged by {dispatch.stagedByName ?? "someone"}
         </Text>
@@ -342,15 +280,7 @@ function PassPanel({
             }}
           >
             <Ionicons name="lock-closed" size={15} color={p.danger} style={{ marginTop: 1 }} />
-            <Text
-              style={{
-                flex: 1,
-                fontSize: type.caption,
-                color: p.danger,
-                marginLeft: space.xs,
-                lineHeight: 17,
-              }}
-            >
+            <Text role="caption" tone="danger" style={{ flex: 1, marginLeft: space.xs }}>
               You staged this consignment, so you cannot also verify it out. Two people is the
               control, and there is no override.
             </Text>

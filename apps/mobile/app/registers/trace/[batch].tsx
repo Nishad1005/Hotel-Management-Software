@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../../../components/ui";
+import { ActivityIndicator, View } from "react-native";
+import { Card, Notice, PrimaryButton, Screen, StatusPill, Text } from "../../../components/ui";
 import {
   REASON_LABELS,
   REJECT_LABELS,
@@ -12,7 +11,7 @@ import {
 } from "../../../lib/registers";
 import { useSession } from "../../../lib/session";
 import { STATE_LABELS } from "../../../lib/stock-report";
-import { elevation, font, space, tabular, type, usePalette } from "../../../theme";
+import { space, usePalette } from "../../../theme";
 
 /**
  * The forward trace — PRD section 7.5.
@@ -28,7 +27,6 @@ import { elevation, font, space, tabular, type, usePalette } from "../../../them
 export default function BatchTrace() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
   const { batch } = useLocalSearchParams<{ batch: string }>();
 
@@ -84,139 +82,107 @@ export default function BatchTrace() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title={provenance.itemName}
-            subtitle={`Batch ${provenance.batchNo}${provenance.isSystemGenerated ? " · generated" : ""}`}
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}>
-        <Page>
-          <Label>Where it came from</Label>
-          <Card>
-            {provenance.source === "OPENING_STOCK" ? (
-              /*
+    <Screen
+      title={provenance.itemName}
+      subtitle={`Batch ${provenance.batchNo}${provenance.isSystemGenerated ? " · generated" : ""}`}
+      onBack={() => router.back()}
+    >
+      <Label>Where it came from</Label>
+      <Card>
+        {provenance.source === "OPENING_STOCK" ? (
+          /*
                 Said plainly rather than shown as blanks. An opening balance has no vendor
                 and no gate entry because nobody delivered it — it was counted onto the
                 books on day one — and a trace with empty fields reads as missing data
                 rather than as an honest answer.
               */
-              <Text style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}>
-                Recorded as opening stock. There is no vendor or gate entry behind it: this batch
-                was counted onto the books when the property started using Golai, not received
-                through the gate. Everything after that point is traced below.
-              </Text>
-            ) : (
-              <>
-                <Fact label="Vendor" value={provenance.vendorName ?? "Not named"} />
-                {provenance.vendorFssai ? (
-                  <Fact label="FSSAI licence" value={provenance.vendorFssai} />
-                ) : null}
-                <Fact label="Arrived at the gate" value={dateTime(provenance.arrivedAt)} />
-                <Fact label="Gate entry" value={provenance.gateEntryNo ?? "—"} mono />
-                <Fact label="Goods receipt" value={provenance.grnNo ?? "—"} mono />
-                <Fact label="Received by" value={provenance.receivedBy ?? "—"} />
-              </>
-            )}
-          </Card>
-
-          <View style={{ height: space.xl }} />
-
-          <Label>What was checked</Label>
-          <Card>
-            <Fact label="Best before" value={provenance.bestBefore ?? "Does not expire"} />
-            {provenance.mfgDate ? <Fact label="Manufactured" value={provenance.mfgDate} /> : null}
-            {provenance.receiptTempC !== null ? (
-              <Fact label="Probe temperature" value={`${provenance.receiptTempC} °C`} />
-            ) : null}
-            {provenance.pctAtReceipt !== null ? (
-              <Fact
-                label="Shelf life at receipt"
-                value={`${provenance.pctAtReceipt}%`}
-                hint="Frozen at the moment of receiving, never recomputed — it records how old the delivery already was."
-              />
-            ) : null}
-            {provenance.decision ? (
-              <Fact
-                label="Decision"
-                value={
-                  provenance.decision === "ACCEPT"
-                    ? "Accepted"
-                    : provenance.decision === "REJECT"
-                      ? "Rejected"
-                      : "Part accepted"
-                }
-                {...(provenance.rejectReason
-                  ? { hint: REJECT_LABELS[provenance.rejectReason] }
-                  : {})}
-              />
-            ) : null}
-
-            {provenance.dwellBreach ? (
-              <View style={{ marginTop: space.sm }}>
-                <StatusPill
-                  icon="hourglass"
-                  label="Stood at Terminal 1 longer than allowed"
-                  tone="warn"
-                />
-              </View>
-            ) : null}
-          </Card>
-
-          <View style={{ height: space.xl }} />
-
-          <Label>Everywhere it went</Label>
-          {steps.length === 0 ? (
-            <Card>
-              <Text style={{ fontSize: type.caption, color: p.textMuted }}>
-                No movements recorded against this batch yet.
-              </Text>
-            </Card>
-          ) : (
-            <Card padded={false}>
-              {steps.map((s, i) => (
-                <Step
-                  key={`${s.occurredAt}-${i}`}
-                  step={s}
-                  first={i === 0}
-                  last={i === steps.length - 1}
-                />
-              ))}
-            </Card>
-          )}
-
-          <Text
-            style={{
-              fontSize: type.caption,
-              color: p.textMuted,
-              marginTop: space.lg,
-              lineHeight: 18,
-            }}
-          >
-            Nothing on this screen was entered for a register. Every line is a record made at a gate
-            for an operational reason, read back — which is what makes it worth showing to an
-            inspector.
+          <Text role="caption" tone="muted">
+            Recorded as opening stock. There is no vendor or gate entry behind it: this batch was
+            counted onto the books when the property started using PARGOLAI, not received through
+            the gate. Everything after that point is traced below.
           </Text>
-        </Page>
-      </ScrollView>
-    </View>
+        ) : (
+          <>
+            <Fact label="Vendor" value={provenance.vendorName ?? "Not named"} />
+            {provenance.vendorFssai ? (
+              <Fact label="FSSAI licence" value={provenance.vendorFssai} />
+            ) : null}
+            <Fact label="Arrived at the gate" value={dateTime(provenance.arrivedAt)} />
+            <Fact label="Gate entry" value={provenance.gateEntryNo ?? "—"} mono />
+            <Fact label="Goods receipt" value={provenance.grnNo ?? "—"} mono />
+            <Fact label="Received by" value={provenance.receivedBy ?? "—"} />
+          </>
+        )}
+      </Card>
+
+      <View style={{ height: space.xl }} />
+
+      <Label>What was checked</Label>
+      <Card>
+        <Fact label="Best before" value={provenance.bestBefore ?? "Does not expire"} />
+        {provenance.mfgDate ? <Fact label="Manufactured" value={provenance.mfgDate} /> : null}
+        {provenance.receiptTempC !== null ? (
+          <Fact label="Probe temperature" value={`${provenance.receiptTempC} °C`} />
+        ) : null}
+        {provenance.pctAtReceipt !== null ? (
+          <Fact
+            label="Shelf life at receipt"
+            value={`${provenance.pctAtReceipt}%`}
+            hint="Frozen at the moment of receiving, never recomputed — it records how old the delivery already was."
+          />
+        ) : null}
+        {provenance.decision ? (
+          <Fact
+            label="Decision"
+            value={
+              provenance.decision === "ACCEPT"
+                ? "Accepted"
+                : provenance.decision === "REJECT"
+                  ? "Rejected"
+                  : "Part accepted"
+            }
+            {...(provenance.rejectReason ? { hint: REJECT_LABELS[provenance.rejectReason] } : {})}
+          />
+        ) : null}
+
+        {provenance.dwellBreach ? (
+          <View style={{ marginTop: space.sm }}>
+            <StatusPill
+              icon="hourglass"
+              label="Stood at Terminal 1 longer than allowed"
+              tone="warn"
+            />
+          </View>
+        ) : null}
+      </Card>
+
+      <View style={{ height: space.xl }} />
+
+      <Label>Everywhere it went</Label>
+      {steps.length === 0 ? (
+        <Card>
+          <Text role="caption" tone="muted">
+            No movements recorded against this batch yet.
+          </Text>
+        </Card>
+      ) : (
+        <Card padded={false}>
+          {steps.map((s, i) => (
+            <Step
+              key={`${s.occurredAt}-${i}`}
+              step={s}
+              first={i === 0}
+              last={i === steps.length - 1}
+            />
+          ))}
+        </Card>
+      )}
+
+      <Text role="caption" tone="muted" style={{ marginTop: space.lg }}>
+        Nothing on this screen was entered for a register. Every line is a record made at a gate for
+        an operational reason, read back — which is what makes it worth showing to an inspector.
+      </Text>
+    </Screen>
   );
 }
 
@@ -269,14 +235,12 @@ function Step({ step, first, last }: { step: TraceStep; first: boolean; last: bo
           paddingTop: space.sm,
         }}
       >
-        <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
-          {REASON_LABELS[step.reason]}
-        </Text>
-        <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}>
+        <Text weight="semibold">{REASON_LABELS[step.reason]}</Text>
+        <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
           {origin ? `${origin} → ` : ""}
           {destination}
         </Text>
-        <Text style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1 }}>
+        <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
           {dateTime(step.occurredAt)}
           {step.recordedByName ? ` · ${step.recordedByName}` : ""}
         </Text>
@@ -307,7 +271,7 @@ function Step({ step, first, last }: { step: TraceStep; first: boolean; last: bo
         </View>
 
         {step.note ? (
-          <Text style={{ fontSize: type.micro, color: p.textMuted, marginTop: space.xs }}>
+          <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
             {step.note}
           </Text>
         ) : null}
@@ -327,24 +291,17 @@ function Fact({
   hint?: string;
   mono?: boolean;
 }) {
-  const p = usePalette();
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: space.sm }}>
-      <Text style={{ width: 128, fontSize: type.caption, color: p.textMuted }}>{label}</Text>
+      <Text role="caption" tone="muted" style={{ width: 128 }}>
+        {label}
+      </Text>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          selectable
-          style={{
-            fontSize: type.caption,
-            ...font("semibold"),
-            color: p.text,
-            ...(mono ? tabular : {}),
-          }}
-        >
+        <Text selectable role="label" weight="semibold" numeric={mono === true}>
           {value}
         </Text>
         {hint ? (
-          <Text style={{ fontSize: type.micro, color: p.textFaint, marginTop: 1, lineHeight: 15 }}>
+          <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
             {hint}
           </Text>
         ) : null}
@@ -354,18 +311,12 @@ function Fact({
 }
 
 function Label({ children }: { children: string }) {
-  const p = usePalette();
   return (
     <Text
       accessibilityRole="header"
-      style={{
-        fontSize: type.micro,
-        ...font("bold"),
-        letterSpacing: 0.9,
-        textTransform: "uppercase",
-        color: p.textFaint,
-        marginBottom: space.sm,
-      }}
+      role="overline"
+      tone="muted"
+      style={{ marginBottom: space.sm }}
     >
       {children}
     </Text>

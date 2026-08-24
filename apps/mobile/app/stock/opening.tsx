@@ -1,23 +1,22 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, View } from "react-native";
 import {
   Card,
   Field,
   FieldError,
-  Header,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   SelectRow,
+  Text,
 } from "../../components/ui";
 import { DateField } from "../../components/date-field";
 import { listItems, type ItemListRow } from "../../lib/masters";
 import { useSession } from "../../lib/session";
 import { listLocations, type LocationOption } from "../../lib/locations";
 import { recordOpeningStock } from "../../lib/stock";
-import { elevation, font, space, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * What is already in the store.
@@ -30,7 +29,6 @@ import { elevation, font, space, type, usePalette } from "../../theme";
 export default function OpeningStock() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [items, setItems] = useState<ItemListRow[]>([]);
@@ -132,119 +130,92 @@ export default function OpeningStock() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Opening stock"
-            subtitle="Record what is physically in the store"
-            onBack={() => router.back()}
-          />
-        </Page>
+    <Screen
+      title="Opening stock"
+      subtitle="Record what is physically in the store"
+      onBack={() => router.back()}
+    >
+      {saved ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: p.accentSurface,
+            borderRadius: 10,
+            padding: space.md,
+            marginBottom: space.lg,
+          }}
+        >
+          <Text role="caption" tone="accent" weight="semibold" style={{ flex: 1 }}>
+            {saved}
+          </Text>
+        </View>
+      ) : null}
+
+      <Card>
+        <SelectRow
+          label="Item"
+          value={itemId || null}
+          placeholder="Choose an item"
+          choices={items.map((i) => ({ id: i.id, label: i.name, sublabel: i.code }))}
+          onSelect={setItemId}
+        />
+
+        <SelectRow
+          label="Stored at"
+          value={locationId || null}
+          placeholder="Choose a location"
+          choices={locations.map((l) => ({ id: l.id, label: l.name, sublabel: l.code }))}
+          onSelect={setLocationId}
+        />
+
+        <Field
+          label="Quantity"
+          value={qty}
+          onChangeText={setQty}
+          placeholder="0"
+          keyboardType="decimal-pad"
+          {...(item ? { suffix: item.uomCode } : {})}
+        />
+
+        <Field
+          label="Batch number"
+          value={batchNo}
+          onChangeText={setBatchNo}
+          placeholder="Leave blank to generate one"
+          autoCapitalize="characters"
+          hint="A generated number is marked as such, so a trace can tell it from a supplier's."
+        />
+
+        <DateField
+          label={needsDate ? "Best before" : "Best before (optional)"}
+          value={bestBefore}
+          onChange={setBestBefore}
+          optional={!needsDate}
+          {...(needsDate
+            ? { hint: "Required: this item is marked perishable." }
+            : { hint: "Leave blank if it does not expire." })}
+        />
+
+        {error ? <FieldError message={error} /> : null}
+      </Card>
+
+      {problems.length > 0 && (qty.trim() || itemId) ? (
+        <View style={{ marginTop: space.md }}>
+          {problems.map((msg) => (
+            <FieldError key={msg} message={msg} />
+          ))}
+        </View>
+      ) : null}
+
+      <View style={{ marginTop: space.xl }}>
+        <PrimaryButton
+          label={saving ? "Recording…" : "Record stock"}
+          icon="checkmark"
+          onPress={save}
+          disabled={saving || problems.length > 0}
+        />
       </View>
-
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {saved ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: p.accentSurface,
-                borderRadius: 10,
-                padding: space.md,
-                marginBottom: space.lg,
-              }}
-            >
-              <Text
-                style={{ fontSize: type.caption, color: p.accent, ...font("semibold"), flex: 1 }}
-              >
-                {saved}
-              </Text>
-            </View>
-          ) : null}
-
-          <Card>
-            <SelectRow
-              label="Item"
-              value={itemId || null}
-              placeholder="Choose an item"
-              choices={items.map((i) => ({ id: i.id, label: i.name, sublabel: i.code }))}
-              onSelect={setItemId}
-            />
-
-            <SelectRow
-              label="Stored at"
-              value={locationId || null}
-              placeholder="Choose a location"
-              choices={locations.map((l) => ({ id: l.id, label: l.name, sublabel: l.code }))}
-              onSelect={setLocationId}
-            />
-
-            <Field
-              label="Quantity"
-              value={qty}
-              onChangeText={setQty}
-              placeholder="0"
-              keyboardType="decimal-pad"
-              {...(item ? { suffix: item.uomCode } : {})}
-            />
-
-            <Field
-              label="Batch number"
-              value={batchNo}
-              onChangeText={setBatchNo}
-              placeholder="Leave blank to generate one"
-              autoCapitalize="characters"
-              hint="A generated number is marked as such, so a trace can tell it from a supplier's."
-            />
-
-            <DateField
-              label={needsDate ? "Best before" : "Best before (optional)"}
-              value={bestBefore}
-              onChange={setBestBefore}
-              optional={!needsDate}
-              {...(needsDate
-                ? { hint: "Required: this item is marked perishable." }
-                : { hint: "Leave blank if it does not expire." })}
-            />
-
-            {error ? <FieldError message={error} /> : null}
-          </Card>
-
-          {problems.length > 0 && (qty.trim() || itemId) ? (
-            <View style={{ marginTop: space.md }}>
-              {problems.map((msg) => (
-                <FieldError key={msg} message={msg} />
-              ))}
-            </View>
-          ) : null}
-
-          <View style={{ marginTop: space.xl }}>
-            <PrimaryButton
-              label={saving ? "Recording…" : "Record stock"}
-              icon="checkmark"
-              onPress={save}
-              disabled={saving || problems.length > 0}
-            />
-          </View>
-        </Page>
-      </ScrollView>
-    </View>
+    </Screen>
   );
 }

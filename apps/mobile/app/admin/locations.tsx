@@ -13,19 +13,19 @@ import {
 } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, View } from "react-native";
 import {
   Card,
   ChoiceTile,
   Field,
   FieldError,
-  Header,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   Section,
   SelectRow,
+  Text,
 } from "../../components/ui";
 import { printer } from "../../lib/print";
 import {
@@ -37,7 +37,7 @@ import {
   type ZoneSummary,
 } from "../../lib/location-admin";
 import { useSession } from "../../lib/session";
-import { elevation, font, radius, space, touch, type, usePalette } from "../../theme";
+import { radius, space, touch, usePalette } from "../../theme";
 
 /**
  * Zones and locations — the store, laid out in its own words.
@@ -56,7 +56,6 @@ import { elevation, font, radius, space, touch, type, usePalette } from "../../t
 export default function Locations() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty, canEditMasters } = useSession();
 
   const [zones, setZones] = useState<ZoneSummary[]>([]);
@@ -152,279 +151,232 @@ export default function Locations() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Zones & locations"
-            subtitle="Lay out the store in its own words, then print the stickers"
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
+    <Screen
+      title="Zones & locations"
+      subtitle="Lay out the store in its own words, then print the stickers"
+      onBack={() => router.back()}
+    >
+      {result ? (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: p.accentSurface,
+            borderRadius: radius.md,
+            padding: space.md,
+            marginBottom: space.lg,
+          }}
+        >
+          <Ionicons name="checkmark-circle" size={17} color={p.accent} />
+          <Text
+            role="caption"
+            tone="accent"
+            weight="semibold"
+            style={{ marginLeft: space.sm, flex: 1 }}
+          >
+            {result}
+          </Text>
+        </View>
+      ) : null}
 
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}>
-        <Page>
-          {result ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: p.accentSurface,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginBottom: space.lg,
-              }}
-            >
-              <Ionicons name="checkmark-circle" size={17} color={p.accent} />
-              <Text
-                style={{
-                  fontSize: type.caption,
-                  ...font("semibold"),
-                  color: p.accent,
-                  marginLeft: space.sm,
-                  flex: 1,
+      {error ? (
+        <View style={{ marginBottom: space.lg }}>
+          <FieldError message={error} />
+        </View>
+      ) : null}
+
+      {loading ? (
+        <Loading />
+      ) : zones.length === 0 ? (
+        <Notice
+          icon="map-outline"
+          title="No zones yet"
+          body="Zones are the areas of the store — dry store, cold room, freezer, and whatever else this property has. Seven are created when a property is set up; add the rest below."
+        />
+      ) : (
+        zones.map((z) => (
+          <Section key={z.id} title={`${z.code} · ${z.name}`}>
+            <Card padded={false}>
+              <Pressable
+                onPress={() => {
+                  setOpenZone(openZone === z.id ? null : z.id);
+                  setResult(null);
+                  setPrefix("");
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={`${z.name}, ${z.children.length} locations`}
+                style={({ pressed }) =>
+                  ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    minHeight: touch.desk,
+                    paddingHorizontal: space.lg,
+                    paddingVertical: space.md,
+                    backgroundColor: pressed ? p.surfaceSunken : "transparent",
+                    cursor: "pointer",
+                  }) as never
+                }
               >
-                {result}
-              </Text>
-            </View>
-          ) : null}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text weight="semibold">
+                    {z.children.length === 0
+                      ? "No locations inside yet"
+                      : `${z.children.length} location${z.children.length === 1 ? "" : "s"}`}
+                  </Text>
+                  <Text role="caption" tone="muted" style={{ marginTop: 1 }}>
+                    {z.regime.toLowerCase()} · {z.fixtureType}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={openZone === z.id ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={p.textMuted}
+                />
+              </Pressable>
 
-          {error ? (
-            <View style={{ marginBottom: space.lg }}>
-              <FieldError message={error} />
-            </View>
-          ) : null}
-
-          {loading ? (
-            <ActivityIndicator style={{ marginTop: space.xxl }} color={p.accent} />
-          ) : zones.length === 0 ? (
-            <Notice
-              icon="map-outline"
-              title="No zones yet"
-              body="Zones are the areas of the store — dry store, cold room, freezer, and whatever else this property has. Seven are created when a property is set up; add the rest below."
-            />
-          ) : (
-            zones.map((z) => (
-              <Section key={z.id} title={`${z.code} · ${z.name}`}>
-                <Card padded={false}>
-                  <Pressable
-                    onPress={() => {
-                      setOpenZone(openZone === z.id ? null : z.id);
-                      setResult(null);
-                      setPrefix("");
-                    }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${z.name}, ${z.children.length} locations`}
-                    style={({ pressed }) =>
-                      ({
-                        flexDirection: "row",
-                        alignItems: "center",
-                        minHeight: touch.desk,
-                        paddingHorizontal: space.lg,
-                        paddingVertical: space.md,
-                        backgroundColor: pressed ? p.surfaceSunken : "transparent",
-                        cursor: "pointer",
-                      }) as never
-                    }
-                  >
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
-                        {z.children.length === 0
-                          ? "No locations inside yet"
-                          : `${z.children.length} location${z.children.length === 1 ? "" : "s"}`}
-                      </Text>
-                      <Text style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}>
-                        {z.regime.toLowerCase()} · {z.fixtureType}
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name={openZone === z.id ? "chevron-up" : "chevron-down"}
-                      size={18}
-                      color={p.textMuted}
-                    />
-                  </Pressable>
-
-                  {openZone === z.id ? (
+              {openZone === z.id ? (
+                <View
+                  style={{
+                    padding: space.lg,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: p.border,
+                  }}
+                >
+                  {z.children.length > 0 ? (
                     <View
                       style={{
-                        padding: space.lg,
-                        borderTopWidth: StyleSheet.hairlineWidth,
-                        borderTopColor: p.border,
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: space.sm,
+                        marginBottom: space.xl,
                       }}
                     >
-                      {z.children.length > 0 ? (
-                        <View
-                          style={{
-                            flexDirection: "row",
-                            flexWrap: "wrap",
-                            gap: space.sm,
-                            marginBottom: space.xl,
-                          }}
-                        >
-                          {z.children.map((child) => (
-                            <BinChip
-                              key={child.id}
-                              node={child}
-                              disabled={busy || !canEditMasters}
-                              onRetire={() => void retire(child)}
-                            />
-                          ))}
-                        </View>
-                      ) : null}
+                      {z.children.map((child) => (
+                        <BinChip
+                          key={child.id}
+                          node={child}
+                          disabled={busy || !canEditMasters}
+                          onRetire={() => void retire(child)}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
 
-                      {z.children.length > 0 ? (
-                        <LabelPrinter zone={z} propertyName={activeProperty?.propertyName ?? ""} />
-                      ) : null}
+                  {z.children.length > 0 ? (
+                    <LabelPrinter zone={z} propertyName={activeProperty?.propertyName ?? ""} />
+                  ) : null}
 
-                      {canEditMasters ? (
-                        <>
-                          <Text
-                            style={{
-                              fontSize: type.caption,
-                              ...font("bold"),
-                              letterSpacing: 1.1,
-                              textTransform: "uppercase",
-                              color: p.textMuted,
-                              marginBottom: space.md,
-                            }}
-                          >
-                            Add locations
-                          </Text>
+                  {canEditMasters ? (
+                    <>
+                      <Text role="overline" tone="muted" style={{ marginBottom: space.md }}>
+                        Add locations
+                      </Text>
 
+                      <Field
+                        label="What does this property call them?"
+                        value={fixtureName}
+                        onChangeText={(next) => {
+                          setFixtureName(next);
+                          setPrefix("");
+                        }}
+                        placeholder="Shelf, Rack, Ghoda, Peti stack"
+                        hint="Their word, not ours. It appears on every screen and every sticker."
+                      />
+
+                      <View style={{ flexDirection: "row", gap: space.md }}>
+                        <View style={{ flex: 1 }}>
                           <Field
-                            label="What does this property call them?"
-                            value={fixtureName}
-                            onChangeText={(next) => {
-                              setFixtureName(next);
-                              setPrefix("");
-                            }}
-                            placeholder="Shelf, Rack, Ghoda, Peti stack"
-                            hint="Their word, not ours. It appears on every screen and every sticker."
+                            label="Code prefix"
+                            value={prefix || fixturePrefix(fixtureName)}
+                            onChangeText={setPrefix}
+                            autoCapitalize="characters"
                           />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Field
+                            label="From"
+                            value={from}
+                            onChangeText={setFrom}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Field
+                            label="To"
+                            value={to}
+                            onChangeText={setTo}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      </View>
 
-                          <View style={{ flexDirection: "row", gap: space.md }}>
-                            <View style={{ flex: 1 }}>
-                              <Field
-                                label="Code prefix"
-                                value={prefix || fixturePrefix(fixtureName)}
-                                onChangeText={setPrefix}
-                                autoCapitalize="characters"
-                              />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Field
-                                label="From"
-                                value={from}
-                                onChangeText={setFrom}
-                                keyboardType="numeric"
-                              />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Field
-                                label="To"
-                                value={to}
-                                onChangeText={setTo}
-                                keyboardType="numeric"
-                              />
-                            </View>
-                          </View>
-
-                          {/*
+                      {/*
                             The preview. Shown before anything is written, because the
                             alternative is finding the naming wrong after the labels are
                             printed and stuck.
                           */}
-                          {plan?.ok ? (
-                            <View
-                              style={{
-                                backgroundColor: p.surfaceSunken,
-                                borderRadius: radius.md,
-                                padding: space.md,
-                                marginBottom: space.lg,
-                              }}
-                            >
-                              <Text
-                                style={{
-                                  fontSize: type.caption,
-                                  color: p.textMuted,
-                                  marginBottom: space.xxs,
-                                }}
-                              >
-                                Will create {plan.count} location{plan.count === 1 ? "" : "s"}
-                              </Text>
-                              <Text
-                                style={{
-                                  fontSize: type.body,
-                                  ...font("semibold"),
-                                  color: p.text,
-                                  fontVariant: ["tabular-nums"],
-                                }}
-                              >
-                                {plan.first}
-                                {plan.count > 1 ? `  …  ${plan.last}` : ""}
-                              </Text>
-                            </View>
-                          ) : (
-                            <View style={{ marginBottom: space.lg }}>
-                              <FieldError message={explain(plan?.errors ?? [])} />
-                            </View>
-                          )}
-
-                          <PrimaryButton
-                            label={
-                              busy
-                                ? "Adding…"
-                                : `Add ${plan?.ok ? plan.count : 0} location${plan?.count === 1 ? "" : "s"}`
-                            }
-                            icon="add"
-                            onPress={() => void addRun()}
-                            disabled={busy || !plan?.ok}
-                          />
-                        </>
+                      {plan?.ok ? (
+                        <View
+                          style={{
+                            backgroundColor: p.surfaceSunken,
+                            borderRadius: radius.md,
+                            padding: space.md,
+                            marginBottom: space.lg,
+                          }}
+                        >
+                          <Text role="caption" tone="muted" style={{ marginBottom: space.xxs }}>
+                            Will create {plan.count} location{plan.count === 1 ? "" : "s"}
+                          </Text>
+                          <Text weight="semibold" numeric>
+                            {plan.first}
+                            {plan.count > 1 ? `  …  ${plan.last}` : ""}
+                          </Text>
+                        </View>
                       ) : (
-                        <Notice
-                          icon="lock-closed-outline"
-                          title="Read only"
-                          body="Only an owner or administrator can change the location tree."
-                        />
+                        <View style={{ marginBottom: space.lg }}>
+                          <FieldError message={explain(plan?.errors ?? [])} />
+                        </View>
                       )}
-                    </View>
-                  ) : null}
-                </Card>
-              </Section>
-            ))
-          )}
 
-          {canEditMasters && !loading ? (
-            <NewZone
-              propertyId={activeProperty?.propertyId ?? ""}
-              propertyCode={activeProperty?.propertyCode ?? ""}
-              busy={busy}
-              onCreated={(code) => {
-                setResult(`${code} added. Add the shelves inside it next.`);
-                setError(null);
-                void load();
-              }}
-              onError={setError}
-            />
-          ) : null}
-        </Page>
-      </ScrollView>
-    </View>
+                      <PrimaryButton
+                        label={
+                          busy
+                            ? "Adding…"
+                            : `Add ${plan?.ok ? plan.count : 0} location${plan?.count === 1 ? "" : "s"}`
+                        }
+                        icon="add"
+                        onPress={() => void addRun()}
+                        disabled={busy || !plan?.ok}
+                      />
+                    </>
+                  ) : (
+                    <Notice
+                      icon="lock-closed-outline"
+                      title="Read only"
+                      body="Only an owner or administrator can change the location tree."
+                    />
+                  )}
+                </View>
+              ) : null}
+            </Card>
+          </Section>
+        ))
+      )}
+
+      {canEditMasters && !loading ? (
+        <NewZone
+          propertyId={activeProperty?.propertyId ?? ""}
+          propertyCode={activeProperty?.propertyCode ?? ""}
+          busy={busy}
+          onCreated={(code) => {
+            setResult(`${code} added. Add the shelves inside it next.`);
+            setError(null);
+            void load();
+          }}
+          onError={setError}
+        />
+      ) : null}
+    </Screen>
   );
 }
 
@@ -453,7 +405,6 @@ function NewZone({
   onCreated: (code: string) => void;
   onError: (message: string) => void;
 }) {
-  const p = usePalette();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [suffix, setSuffix] = useState("");
@@ -530,14 +481,7 @@ function NewZone({
           refuses a regime mismatch outright — so the mistake surfaces as a refusal at the
           dock rather than as a question here.
         */}
-        <Text
-          style={{
-            fontSize: type.label,
-            ...font("semibold"),
-            color: p.text,
-            marginBottom: space.xs,
-          }}
-        >
+        <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
           How is it stored?
         </Text>
         <View style={{ flexDirection: "row", gap: space.sm, marginBottom: space.lg }}>
@@ -601,7 +545,6 @@ function NewZone({
  * cannot come back quietly.
  */
 function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName: string }) {
-  const p = usePalette();
   const [sizeId, setSizeId] = useState<LabelSizeId>("thermal-100x50");
   const [error, setError] = useState<string | null>(null);
 
@@ -625,16 +568,7 @@ function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName:
 
   return (
     <View style={{ marginBottom: space.xl }}>
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("bold"),
-          letterSpacing: 1.1,
-          textTransform: "uppercase",
-          color: p.textMuted,
-          marginBottom: space.md,
-        }}
-      >
+      <Text role="overline" tone="muted" style={{ marginBottom: space.md }}>
         Print labels
       </Text>
 
@@ -653,9 +587,7 @@ function LabelPrinter({ zone, propertyName }: { zone: ZoneSummary; propertyName:
         onPress={() => void run()}
       />
 
-      <Text
-        style={{ fontSize: type.caption, color: p.textMuted, marginTop: space.sm, lineHeight: 17 }}
-      >
+      <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
         Choose &ldquo;Save as PDF&rdquo; in the print dialog to send them to a print shop instead.
       </Text>
 
@@ -687,14 +619,7 @@ function BinChip({
         backgroundColor: p.surfaceSunken,
       }}
     >
-      <Text
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: p.text,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
+      <Text role="caption" weight="semibold" numeric>
         {node.code}
       </Text>
       {!disabled ? (

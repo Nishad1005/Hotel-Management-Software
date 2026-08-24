@@ -1,8 +1,8 @@
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Notice, PrimaryButton, Row } from "../components/ui";
+import { Card, Notice, PrimaryButton, Row, Text } from "../components/ui";
 import { useSession } from "../lib/session";
-import { font, space, type, usePalette } from "../theme";
+import { space, usePalette } from "../theme";
 
 /**
  * Which property am I working in?
@@ -41,22 +41,43 @@ export default function ChooseProperty() {
   return (
     <ScrollView
       style={{ backgroundColor: p.background }}
-      contentContainerStyle={{ padding: space.md, paddingTop: insets.top + space.xl }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        justifyContent: "center",
+        padding: space.lg,
+        paddingTop: insets.top + space.xl,
+      }}
     >
-      <Text style={{ fontSize: type.title, ...font("bold"), color: p.text }}>Choose property</Text>
-      <Text style={{ fontSize: type.label, color: p.textMuted, marginBottom: space.lg }}>
-        Everything you see and record belongs to the property you pick.
-      </Text>
+      {/* Centred and measured, because this screen sits outside the shell and would
+          otherwise run the full width of a laptop for the sake of three rows. */}
+      <View style={{ width: "100%", maxWidth: 480, alignSelf: "center" }}>
+        <Text role="title">Choose property</Text>
+        <Text role="label" tone="muted" style={{ marginBottom: space.lg }}>
+          Everything you see and record belongs to the property you pick.
+        </Text>
 
-      {properties.map((prop) => (
-        <Row
-          key={prop.propertyId}
-          icon="business"
-          label={prop.propertyName}
-          value={`${prop.propertyCode} · ${prop.organisationName}`}
-          onPress={() => setActiveProperty(prop.propertyId)}
-        />
-      ))}
+        <Card padded={false}>
+          {properties.map((prop, i) => (
+            <Row
+              key={prop.propertyId}
+              icon="business"
+              label={prop.propertyName}
+              value={`${prop.propertyCode} · ${prop.organisationName}`}
+              divider={i < properties.length - 1}
+              onPress={() => setActiveProperty(prop.propertyId)}
+            />
+          ))}
+        </Card>
+
+        <View style={{ marginTop: space.xl }}>
+          <PrimaryButton
+            label="Sign out"
+            icon="log-out-outline"
+            tone="neutral"
+            onPress={() => void signOut()}
+          />
+        </View>
+      </View>
     </ScrollView>
   );
 }

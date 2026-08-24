@@ -1,12 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, StatusPill } from "../../components/ui";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Card, Loading, Notice, Screen, StatusPill, Text } from "../../components/ui";
 import { listOpenArrivals, type OpenArrival } from "../../lib/receiving";
 import { useSession } from "../../lib/session";
-import { elevation, font, radius, space, type, usePalette } from "../../theme";
+import { radius, space, usePalette } from "../../theme";
 
 /**
  * The receiving worklist.
@@ -20,9 +19,7 @@ import { elevation, font, radius, space, type, usePalette } from "../../theme";
  * break the one claim this module makes.
  */
 export default function ReceivingWorklist() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [arrivals, setArrivals] = useState<OpenArrival[]>([]);
@@ -64,71 +61,47 @@ export default function ReceivingWorklist() {
   const overdue = arrivals.filter((a) => a.hoursOpen >= 4).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Receiving"
-            subtitle={
-              loading
-                ? "Loading arrivals"
-                : waiting === 0
-                  ? "Nothing waiting at the dock"
-                  : `${waiting} arrival${waiting === 1 ? "" : "s"} to receive${
-                      overdue > 0 ? ` · ${overdue} waiting over four hours` : ""
-                    }`
-            }
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}>
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice
-              icon="cloud-offline-outline"
-              title="Could not load arrivals"
-              body={error}
-              tone="bad"
+    <Screen
+      title="Receiving"
+      subtitle={
+        loading
+          ? "Loading arrivals"
+          : waiting === 0
+            ? "Nothing waiting at the dock"
+            : `${waiting} arrival${waiting === 1 ? "" : "s"} to receive${
+                overdue > 0 ? ` · ${overdue} waiting over four hours` : ""
+              }`
+      }
+      onBack={() => router.back()}
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice
+          icon="cloud-offline-outline"
+          title="Could not load arrivals"
+          body={error}
+          tone="bad"
+        />
+      ) : arrivals.length === 0 ? (
+        <Notice
+          icon="checkmark-circle-outline"
+          title="Every arrival is accounted for"
+          body="Security records vehicles as they reach the gate, and each one appears here until a goods receipt is posted against it. Nothing is outstanding."
+        />
+      ) : (
+        <Card padded={false}>
+          {arrivals.map((a, i) => (
+            <ArrivalRow
+              key={a.id}
+              arrival={a}
+              divider={i < arrivals.length - 1}
+              onPress={() => router.push(`/receive/${a.id}`)}
             />
-          ) : arrivals.length === 0 ? (
-            <Notice
-              icon="checkmark-circle-outline"
-              title="Every arrival is accounted for"
-              body="Security records vehicles as they reach the gate, and each one appears here until a goods receipt is posted against it. Nothing is outstanding."
-            />
-          ) : (
-            <Card padded={false}>
-              {arrivals.map((a, i) => (
-                <ArrivalRow
-                  key={a.id}
-                  arrival={a}
-                  divider={i < arrivals.length - 1}
-                  onPress={() => router.push(`/receive/${a.id}`)}
-                />
-              ))}
-            </Card>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+          ))}
+        </Card>
+      )}
+    </Screen>
   );
 }
 
@@ -191,30 +164,37 @@ function ArrivalRow({
       </View>
 
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.subheading, ...font("semibold"), color: p.text }}
-        >
+        <Text role="heading" lines={1}>
           {arrival.partyName ?? "Vendor not named"}
         </Text>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-        >
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           {arrival.gateEntryNo} · {arrival.packageCount} package
           {arrival.packageCount === 1 ? "" : "s"}
           {arrival.vehicleNumber ? ` · ${arrival.vehicleNumber}` : ""}
         </Text>
-        <View style={{ marginTop: space.xs }}>
-          <StatusPill
-            icon={hours >= 4 ? "hourglass" : "time-outline"}
-            label={waited}
-            tone={hours >= 4 ? "warn" : "neutral"}
-          />
-        </View>
       </View>
 
-      <Ionicons name="chevron-forward" size={18} color={p.textFaint} />
+      {/*
+        A pill only when the wait is a problem. Every row carrying a neutral "23 min at
+        the gate" chip spent the eye's attention on the one fact that was never going to
+        change which vehicle you deal with first.
+      */}
+      {hours >= 4 ? (
+        <View style={{ marginLeft: space.sm }}>
+          <StatusPill icon="hourglass" label={waited} tone="warn" />
+        </View>
+      ) : (
+        <Text role="caption" tone="muted" numeric style={{ marginLeft: space.sm }}>
+          {waited.replace(" at the gate", "")}
+        </Text>
+      )}
+
+      <Ionicons
+        name="chevron-forward"
+        size={18}
+        color={p.textMuted}
+        style={{ marginLeft: space.xs }}
+      />
     </Pressable>
   );
 }

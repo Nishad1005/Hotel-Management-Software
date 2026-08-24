@@ -1,18 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
+  Card,
+  Loading,
+  Notice,
+  PrimaryButton,
+  Screen,
+  SearchField,
+  StatusPill,
   Text,
-  TextInput,
-  View,
-  type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Card, Header, Notice, Page, PrimaryButton, StatusPill } from "../../components/ui";
+} from "../../components/ui";
 import { useSession } from "../../lib/session";
 import {
   groupByItem,
@@ -21,7 +20,7 @@ import {
   type ItemGroup,
   type StockRow,
 } from "../../lib/stock-report";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * What is in the store, and where.
@@ -43,9 +42,7 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
  * they can actually use.
  */
 export default function StockOnHand() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [rows, setRows] = useState<StockRow[]>([]);
@@ -91,125 +88,64 @@ export default function StockOnHand() {
   }, [rows]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="In the store"
-            subtitle={
-              loading
-                ? "Counting"
-                : `${groups.length} item${groups.length === 1 ? "" : "s"} across ${totals.lots} lot${
-                    totals.lots === 1 ? "" : "s"
-                  }${totals.notIssuable > 0 ? ` · ${totals.notIssuable} not issuable yet` : ""}`
-            }
-            onBack={() => router.back()}
-          />
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: p.border,
-              borderRadius: radius.md,
-              backgroundColor: p.surfaceSunken,
-              paddingHorizontal: space.md,
-            }}
-          >
-            <Ionicons name="search" size={17} color={p.textFaint} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Item, batch or bin code"
-              placeholderTextColor={p.textFaint}
-              autoCapitalize="none"
-              autoCorrect={false}
-              accessibilityLabel="Search stock"
-              style={
-                {
-                  flex: 1,
-                  minHeight: 44,
-                  paddingHorizontal: space.sm,
-                  fontSize: type.body,
-                  color: p.text,
-                  outlineStyle: "none",
-                } as never
-              }
+    <Screen
+      title="In the store"
+      subtitle={
+        loading
+          ? "Counting"
+          : `${groups.length} item${groups.length === 1 ? "" : "s"} across ${totals.lots} lot${
+              totals.lots === 1 ? "" : "s"
+            }${totals.notIssuable > 0 ? ` · ${totals.notIssuable} not issuable yet` : ""}`
+      }
+      onBack={() => router.back()}
+      wide
+      band={
+        <SearchField
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Item, batch or bin code"
+          label="Search stock"
+        />
+      }
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="cloud-offline-outline" title="Could not count" body={error} tone="bad" />
+      ) : groups.length === 0 ? (
+        <Notice
+          icon="albums-outline"
+          title={search ? "Nothing matches that" : "The store is empty"}
+          body={
+            search
+              ? "The search looks at item names and codes, batch numbers and bin codes."
+              : "Stock appears here once a delivery is received, or once opening balances are recorded."
+          }
+          {...(search
+            ? {}
+            : {
+                action: (
+                  <PrimaryButton
+                    label="Record opening stock"
+                    onPress={() => router.push("/stock/opening")}
+                  />
+                ),
+              })}
+        />
+      ) : (
+        <Card padded={false}>
+          {groups.map((g, i) => (
+            <ItemRow
+              key={g.itemId}
+              group={g}
+              open={openItem === g.itemId}
+              divider={i < groups.length - 1}
+              onToggle={() => setOpenItem(openItem === g.itemId ? null : g.itemId)}
             />
-            {search ? (
-              <Pressable
-                onPress={() => setSearch("")}
-                accessibilityRole="button"
-                accessibilityLabel="Clear the search"
-                hitSlop={10}
-              >
-                <Ionicons name="close-circle" size={17} color={p.textFaint} />
-              </Pressable>
-            ) : null}
-          </View>
-        </Page>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice icon="cloud-offline-outline" title="Could not count" body={error} tone="bad" />
-          ) : groups.length === 0 ? (
-            <Notice
-              icon="albums-outline"
-              title={search ? "Nothing matches that" : "The store is empty"}
-              body={
-                search
-                  ? "The search looks at item names and codes, batch numbers and bin codes."
-                  : "Stock appears here once a delivery is received, or once opening balances are recorded."
-              }
-              {...(search
-                ? {}
-                : {
-                    action: (
-                      <PrimaryButton
-                        label="Record opening stock"
-                        onPress={() => router.push("/stock/opening")}
-                      />
-                    ),
-                  })}
-            />
-          ) : (
-            <Card padded={false}>
-              {groups.map((g, i) => (
-                <ItemRow
-                  key={g.itemId}
-                  group={g}
-                  open={openItem === g.itemId}
-                  divider={i < groups.length - 1}
-                  onToggle={() => setOpenItem(openItem === g.itemId ? null : g.itemId)}
-                />
-              ))}
-            </Card>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+          ))}
+        </Card>
+      )}
+    </Screen>
   );
 }
 
@@ -252,16 +188,10 @@ function ItemRow({
         }
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-          >
+          <Text weight="semibold" lines={1}>
             {group.itemName}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
             {group.itemCode} · {group.categoryName} · {group.rows.length} lot
             {group.rows.length === 1 ? "" : "s"}
           </Text>
@@ -282,20 +212,20 @@ function ItemRow({
         </View>
 
         <View style={{ alignItems: "flex-end", marginRight: space.sm }}>
-          <Text style={{ fontSize: type.heading, ...font("bold"), color: p.text, ...tabular }}>
+          <Text role="heading" numeric>
             {fmt(group.available)}
-            <Text style={{ fontSize: type.caption, ...font("medium"), color: p.textMuted }}>
+            <Text role="caption" tone="muted" weight="medium">
               {" "}
               {group.uomCode}
             </Text>
           </Text>
           {held > 0 ? (
-            <Text style={{ fontSize: type.micro, color: p.textFaint, ...tabular }}>
+            <Text role="caption" tone="muted" numeric>
               {fmt(group.total)} in total
             </Text>
           ) : null}
         </View>
-        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={p.textFaint} />
+        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={p.textMuted} />
       </Pressable>
 
       {open ? (
@@ -311,7 +241,6 @@ function ItemRow({
 
 /** One lot: a batch, in a place, in a state. All three are needed to identify it. */
 function LotRow({ row }: { row: StockRow }) {
-  const p = usePalette();
   const state = STATE_LABELS[row.state];
 
   const expiry =
@@ -335,14 +264,14 @@ function LotRow({ row }: { row: StockRow }) {
       }}
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.caption, color: p.text, ...font("medium") }}
-        >
+        <Text role="label" weight="medium" lines={1}>
           {row.locationCode}
-          <Text style={{ color: p.textMuted, ...font("regular") }}> · {row.locationName}</Text>
+          <Text role="label" tone="muted">
+            {" "}
+            · {row.locationName}
+          </Text>
         </Text>
-        <Text numberOfLines={1} style={{ fontSize: type.micro, color: p.textMuted, marginTop: 1 }}>
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           Batch {row.batchNo}
           {row.isSystemGenerated ? " (generated)" : ""}
         </Text>
@@ -361,16 +290,9 @@ function LotRow({ row }: { row: StockRow }) {
         </View>
       </View>
 
-      <Text
-        style={{
-          fontSize: type.body,
-          ...font("semibold"),
-          color: row.state === "AVAILABLE" ? p.text : p.textMuted,
-          ...tabular,
-        }}
-      >
+      <Text weight="semibold" numeric tone={row.state === "AVAILABLE" ? "default" : "muted"}>
         {fmt(row.qty)}
-        <Text style={{ fontSize: type.micro, ...font("regular"), color: p.textFaint }}>
+        <Text role="caption" tone="muted">
           {" "}
           {row.uomCode}
         </Text>

@@ -2,27 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { readItemSheet, type ItemSheet } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ActivityIndicator, StyleSheet, TextInput, View, type ViewStyle } from "react-native";
 import {
   Card,
   FieldError,
-  Header,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   SelectRow,
   StatGrid,
   StatTile,
   StatusPill,
+  Text,
 } from "../../components/ui";
 import { fileTextPicker } from "../../lib/file-text";
 import {
@@ -34,7 +26,7 @@ import {
 } from "../../lib/item-import";
 import { listCategories, listUoms, type CategoryOption, type UomOption } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { elevation, font, radius, space, tabular, type, usePalette } from "../../theme";
+import { radius, space, tabular, type, usePalette } from "../../theme";
 
 /**
  * Importing a property's item list.
@@ -51,7 +43,6 @@ import { elevation, font, radius, space, tabular, type, usePalette } from "../..
 export default function ImportItems() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty, canEditMasters } = useSession();
 
   const [text, setText] = useState("");
@@ -157,203 +148,152 @@ export default function ImportItems() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Import items"
-            subtitle={`${existing.size} item${existing.size === 1 ? "" : "s"} in the master already`}
-            onBack={() => router.back()}
-          />
-        </Page>
-      </View>
+    <Screen
+      title="Import items"
+      subtitle={`${existing.size} item${existing.size === 1 ? "" : "s"} in the master already`}
+      onBack={() => router.back()}
+    >
+      {loading ? (
+        <Loading />
+      ) : outcome ? (
+        <Outcome
+          outcome={outcome}
+          onAgain={() => {
+            setOutcome(null);
+            setText("");
+            setFileName(null);
+          }}
+          onDone={() => router.replace("/items")}
+        />
+      ) : (
+        <>
+          <Card>
+            <Text weight="semibold" style={{ marginBottom: 4 }}>
+              Paste the rows, or choose the file
+            </Text>
+            <Text role="caption" tone="muted" style={{ marginBottom: space.md }}>
+              Open the spreadsheet, select everything including the heading row, and paste it here.
+              Headings can say whatever they already say — Item Name, Particulars, Description all
+              read the same. A{" "}
+              <Text role="caption" weight="semibold">
+                Shelf Life (days)
+              </Text>{" "}
+              column is what makes an item perishable and puts it in the expiry watchlist; without
+              one, everything imports as non-perishable and has to be marked by hand.
+            </Text>
 
-      <ScrollView
-        contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : outcome ? (
-            <Outcome
-              outcome={outcome}
-              onAgain={() => {
-                setOutcome(null);
-                setText("");
+            <TextInput
+              value={text}
+              onChangeText={(v) => {
+                setText(v);
                 setFileName(null);
+                setOutcome(null);
               }}
-              onDone={() => router.replace("/items")}
+              multiline
+              numberOfLines={8}
+              placeholder={
+                "Item Code,Item Name,Category,UOM,Shelf Life (days)\nMILK-1L,Toned Milk 1L,Dairy,L,10"
+              }
+              placeholderTextColor={p.textFaint}
+              accessibilityLabel="Paste the item rows"
+              style={
+                {
+                  minHeight: 160,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: p.border,
+                  borderRadius: radius.md,
+                  backgroundColor: p.surfaceSunken,
+                  padding: space.md,
+                  fontSize: type.caption,
+                  color: p.text,
+                  textAlignVertical: "top",
+                  outlineStyle: "none",
+                } as never
+              }
             />
-          ) : (
-            <>
-              <Card>
-                <Text
-                  style={{
-                    fontSize: type.body,
-                    ...font("semibold"),
-                    color: p.text,
-                    marginBottom: 4,
-                  }}
-                >
-                  Paste the rows, or choose the file
-                </Text>
-                <Text
-                  style={{
-                    fontSize: type.caption,
-                    color: p.textMuted,
-                    lineHeight: 18,
-                    marginBottom: space.md,
-                  }}
-                >
-                  Open the spreadsheet, select everything including the heading row, and paste it
-                  here. Headings can say whatever they already say — Item Name, Particulars,
-                  Description all read the same. A{" "}
-                  <Text style={font("semibold")}>Shelf Life (days)</Text> column is what makes an
-                  item perishable and puts it in the expiry watchlist; without one, everything
-                  imports as non-perishable and has to be marked by hand.
-                </Text>
 
-                <TextInput
-                  value={text}
-                  onChangeText={(v) => {
-                    setText(v);
-                    setFileName(null);
-                    setOutcome(null);
-                  }}
-                  multiline
-                  numberOfLines={8}
-                  placeholder={
-                    "Item Code,Item Name,Category,UOM,Shelf Life (days)\nMILK-1L,Toned Milk 1L,Dairy,L,10"
-                  }
-                  placeholderTextColor={p.textFaint}
-                  accessibilityLabel="Paste the item rows"
-                  style={
-                    {
-                      minHeight: 160,
-                      borderWidth: StyleSheet.hairlineWidth,
-                      borderColor: p.border,
-                      borderRadius: radius.md,
-                      backgroundColor: p.surfaceSunken,
-                      padding: space.md,
-                      fontSize: type.caption,
-                      color: p.text,
-                      textAlignVertical: "top",
-                      outlineStyle: "none",
-                    } as never
-                  }
+            {fileTextPicker.available() ? (
+              <View style={{ marginTop: space.md }}>
+                <PrimaryButton
+                  label={fileName ? `Chosen: ${fileName}` : "Choose a CSV file"}
+                  icon="document-attach-outline"
+                  tone="neutral"
+                  onPress={() => void choose()}
                 />
+              </View>
+            ) : null}
+          </Card>
 
-                {fileTextPicker.available() ? (
-                  <View style={{ marginTop: space.md }}>
-                    <PrimaryButton
-                      label={fileName ? `Chosen: ${fileName}` : "Choose a CSV file"}
-                      icon="document-attach-outline"
-                      tone="neutral"
-                      onPress={() => void choose()}
-                    />
-                  </View>
-                ) : null}
+          {sheet && !sheet.ok ? (
+            <View style={{ marginTop: space.lg }}>
+              <FieldError message={sheet.problem ?? "That file could not be read."} />
+            </View>
+          ) : null}
+
+          {sheet?.ok && resolution ? (
+            <>
+              <View style={{ height: space.xl }} />
+              <Preview sheet={sheet} resolution={resolution} />
+
+              <View style={{ height: space.xl }} />
+              <Card>
+                <Text weight="semibold" style={{ marginBottom: space.md }}>
+                  For rows that match nothing
+                </Text>
+                <SelectRow
+                  label="Category"
+                  value={fallbackCategoryId || null}
+                  placeholder="Choose"
+                  choices={categories.map((c) => ({
+                    id: c.id,
+                    label: c.name,
+                    sublabel: c.code,
+                  }))}
+                  onSelect={setFallbackCategoryId}
+                />
+                <SelectRow
+                  label="Unit"
+                  value={fallbackUomId || null}
+                  placeholder="Choose"
+                  choices={uoms.map((u) => ({ id: u.id, label: u.name, sublabel: u.code }))}
+                  onSelect={setFallbackUomId}
+                />
               </Card>
 
-              {sheet && !sheet.ok ? (
+              {error ? (
                 <View style={{ marginTop: space.lg }}>
-                  <FieldError message={sheet.problem ?? "That file could not be read."} />
+                  <FieldError message={error} />
                 </View>
               ) : null}
 
-              {sheet?.ok && resolution ? (
-                <>
-                  <View style={{ height: space.xl }} />
-                  <Preview sheet={sheet} resolution={resolution} />
-
-                  <View style={{ height: space.xl }} />
-                  <Card>
+              <View style={{ marginTop: space.xl }}>
+                {running ? (
+                  <View style={{ alignItems: "center" }}>
+                    <ActivityIndicator color={p.accent} />
                     <Text
-                      style={{
-                        fontSize: type.body,
-                        ...font("semibold"),
-                        color: p.text,
-                        marginBottom: space.md,
-                      }}
+                      accessibilityLiveRegion="polite"
+                      role="caption"
+                      tone="muted"
+                      style={{ marginTop: space.sm }}
                     >
-                      For rows that match nothing
+                      {progress}% — writing in batches, so a bad row does not take the rest with it.
                     </Text>
-                    <SelectRow
-                      label="Category"
-                      value={fallbackCategoryId || null}
-                      placeholder="Choose"
-                      choices={categories.map((c) => ({
-                        id: c.id,
-                        label: c.name,
-                        sublabel: c.code,
-                      }))}
-                      onSelect={setFallbackCategoryId}
-                    />
-                    <SelectRow
-                      label="Unit"
-                      value={fallbackUomId || null}
-                      placeholder="Choose"
-                      choices={uoms.map((u) => ({ id: u.id, label: u.name, sublabel: u.code }))}
-                      onSelect={setFallbackUomId}
-                    />
-                  </Card>
-
-                  {error ? (
-                    <View style={{ marginTop: space.lg }}>
-                      <FieldError message={error} />
-                    </View>
-                  ) : null}
-
-                  <View style={{ marginTop: space.xl }}>
-                    {running ? (
-                      <View style={{ alignItems: "center" }}>
-                        <ActivityIndicator color={p.accent} />
-                        <Text
-                          style={{
-                            fontSize: type.caption,
-                            color: p.textMuted,
-                            marginTop: space.sm,
-                          }}
-                          accessibilityLiveRegion="polite"
-                        >
-                          {progress}% — writing in batches, so a bad row does not take the rest with
-                          it.
-                        </Text>
-                      </View>
-                    ) : (
-                      <PrimaryButton
-                        label={`Import ${resolution.rows.length} item${resolution.rows.length === 1 ? "" : "s"}`}
-                        icon="cloud-upload-outline"
-                        density="field"
-                        onPress={() => void run()}
-                        disabled={
-                          resolution.rows.length === 0 || !fallbackCategoryId || !fallbackUomId
-                        }
-                      />
-                    )}
                   </View>
-                </>
-              ) : null}
+                ) : (
+                  <PrimaryButton
+                    label={`Import ${resolution.rows.length} item${resolution.rows.length === 1 ? "" : "s"}`}
+                    icon="cloud-upload-outline"
+                    density="field"
+                    onPress={() => void run()}
+                    disabled={resolution.rows.length === 0 || !fallbackCategoryId || !fallbackUomId}
+                  />
+                )}
+              </View>
             </>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+          ) : null}
+        </>
+      )}
+    </Screen>
   );
 }
 
@@ -439,16 +379,10 @@ function Preview({ sheet, resolution }: { sheet: ItemSheet; resolution: Resoluti
               borderBottomColor: p.border,
             }}
           >
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.body, ...font("semibold"), color: p.text }}
-            >
+            <Text lines={1} weight="semibold">
               {r.name}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-            >
+            <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
               <Text style={tabular}>{r.code}</Text> · {r.categoryLabel} · {r.uomLabel}
               {r.shelfLifeDays !== null ? ` · ${r.shelfLifeDays} days` : ""}
             </Text>
@@ -461,7 +395,7 @@ function Preview({ sheet, resolution }: { sheet: ItemSheet; resolution: Resoluti
         ))}
         {resolution.rows.length > sample.length ? (
           <View style={{ paddingHorizontal: space.lg, paddingVertical: space.sm }}>
-            <Text style={{ fontSize: type.caption, color: p.textFaint }}>
+            <Text role="caption" tone="muted">
               …and {resolution.rows.length - sample.length} more
             </Text>
           </View>
@@ -501,51 +435,28 @@ function Outcome({
               color={outcome.failures.length > 0 ? p.warning : p.success}
             />
           </View>
-          <Text
-            style={{
-              fontSize: type.display,
-              ...font("heavy"),
-              color: p.text,
-              marginTop: space.md,
-              ...tabular,
-            }}
-          >
+          <Text role="display" numeric style={{ marginTop: space.md }}>
             {outcome.inserted}
           </Text>
-          <Text style={{ fontSize: type.label, color: p.textMuted }}>
+          <Text role="label" tone="muted">
             item{outcome.inserted === 1 ? "" : "s"} added to the master
           </Text>
         </View>
 
         {outcome.failures.length > 0 ? (
           <>
-            <Text
-              style={{
-                fontSize: type.label,
-                ...font("semibold"),
-                color: p.text,
-                marginBottom: space.sm,
-              }}
-            >
+            <Text role="label" weight="semibold" style={{ marginBottom: space.sm }}>
               {outcome.failures.length} refused
             </Text>
             {outcome.failures.slice(0, 12).map((f) => (
-              <Text
-                key={f.code}
-                style={{ fontSize: type.caption, color: p.textMuted, lineHeight: 18 }}
-              >
-                <Text style={{ ...font("semibold"), color: p.text }}>{f.code}</Text> {f.name} —{" "}
-                {f.reason}
+              <Text key={f.code} role="caption" tone="muted">
+                <Text role="caption" weight="semibold">
+                  {f.code}
+                </Text>{" "}
+                {f.name} — {f.reason}
               </Text>
             ))}
-            <Text
-              style={{
-                fontSize: type.caption,
-                color: p.textMuted,
-                marginTop: space.md,
-                lineHeight: 18,
-              }}
-            >
+            <Text role="caption" tone="muted" style={{ marginTop: space.md }}>
               The rest are in. Fix these rows and paste them again — anything already imported is
               skipped rather than duplicated.
             </Text>
@@ -583,15 +494,7 @@ function Warn({ text }: { text: string }) {
       }
     >
       <Ionicons name="alert-circle" size={15} color={p.warning} style={{ marginTop: 1 }} />
-      <Text
-        style={{
-          flex: 1,
-          fontSize: type.caption,
-          color: p.warning,
-          marginLeft: space.xs,
-          lineHeight: 17,
-        }}
-      >
+      <Text role="caption" tone="warning" style={{ flex: 1, marginLeft: space.xs }}>
         {text}
       </Text>
     </View>

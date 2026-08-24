@@ -2,28 +2,20 @@ import { Ionicons } from "@expo/vector-icons";
 import type { PartyType } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Card,
-  CloseButton,
+  Dialog,
   Field,
   FieldError,
-  Header,
+  IconButton,
+  Loading,
   Notice,
-  Page,
   PrimaryButton,
+  Screen,
   SelectRow,
   StatusPill,
+  Text,
   Toggle,
 } from "../../components/ui";
 import {
@@ -36,7 +28,7 @@ import {
   type PartyWrite,
 } from "../../lib/parties";
 import { useSession } from "../../lib/session";
-import { elevation, font, radius, space, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * The counterparty master.
@@ -52,9 +44,7 @@ import { elevation, font, radius, space, type, usePalette } from "../../theme";
  * effect immediately.
  */
 export default function Vendors() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [parties, setParties] = useState<Party[]>([]);
@@ -84,85 +74,48 @@ export default function Vendors() {
   const held = parties.filter((v) => v.onHold).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: p.surface,
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page>
-          <Header
-            title="Vendors"
-            subtitle={
-              loading
-                ? "Loading"
-                : `${parties.length} counterpart${parties.length === 1 ? "y" : "ies"}${
-                    held > 0 ? ` · ${held} on hold` : ""
-                  }`
-            }
-            onBack={() => router.back()}
-            right={
-              <Pressable
-                onPress={() => setEditing("new")}
-                accessibilityRole="button"
-                accessibilityLabel="Add a counterparty"
-                hitSlop={8}
-                style={({ pressed }) =>
-                  ({
-                    width: 44,
-                    height: 44,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: radius.md,
-                    backgroundColor: pressed ? p.accentSurface : "transparent",
-                    cursor: "pointer",
-                  }) as ViewStyle
-                }
-              >
-                <Ionicons name="add" size={24} color={p.accent} />
-              </Pressable>
-            }
-          />
-        </Page>
-      </View>
-
-      <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}>
-        <Page>
-          {loading ? (
-            <View style={{ paddingVertical: space.xxxl, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={p.accent} />
-            </View>
-          ) : error ? (
-            <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
-          ) : parties.length === 0 ? (
-            <Notice
-              icon="business-outline"
-              title="No vendors yet"
-              body="A gate entry can name an unregistered vendor, but a registered one carries the hold status, the FSSAI licence and the GSTIN — which is what makes the register a register."
-              action={<PrimaryButton label="Add the first" onPress={() => setEditing("new")} />}
+    <Screen
+      title="Vendors"
+      subtitle={
+        loading
+          ? "Loading"
+          : `${parties.length} counterpart${parties.length === 1 ? "y" : "ies"}${
+              held > 0 ? ` · ${held} on hold` : ""
+            }`
+      }
+      onBack={() => router.back()}
+      actions={
+        <IconButton
+          icon="add"
+          label="Add a counterparty"
+          tone="accent"
+          onPress={() => setEditing("new")}
+        />
+      }
+    >
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
+      ) : parties.length === 0 ? (
+        <Notice
+          icon="business-outline"
+          title="No vendors yet"
+          body="A gate entry can name an unregistered vendor, but a registered one carries the hold status, the FSSAI licence and the GSTIN — which is what makes the register a register."
+          action={<PrimaryButton label="Add the first" onPress={() => setEditing("new")} />}
+        />
+      ) : (
+        <Card padded={false}>
+          {parties.map((v, i) => (
+            <PartyRow
+              key={v.id}
+              party={v}
+              divider={i < parties.length - 1}
+              onPress={() => setEditing(v)}
             />
-          ) : (
-            <Card padded={false}>
-              {parties.map((v, i) => (
-                <PartyRow
-                  key={v.id}
-                  party={v}
-                  divider={i < parties.length - 1}
-                  onPress={() => setEditing(v)}
-                />
-              ))}
-            </Card>
-          )}
-        </Page>
-      </ScrollView>
+          ))}
+        </Card>
+      )}
 
       <PartyEditor
         subject={editing}
@@ -174,7 +127,7 @@ export default function Vendors() {
           void refresh();
         }}
       />
-    </View>
+    </Screen>
   );
 }
 
@@ -211,13 +164,10 @@ function PartyRow({
       }
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>
+        <Text weight="semibold" lines={1}>
           {party.name}
         </Text>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-        >
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           {party.code} · {kind}
           {party.phone ? ` · ${party.phone}` : ""}
         </Text>
@@ -248,8 +198,6 @@ function PartyEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const p = usePalette();
-  const insets = useSafeAreaInsets();
   const isNew = subject === "new";
   const existing = subject === "new" || subject === null ? null : subject;
 
@@ -321,132 +269,104 @@ function PartyEditor({
   }
 
   return (
-    <Modal
+    <Dialog
       visible={subject !== null}
-      animationType="slide"
-      onRequestClose={onClose}
-      transparent={false}
+      title={isNew ? "New counterparty" : (existing?.name ?? "")}
+      onClose={onClose}
+      footer={
+        <PrimaryButton
+          label={isNew ? "Add" : "Save"}
+          icon="checkmark"
+          onPress={() => void save()}
+          loading={saving}
+          disabled={problems.length > 0}
+        />
+      }
     >
-      <View style={{ flex: 1, backgroundColor: p.background }}>
-        <View
-          style={{
-            paddingTop: insets.top + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: space.md,
-            backgroundColor: p.surface,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: p.border,
-          }}
-        >
-          <Page>
-            <Header
-              title={isNew ? "New counterparty" : (existing?.name ?? "")}
-              right={<CloseButton onPress={onClose} />}
-            />
-          </Page>
-        </View>
+      <Card>
+        <Field
+          label="Name"
+          value={name}
+          onChangeText={setName}
+          placeholder="Bhaskar Fish Supply"
+          autoCapitalize="words"
+        />
 
-        <ScrollView
-          contentContainerStyle={{ padding: space.lg, paddingBottom: insets.bottom + 48 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Page>
-            <Card>
-              <Field
-                label="Name"
-                value={name}
-                onChangeText={setName}
-                placeholder="Bhaskar Fish Supply"
-                autoCapitalize="words"
-              />
+        <SelectRow
+          label="What they are"
+          value={partyType}
+          placeholder="Choose"
+          choices={PARTY_TYPES.map((t) => ({ id: t.id, label: t.label, sublabel: t.hint }))}
+          onSelect={(id) => setPartyType(id as PartyType)}
+        />
 
-              <SelectRow
-                label="What they are"
-                value={partyType}
-                placeholder="Choose"
-                choices={PARTY_TYPES.map((t) => ({ id: t.id, label: t.label, sublabel: t.hint }))}
-                onSelect={(id) => setPartyType(id as PartyType)}
-              />
+        <Field
+          label="Code"
+          value={code}
+          onChangeText={setCode}
+          placeholder="SB-VEN-000001"
+          autoCapitalize="characters"
+          hint="Suggested from the property's series. Change it if the property already numbers its vendors."
+        />
 
-              <Field
-                label="Code"
-                value={code}
-                onChangeText={setCode}
-                placeholder="SB-VEN-000001"
-                autoCapitalize="characters"
-                hint="Suggested from the property's series. Change it if the property already numbers its vendors."
-              />
+        <Field
+          label="Phone"
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="+91…"
+          keyboardType="numeric"
+        />
+      </Card>
 
-              <Field
-                label="Phone"
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="+91…"
-                keyboardType="numeric"
-              />
-            </Card>
+      <View style={{ height: space.xl }} />
 
-            <View style={{ height: space.xl }} />
+      <Card>
+        <Field
+          label="FSSAI licence"
+          value={fssai}
+          onChangeText={setFssai}
+          placeholder="Optional"
+          autoCapitalize="characters"
+          hint="A food vendor's licence number. It belongs on the register whether or not anybody checks it today."
+        />
+        <Field
+          label="GSTIN"
+          value={gstin}
+          onChangeText={setGstin}
+          placeholder="Optional"
+          autoCapitalize="characters"
+        />
+      </Card>
 
-            <Card>
-              <Field
-                label="FSSAI licence"
-                value={fssai}
-                onChangeText={setFssai}
-                placeholder="Optional"
-                autoCapitalize="characters"
-                hint="A food vendor's licence number. It belongs on the register whether or not anybody checks it today."
-              />
-              <Field
-                label="GSTIN"
-                value={gstin}
-                onChangeText={setGstin}
-                placeholder="Optional"
-                autoCapitalize="characters"
-              />
-            </Card>
+      <View style={{ height: space.xl }} />
 
-            <View style={{ height: space.xl }} />
+      <Toggle
+        label="On hold"
+        hint="Shown in red at the gate before anything comes off the vehicle. Takes effect immediately — there is no card to reissue."
+        value={onHold}
+        onValueChange={setOnHold}
+      />
+      {onHold ? (
+        <Field
+          label="Why"
+          value={holdReason}
+          onChangeText={setHoldReason}
+          placeholder="Failed temperature three deliveries running"
+          autoCapitalize="sentences"
+        />
+      ) : null}
 
-            <Toggle
-              label="On hold"
-              hint="Shown in red at the gate before anything comes off the vehicle. Takes effect immediately — there is no card to reissue."
-              value={onHold}
-              onValueChange={setOnHold}
-            />
-            {onHold ? (
-              <Field
-                label="Why"
-                value={holdReason}
-                onChangeText={setHoldReason}
-                placeholder="Failed temperature three deliveries running"
-                autoCapitalize="sentences"
-              />
-            ) : null}
+      <Toggle
+        label="In use"
+        hint="Turn off rather than delete. Deleting would orphan every gate entry and receipt that names them."
+        value={isActive}
+        onValueChange={setIsActive}
+      />
 
-            <Toggle
-              label="In use"
-              hint="Turn off rather than delete. Deleting would orphan every gate entry and receipt that names them."
-              value={isActive}
-              onValueChange={setIsActive}
-            />
-
-            {error ? <FieldError message={error} /> : null}
-            {problems.map((msg) => (
-              <FieldError key={msg} message={msg} />
-            ))}
-
-            <View style={{ marginTop: space.xl }}>
-              <PrimaryButton
-                label={saving ? "Saving…" : isNew ? "Add" : "Save"}
-                icon="checkmark"
-                onPress={() => void save()}
-                disabled={saving || problems.length > 0}
-              />
-            </View>
-          </Page>
-        </ScrollView>
-      </View>
-    </Modal>
+      {error ? <FieldError message={error} /> : null}
+      {problems.map((msg) => (
+        <FieldError key={msg} message={msg} />
+      ))}
+    </Dialog>
   );
 }

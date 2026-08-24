@@ -1,20 +1,158 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
+  Text as RNText,
   TextInput,
   View,
+  type StyleProp,
+  type TextProps as RNTextProps,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { elevation, font, radius, space, touch, type, type Palette, usePalette } from "../theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEscape } from "../lib/escape";
+import { useIsExpanded } from "../lib/responsive";
+import {
+  elevation,
+  font,
+  radius,
+  space,
+  tabular,
+  text as textStyles,
+  touch,
+  type,
+  type Palette,
+  type TextRole,
+  usePalette,
+} from "../theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 export type Density = "field" | "desk";
+
+// ---------------------------------------------------------------------------
+// Typography
+// ---------------------------------------------------------------------------
+
+/**
+ * Which palette slot the words are painted in.
+ *
+ * Named rather than passed as a colour, and that is the point: once screens say
+ * `tone="muted"` instead of `color: p.textMuted`, the palette is honoured by
+ * construction rather than by discipline. A colour cannot drift into a screen that has no
+ * way to name one.
+ */
+export type TextTone =
+  | "default"
+  | "muted"
+  | "faint"
+  | "accent"
+  | "success"
+  | "warning"
+  | "danger"
+  | "onAccent"
+  | "onBrand"
+  | "onBrandMuted";
+
+const TONE_KEY: Record<TextTone, keyof Palette> = {
+  default: "text",
+  muted: "textMuted",
+  faint: "textFaint",
+  accent: "accent",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
+  onAccent: "onAccent",
+  onBrand: "onBrand",
+  onBrandMuted: "onBrandMuted",
+};
+
+export interface TextOwnProps {
+  /**
+   * Required, and there is deliberately no `size` prop.
+   *
+   * Overriding the weight is legitimate — a semibold body is a list row's name.
+   * Overriding the size is how eight sizes came back the first time.
+   */
+  role?: TextRole;
+  tone?: TextTone;
+  /** Overrides the role's default weight. */
+  weight?: Parameters<typeof font>[0];
+  /** Tabular figures, so a column of numbers does not jog sideways as digits change. */
+  numeric?: boolean;
+  align?: TextStyle["textAlign"];
+  /** `numberOfLines`, spelled shorter because it is used on nearly every row. */
+  lines?: number;
+  /** Layout only — margins and flex. Typography belongs to `role`, `tone` and `weight`. */
+  style?: StyleProp<TextStyle>;
+  children?: ReactNode;
+}
+
+/**
+ * `role` is omitted from React Native's own props deliberately.
+ *
+ * RN added `role` as the ARIA-style accessibility prop, so intersecting the two collapsed
+ * ours to `"heading"` — the single member the two unions happen to share, and a
+ * bewildering error to read. Accessibility semantics stay available through
+ * `accessibilityRole`, which every call site in this app already uses.
+ */
+export type TextProps = TextOwnProps & Omit<RNTextProps, "style" | "numberOfLines" | "role">;
+
+/**
+ * A word, styled by what it is rather than by how it looks.
+ *
+ * Before this existed, 192 of the app's 203 text elements hand-declared their own font
+ * size, weight and colour — so there were 13 letter-spacings, six line heights, and more
+ * than half of all type sitting at 11 or 12 pixels. Every one of those call sites was
+ * already writing `fontSize` + `font()` + `color`, which is exactly `role` + `weight` +
+ * `tone`; that is what makes replacing them mechanical rather than a judgement per line.
+ *
+ * Every prop has a default. With `exactOptionalPropertyTypes` on, optional props force
+ * the `{...(x ? { x } : {})}` spread that already litters several screens, and a
+ * typography primitive used on every row is the last place that should be necessary.
+ */
+export function Text({
+  role = "body",
+  tone = "default",
+  weight,
+  numeric = false,
+  align,
+  lines,
+  style,
+  children,
+  ...rest
+}: TextProps) {
+  const p = usePalette();
+  const token = textStyles[role];
+
+  return (
+    <RNText
+      {...rest}
+      {...(lines === undefined ? {} : { numberOfLines: lines })}
+      style={[
+        {
+          fontSize: token.fontSize,
+          lineHeight: token.lineHeight,
+          letterSpacing: token.letterSpacing,
+          color: p[TONE_KEY[tone]],
+          textTransform: token.textTransform,
+          ...font(weight ?? token.weight),
+          ...(numeric ? tabular : {}),
+          ...(align === undefined ? {} : { textAlign: align }),
+        },
+        style,
+      ]}
+    >
+      {children}
+    </RNText>
+  );
+}
 
 const heightFor = (d: Density) => (d === "field" ? touch.field : touch.desk);
 
@@ -53,6 +191,77 @@ function useInteractionState() {
   };
 }
 
+/**
+ * A tappable glyph, with the states a tappable thing needs.
+ *
+ * There was no such primitive, so roughly thirty raw `Pressable`s were hand-rolled across
+ * the screens and every one of them quietly skipped the hover, focus and pointer-cursor
+ * plumbing that `interactive()` right above provides. Two of those were the back chevron
+ * and the close button — which appear on *every* screen and every modal, and so were the
+ * app's most-used controls while looking, to a mouse, entirely inert.
+ *
+ * That is an accessibility regression rather than a cosmetic one: `usePalette`'s own note
+ * says keyboard navigation on web "is not optional".
+ */
+export function IconButton({
+  icon,
+  label,
+  onPress,
+  size = 22,
+  tone = "default",
+  disabled = false,
+}: {
+  icon: IoniconName;
+  /** Spoken, not shown. An icon-only control is unusable without it. */
+  label: string;
+  onPress: () => void;
+  size?: number;
+  tone?: "default" | "muted" | "accent" | "danger" | "onBrand";
+  disabled?: boolean;
+}) {
+  const p = usePalette();
+  const { hovered, focused, handlers } = useInteractionState();
+
+  const colour =
+    tone === "accent"
+      ? p.accent
+      : tone === "danger"
+        ? p.danger
+        : tone === "muted"
+          ? p.textMuted
+          : tone === "onBrand"
+            ? p.onBrand
+            : p.text;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      hitSlop={8}
+      {...handlers}
+      style={({ pressed }) =>
+        ({
+          width: touch.desk,
+          height: touch.desk,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: radius.md,
+          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
+          borderWidth: focused ? 2 : 0,
+          borderColor: p.focus,
+          opacity: disabled ? 0.4 : 1,
+          cursor: disabled ? "not-allowed" : "pointer",
+        }) as ViewStyle
+      }
+    >
+      <Ionicons name={icon} size={size} color={colour} />
+    </Pressable>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Structure
 // ---------------------------------------------------------------------------
@@ -62,55 +271,259 @@ export function Header({
   subtitle,
   onBack,
   right,
+  onBrand = false,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /**
+   * Painted for the brand band rather than the page surface.
+   *
+   * Exactly one screen needs it — the vendor console, which is a different product from
+   * the one below it, and looking different is how somebody holding both kinds of access
+   * knows which they are in.
+   */
+  onBrand?: boolean;
 }) {
-  const p = usePalette();
+  const router = useRouter();
+
+  /**
+   * A back chevron only when there is genuinely something behind you.
+   *
+   * Every screen passes `onBack`, which was right when the chevron was the *only* way to
+   * leave a screen. With a sidebar it is not, and on web a link opened or reloaded
+   * directly — `/receipts/{id}` mailed to the accountant — has an empty history, so the
+   * chevron was offering a journey that did not exist. `canGoBack()` is the question
+   * actually being asked.
+   */
+  const showBack = !!onBack && router.canGoBack();
+
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.lg }}>
-      {onBack ? (
-        <Pressable
-          onPress={onBack}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={10}
-          style={({ pressed }) => ({
-            width: touch.desk,
-            height: touch.desk,
-            marginLeft: -space.sm,
-            marginRight: space.xs,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: radius.md,
-            backgroundColor: pressed ? p.surfaceSunken : "transparent",
-          })}
-        >
-          <Ionicons name="chevron-back" size={24} color={p.text} />
-        </Pressable>
+      {showBack && onBack ? (
+        <View style={{ marginLeft: -space.sm, marginRight: space.xs }}>
+          <IconButton
+            icon="chevron-back"
+            label="Back"
+            size={24}
+            tone={onBrand ? "onBrand" : "default"}
+            onPress={onBack}
+          />
+        </View>
       ) : null}
-      <View style={{ flex: 1 }}>
-        <Text
-          accessibilityRole="header"
-          style={{
-            fontSize: type.title,
-            ...font("bold"),
-            color: p.text,
-            letterSpacing: -0.4,
-          }}
-        >
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text role="title" tone={onBrand ? "onBrand" : "default"} accessibilityRole="header">
           {title}
         </Text>
         {subtitle ? (
-          <Text style={{ fontSize: type.label, color: p.textMuted, marginTop: space.xxs }}>
+          <Text
+            role="label"
+            tone={onBrand ? "onBrandMuted" : "muted"}
+            style={{ marginTop: space.xxs }}
+          >
             {subtitle}
           </Text>
         ) : null}
       </View>
       {right}
     </View>
+  );
+}
+
+/**
+ * The frame every screen wears: a header band, a content column, and an optional
+ * sticky footer.
+ *
+ * This was copy-pasted twenty-five times, and the copies had drifted — four different top
+ * paddings, four incompatible ways of reserving room at the bottom of the scroll, and
+ * seven hand-built action bars that each decided their own height and inset. That is not
+ * untidiness; it is why the screens do not look like one product.
+ *
+ * The band's top inset is the subtle part. On a phone the shell draws a top bar which has
+ * already consumed the status bar, so adding it again here would push every title down by
+ * the height of the notch. Only the desktop layout, where the content pane starts at the
+ * very top of the window, needs it.
+ */
+export function Screen({
+  title,
+  subtitle,
+  onBack,
+  actions,
+  band,
+  footer,
+  children,
+  wide = false,
+  scroll = true,
+  onBrand = false,
+}: {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  /** Right of the title — an add button, a filter. */
+  actions?: ReactNode;
+  /** Under the title, inside the band — a search field, a segmented control. */
+  band?: ReactNode;
+  /** Pinned to the bottom, above the safe area. The screen's commit action. */
+  footer?: ReactNode;
+  children: ReactNode;
+  /** 1080px instead of the 720px reading measure, for grids and tables. */
+  wide?: boolean;
+  /** Off when the child scrolls itself — a FlatList, a split pane. */
+  scroll?: boolean;
+  /** The brand band. See `Header`'s `onBrand` — one screen uses it. */
+  onBrand?: boolean;
+}) {
+  const p = usePalette();
+  const insets = useSafeAreaInsets();
+  const expanded = useIsExpanded();
+
+  const body = (
+    <Page wide={wide}>
+      {children}
+      {/* Enough room to scroll the last row clear of a sticky footer. */}
+      {scroll ? <View style={{ height: footer ? space.xxl : space.xl }} /> : null}
+    </Page>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: p.background }}>
+      <View
+        style={[
+          {
+            backgroundColor: onBrand ? p.brand : p.surface,
+            paddingTop: (expanded ? insets.top : 0) + space.lg,
+            paddingHorizontal: space.lg,
+            paddingBottom: band ? space.md : space.sm,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: onBrand ? p.brand : p.border,
+          },
+          elevation(1, p),
+        ]}
+      >
+        <Page wide={wide}>
+          <Header
+            title={title}
+            onBrand={onBrand}
+            {...(subtitle === undefined ? {} : { subtitle })}
+            {...(onBack === undefined ? {} : { onBack })}
+            {...(actions === undefined ? {} : { right: actions })}
+          />
+          {band}
+        </Page>
+      </View>
+
+      {scroll ? (
+        <ScrollView
+          contentContainerStyle={{
+            padding: space.lg,
+            paddingBottom: footer ? space.lg : insets.bottom + space.lg,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {body}
+        </ScrollView>
+      ) : (
+        <View style={{ flex: 1, padding: space.lg }}>{body}</View>
+      )}
+
+      {footer ? (
+        <View
+          style={[
+            {
+              backgroundColor: p.surface,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: p.border,
+              paddingHorizontal: space.lg,
+              paddingTop: space.md,
+              paddingBottom: space.md + insets.bottom,
+            },
+            elevation(2, p),
+          ]}
+        >
+          <Page wide={wide}>{footer}</Page>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * What just happened, and its number.
+ *
+ * Seven screens ended in a success panel and all seven were built separately — different
+ * circle sizes, different eyebrow tracking, one that centred its caption and one that did
+ * not, and only some of them making the document number selectable. The number is the
+ * whole point of these screens: it is what gets written onto a challan by hand, read down
+ * a phone, or pasted into an email, so it is `selectable`, tabular and the largest thing
+ * on the page.
+ */
+export function Result({
+  icon = "checkmark",
+  tone = "good",
+  eyebrow,
+  value,
+  caption,
+  children,
+  actions,
+}: {
+  icon?: IoniconName;
+  tone?: "good" | "warn";
+  /** The state reached — "Issued", "Recorded", "Posted". */
+  eyebrow: string;
+  /** The document number. */
+  value: string;
+  caption?: string;
+  children?: ReactNode;
+  actions?: ReactNode;
+}) {
+  const p = usePalette();
+  const insets = useSafeAreaInsets();
+  const colour = tone === "warn" ? p.warning : p.success;
+  const surface = tone === "warn" ? p.warningSurface : p.successSurface;
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: p.background }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        justifyContent: "center",
+        padding: space.lg,
+        paddingBottom: insets.bottom + space.lg,
+      }}
+    >
+      <Page>
+        <Card>
+          <View style={{ alignItems: "center", marginBottom: space.lg }}>
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: radius.xl,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: surface,
+              }}
+            >
+              <Ionicons name={icon} size={30} color={colour} />
+            </View>
+            <Text role="overline" tone="muted" style={{ marginTop: space.lg }}>
+              {eyebrow}
+            </Text>
+            <Text role="title" weight="heavy" numeric selectable style={{ marginTop: space.xs }}>
+              {value}
+            </Text>
+            {caption ? (
+              <Text role="label" tone="muted" align="center" style={{ marginTop: space.xs }}>
+                {caption}
+              </Text>
+            ) : null}
+          </View>
+          {children}
+        </Card>
+        {actions ? <View style={{ marginTop: space.xl }}>{actions}</View> : null}
+      </Page>
+    </ScrollView>
   );
 }
 
@@ -123,33 +536,20 @@ export function Section({
   hint?: string;
   children: ReactNode;
 }) {
-  const p = usePalette();
   return (
     <View style={{ marginBottom: space.xl }}>
       {title ? (
         <Text
           accessibilityRole="header"
-          style={{
-            fontSize: type.micro,
-            ...font("bold"),
-            letterSpacing: 0.9,
-            textTransform: "uppercase",
-            color: p.textFaint,
-            marginBottom: hint ? space.xxs : space.sm,
-          }}
+          role="overline"
+          tone="muted"
+          style={{ marginBottom: hint ? space.xxs : space.sm }}
         >
           {title}
         </Text>
       ) : null}
       {hint ? (
-        <Text
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            marginBottom: space.sm,
-            lineHeight: 17,
-          }}
-        >
+        <Text role="caption" tone="muted" style={{ marginBottom: space.sm }}>
           {hint}
         </Text>
       ) : null}
@@ -180,9 +580,19 @@ export function Card({ children, padded = true }: { children: ReactNode; padded?
   );
 }
 
-/** Constrains content on wide screens. Full-width text is unreadable on a laptop. */
-export function Page({ children }: { children: ReactNode }) {
-  return <View style={{ width: "100%", maxWidth: 720, alignSelf: "center" }}>{children}</View>;
+/**
+ * Constrains content on wide screens. Full-width text is unreadable on a laptop.
+ *
+ * 720px is a reading measure — right for a form, a receipt or a column of prose, and it is
+ * what every screen has used. It is wrong for a grid of figures, which has no measure to
+ * respect and simply wants the room, so a dashboard can ask for `wide` instead.
+ */
+export function Page({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
+  return (
+    <View style={{ width: "100%", maxWidth: wide ? 1080 : 720, alignSelf: "center" }}>
+      {children}
+    </View>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -233,20 +643,15 @@ export function Row({
       ) : null}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text
-          numberOfLines={1}
-          style={{
-            fontSize: density === "field" ? type.subheading : type.body,
-            ...font("semibold"),
-            color: tint === "danger" ? p.danger : p.text,
-          }}
+          role={density === "field" ? "heading" : "body"}
+          weight="semibold"
+          tone={tint === "danger" ? "danger" : "default"}
+          lines={1}
         >
           {label}
         </Text>
         {value ? (
-          <Text
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
             {value}
           </Text>
         ) : null}
@@ -285,12 +690,30 @@ export function Row({
   );
 }
 
+/**
+ * The one button, with a real hierarchy behind it.
+ *
+ * `tone="neutral"` was used 32 times against `accent`'s 27 — so most buttons in the app
+ * were a filled grey slab, the same height and weight as the orange one, whose only job
+ * was being "not the primary". Two same-sized filled rectangles side by side is not a
+ * hierarchy; it is a choice presented twice.
+ *
+ * Neutral now maps to an OUTLINE, which is what a secondary action has always wanted to
+ * be: same footprint, obviously subordinate, and it stops competing for the eye. The prop
+ * name is unchanged on purpose — thirty-two call sites get a real secondary button
+ * without being edited, and `variant` is there for new code that wants to say so
+ * directly.
+ */
+export type ButtonVariant = "solid" | "outline" | "ghost";
+
 export function PrimaryButton({
   label,
   icon,
   onPress,
   disabled,
   tone = "accent",
+  variant,
+  loading = false,
   density = "desk",
 }: {
   label: string;
@@ -298,20 +721,35 @@ export function PrimaryButton({
   onPress: () => void;
   disabled?: boolean;
   tone?: "accent" | "neutral" | "danger";
+  /** Defaults from `tone`: neutral is an outline, accent and danger are solid. */
+  variant?: ButtonVariant;
+  /**
+   * Shows a spinner and blocks the press.
+   *
+   * Screens were faking this by swapping the label to "Staging…", which loses the button
+   * width, reads as a state change rather than progress, and leaves the control pressable
+   * while the request is in flight.
+   */
+  loading?: boolean;
   density?: Density;
 }) {
   const p = usePalette();
   const { hovered, focused, handlers } = useInteractionState();
-  const bg = tone === "accent" ? p.accent : tone === "danger" ? p.danger : p.surfaceSunken;
-  const fg = tone === "neutral" ? p.text : p.onAccent;
+
+  const shape: ButtonVariant = variant ?? (tone === "neutral" ? "outline" : "solid");
+  const accentColour = tone === "danger" ? p.danger : tone === "neutral" ? p.text : p.accent;
+
+  const bg = shape === "solid" ? accentColour : shape === "outline" ? p.surface : "transparent";
+  const fg = shape === "solid" ? p.onAccent : accentColour;
+  const inert = disabled || loading;
 
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={inert}
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: !!disabled }}
+      accessibilityState={{ disabled: !!inert, busy: loading }}
       {...handlers}
       style={({ pressed }) => [
         {
@@ -321,25 +759,23 @@ export function PrimaryButton({
           minHeight: heightFor(density),
           borderRadius: radius.md,
           paddingHorizontal: space.xl,
-          backgroundColor: bg,
+          backgroundColor: pressed && shape !== "solid" ? p.surfaceSunken : bg,
           opacity: disabled ? 0.4 : pressed ? 0.85 : hovered ? 0.94 : 1,
-          borderWidth: focused ? 2 : 0,
-          borderColor: p.focus,
-          cursor: disabled ? "not-allowed" : "pointer",
+          // The focus ring replaces the outline rather than stacking on it, so an
+          // outlined button does not gain a second border when tabbed to.
+          borderWidth: focused ? 2 : shape === "outline" ? StyleSheet.hairlineWidth : 0,
+          borderColor: focused ? p.focus : p.borderStrong,
+          cursor: inert ? "not-allowed" : "pointer",
         } as ViewStyle,
-        tone === "accent" && !disabled ? elevation(1, p) : {},
+        shape === "solid" && !inert ? elevation(1, p) : {},
       ]}
     >
-      {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
-      <Text
-        style={{
-          color: fg,
-          fontSize: type.body,
-          ...font("semibold"),
-          marginLeft: icon ? space.sm : 0,
-          letterSpacing: 0.1,
-        }}
-      >
+      {loading ? (
+        <ActivityIndicator size="small" color={fg} style={{ marginRight: space.sm }} />
+      ) : icon ? (
+        <Ionicons name={icon} size={18} color={fg} />
+      ) : null}
+      <Text weight="semibold" style={{ color: fg, marginLeft: icon && !loading ? space.sm : 0 }}>
         {label}
       </Text>
     </Pressable>
@@ -408,25 +844,16 @@ export function ChoiceTile({
     >
       <Ionicons name={icon} size={22} color={selected ? p.accent : p.textMuted} />
       <Text
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: selected ? p.accent : p.text,
-          marginTop: space.xs,
-          textAlign: "center",
-        }}
+        role="label"
+        weight="semibold"
+        tone={selected ? "accent" : "default"}
+        align="center"
+        style={{ marginTop: space.xs }}
       >
         {label}
       </Text>
       {hint ? (
-        <Text
-          style={{
-            fontSize: type.micro,
-            color: p.textFaint,
-            marginTop: 2,
-            textAlign: "center",
-          }}
-        >
+        <Text role="caption" tone="muted" align="center" style={{ marginTop: 2 }}>
           {hint}
         </Text>
       ) : null}
@@ -487,14 +914,11 @@ export function Stepper({
       {button(-1, "remove", "One fewer")}
       <Text
         accessibilityLiveRegion="polite"
-        style={{
-          flex: 1,
-          textAlign: "center",
-          fontSize: type.display,
-          ...font("bold"),
-          color: p.text,
-          fontVariant: ["tabular-nums"],
-        }}
+        role="display"
+        weight="bold"
+        numeric
+        align="center"
+        style={{ flex: 1 }}
       >
         {value}
       </Text>
@@ -534,14 +958,7 @@ export function Field({
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ marginBottom: space.lg }}>
-      <Text
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         {label}
       </Text>
       <View
@@ -580,20 +997,13 @@ export function Field({
           }
         />
         {suffix ? (
-          <Text style={{ fontSize: type.caption, color: p.textMuted, ...font("medium") }}>
+          <Text role="label" tone="muted" weight="medium">
             {suffix}
           </Text>
         ) : null}
       </View>
       {hint && !error ? (
-        <Text
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            marginTop: space.xs,
-            lineHeight: 17,
-          }}
-        >
+        <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
           {hint}
         </Text>
       ) : null}
@@ -633,16 +1043,9 @@ export function Toggle({
       }}
     >
       <View style={{ flex: 1, marginRight: space.md }}>
-        <Text style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>{label}</Text>
+        <Text weight="semibold">{label}</Text>
         {hint ? (
-          <Text
-            style={{
-              fontSize: type.caption,
-              color: p.textMuted,
-              marginTop: space.xxs,
-              lineHeight: 17,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.xxs }}>
             {hint}
           </Text>
         ) : null}
@@ -654,6 +1057,74 @@ export function Toggle({
         accessibilityLabel={label}
         trackColor={{ true: p.accent, false: p.borderStrong }}
       />
+    </View>
+  );
+}
+
+/**
+ * The band's search box.
+ *
+ * Two screens had built this by hand and the copies had already diverged — a 16px glyph
+ * against a 17px one, and only one of them offering a way to clear the field. It belongs
+ * in the header band rather than the scroll, because a filter that scrolls away is a
+ * filter you cannot tell is still applied.
+ */
+export function SearchField({
+  value,
+  onChangeText,
+  placeholder,
+  label = "Search",
+}: {
+  value: string;
+  onChangeText: (next: string) => void;
+  placeholder: string;
+  label?: string;
+}) {
+  const p = usePalette();
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
+        borderColor: focused ? p.focus : p.border,
+        borderRadius: radius.md,
+        backgroundColor: p.surfaceSunken,
+        paddingHorizontal: space.md,
+      }}
+    >
+      <Ionicons name="search" size={17} color={p.textMuted} />
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={p.textMuted}
+        autoCapitalize="none"
+        autoCorrect={false}
+        accessibilityLabel={label}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={
+          {
+            flex: 1,
+            minHeight: touch.desk,
+            paddingHorizontal: space.sm,
+            fontSize: textStyles.body.fontSize,
+            color: p.text,
+            outlineStyle: "none",
+          } as never
+        }
+      />
+      {value ? (
+        <IconButton
+          icon="close-circle"
+          label="Clear the search"
+          size={17}
+          onPress={() => onChangeText("")}
+        />
+      ) : null}
     </View>
   );
 }
@@ -692,14 +1163,7 @@ export function SelectRow({
 
   return (
     <View style={{ marginBottom: space.lg }}>
-      <Text
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         {label}
       </Text>
       <Pressable
@@ -719,11 +1183,11 @@ export function SelectRow({
           backgroundColor: pressed ? p.surfaceSunken : p.surface,
         })}
       >
-        <Text style={{ flex: 1, fontSize: type.body, color: selected ? p.text : p.textFaint }}>
+        <Text tone={selected ? "default" : "muted"} style={{ flex: 1 }}>
           {selected ? selected.label : placeholder}
         </Text>
         {selected?.sublabel ? (
-          <Text style={{ fontSize: type.caption, color: p.textMuted, marginRight: space.sm }}>
+          <Text role="caption" tone="muted" style={{ marginRight: space.sm }}>
             {selected.sublabel}
           </Text>
         ) : null}
@@ -731,96 +1195,321 @@ export function SelectRow({
       </Pressable>
       {error ? <FieldError message={error} /> : null}
 
-      <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: p.background }}>
-          <View
-            style={{
-              paddingTop: space.xxxl,
-              paddingHorizontal: space.lg,
-              paddingBottom: space.md,
-              backgroundColor: p.surface,
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: p.border,
-            }}
-          >
-            <Header title={label} right={<CloseButton onPress={() => setOpen(false)} />} />
-            {choices.length > 8 ? (
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search"
-                placeholderTextColor={p.textFaint}
-                accessibilityLabel="Search options"
-                style={
-                  {
-                    minHeight: touch.desk,
-                    borderWidth: StyleSheet.hairlineWidth,
-                    borderRadius: radius.md,
-                    paddingHorizontal: space.md,
-                    fontSize: type.body,
-                    backgroundColor: p.surfaceSunken,
-                    borderColor: p.border,
-                    color: p.text,
-                    outlineStyle: "none",
-                  } as never
-                }
-              />
-            ) : null}
-          </View>
-          <ScrollView
-            contentContainerStyle={{ padding: space.lg }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <Page>
-              <Card padded={false}>
-                {filtered.map((c, i) => (
-                  <Row
-                    key={c.id}
-                    label={c.label}
-                    {...(c.sublabel ? { value: c.sublabel } : {})}
-                    selected={c.id === value}
-                    divider={i < filtered.length - 1}
-                    onPress={() => {
-                      onSelect(c.id);
-                      setQuery("");
-                      setOpen(false);
-                    }}
-                  />
-                ))}
-              </Card>
-            </Page>
-          </ScrollView>
-        </View>
-      </Modal>
+      <Dialog
+        visible={open}
+        title={label}
+        onClose={() => setOpen(false)}
+        {...(choices.length > 8
+          ? {
+              header: (
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search"
+                  placeholderTextColor={p.textFaint}
+                  accessibilityLabel="Search options"
+                  style={
+                    {
+                      minHeight: touch.desk,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderRadius: radius.md,
+                      paddingHorizontal: space.md,
+                      marginTop: space.sm,
+                      fontSize: type.body,
+                      backgroundColor: p.surfaceSunken,
+                      borderColor: p.border,
+                      color: p.text,
+                      outlineStyle: "none",
+                    } as never
+                  }
+                />
+              ),
+            }
+          : {})}
+      >
+        <Card padded={false}>
+          {filtered.map((c, i) => (
+            <Row
+              key={c.id}
+              label={c.label}
+              {...(c.sublabel ? { value: c.sublabel } : {})}
+              selected={c.id === value}
+              divider={i < filtered.length - 1}
+              onPress={() => {
+                onSelect(c.id);
+                setQuery("");
+                setOpen(false);
+              }}
+            />
+          ))}
+          {filtered.length === 0 ? (
+            <View style={{ padding: space.lg }}>
+              <Text tone="muted" align="center">
+                Nothing matches “{query.trim()}”.
+              </Text>
+            </View>
+          ) : null}
+        </Card>
+      </Dialog>
     </View>
   );
 }
 
 export function CloseButton({ onPress }: { onPress: () => void }) {
+  return <IconButton icon="close" label="Close" onPress={onPress} />;
+}
+
+// ---------------------------------------------------------------------------
+// Overlays
+// ---------------------------------------------------------------------------
+
+/**
+ * The dimmed ground behind an overlay. Warm, because every neutral in this palette is.
+ *
+ * Exported so the shell's drawer and every dialog dim the page by the same amount — two
+ * overlays that disagree about how dark "behind" is look like a bug the moment one opens
+ * over the other.
+ */
+export const SCRIM = "rgba(31, 27, 24, 0.55)";
+
+/**
+ * Something on top, sized to the screen it is on.
+ *
+ * Every overlay in this app was a full-screen `animationType="slide"` `Modal`, which is
+ * the right thing on a phone and absurd on a laptop: choosing one of six reject reasons
+ * took over 1440×900, and a twelve-line goods receipt meant twelve of those takeovers in a
+ * row. There was also no Escape and no click-outside anywhere, so on a keyboard the only
+ * way out was to find a small × with the mouse.
+ *
+ * So: a centred panel with a backdrop when there is room, the familiar bottom sheet when
+ * there is not. Same component, same props, one decision.
+ *
+ * Deliberately not an anchored popover. That needs trigger measurement, viewport
+ * collision and close-on-scroll, and it is the most expensive item in the plan for a
+ * fraction of the gain — this removes the takeover, which was the actual complaint.
+ */
+export function Dialog({
+  visible,
+  title,
+  onClose,
+  children,
+  header,
+  footer,
+  scroll = true,
+}: {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  /** Extra band content under the title — a search field, a filter row. */
+  header?: ReactNode;
+  footer?: ReactNode;
+  /** Off when the child is itself a list that scrolls. */
+  scroll?: boolean;
+}) {
   const p = usePalette();
+  const expanded = useIsExpanded();
+  const insets = useSafeAreaInsets();
+
+  useEscape(visible, onClose);
+
+  const body = scroll ? (
+    <ScrollView contentContainerStyle={{ padding: space.lg }} keyboardShouldPersistTaps="handled">
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={{ flex: 1 }}>{children}</View>
+  );
+
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="Close"
-      hitSlop={10}
-      style={({ pressed }) => ({
-        width: touch.desk,
-        height: touch.desk,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: radius.md,
-        backgroundColor: pressed ? p.surfaceSunken : "transparent",
-      })}
+    <Modal
+      visible={visible}
+      transparent
+      animationType={expanded ? "fade" : "slide"}
+      onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <Ionicons name="close" size={22} color={p.text} />
-    </Pressable>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: expanded ? "center" : "flex-end",
+          alignItems: "center",
+          padding: expanded ? space.xl : 0,
+        }}
+      >
+        {/*
+         * The backdrop is a sibling under the panel rather than its parent, so a press
+         * that lands on the panel is never also a press on the backdrop. Wrapping the
+         * panel in a Pressable is the usual way to write this and the usual way to make a
+         * dialog close when you click its own heading.
+         */}
+        <Pressable
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM }]}
+        />
+        <View
+          // Screen readers stop at the panel instead of wandering into the page behind it.
+          accessibilityViewIsModal
+          style={[
+            {
+              width: "100%",
+              maxWidth: expanded ? 560 : undefined,
+              maxHeight: expanded ? "88%" : "90%",
+              backgroundColor: p.background,
+              borderTopLeftRadius: radius.lg,
+              borderTopRightRadius: radius.lg,
+              borderBottomLeftRadius: expanded ? radius.lg : 0,
+              borderBottomRightRadius: expanded ? radius.lg : 0,
+              overflow: "hidden",
+            },
+            elevation(2, p),
+          ]}
+        >
+          <View
+            style={{
+              paddingHorizontal: space.lg,
+              paddingTop: space.md,
+              paddingBottom: header ? space.md : space.xs,
+              backgroundColor: p.surface,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: p.border,
+            }}
+          >
+            {/* The grab handle is a phone affordance and a distraction on a desktop. */}
+            {expanded ? null : (
+              <View
+                style={{
+                  alignSelf: "center",
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: p.border,
+                  marginBottom: space.sm,
+                }}
+              />
+            )}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text role="heading" accessibilityRole="header" style={{ flex: 1 }} lines={1}>
+                {title}
+              </Text>
+              <CloseButton onPress={onClose} />
+            </View>
+            {header}
+          </View>
+
+          {body}
+
+          {footer ? (
+            <View
+              style={{
+                paddingHorizontal: space.lg,
+                paddingTop: space.md,
+                paddingBottom: space.md + (expanded ? 0 : insets.bottom),
+                backgroundColor: p.surface,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: p.border,
+              }}
+            >
+              {footer}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Feedback
 // ---------------------------------------------------------------------------
+
+/**
+ * One line that says what just happened, or what is about to.
+ *
+ * Distinct from `Notice`, which is a block that fills an empty screen. This is the strip
+ * that appears above a list after a put-away posts, or when the outbox is behind — a
+ * pattern that had been rebuilt seven times with its own padding, its own icon size and
+ * its own idea of which surface tint goes with which colour.
+ *
+ * `accessibilityLiveRegion` matters more than it looks: the storekeeper who just scanned
+ * a bin is looking at the scanner, not the screen, and a confirmation nobody is told about
+ * is a confirmation that did not happen.
+ */
+export function Banner({
+  icon,
+  tone = "info",
+  children,
+}: {
+  icon: IoniconName;
+  tone?: "good" | "warn" | "bad" | "info";
+  children: ReactNode;
+}) {
+  const p = usePalette();
+  const colour =
+    tone === "good"
+      ? p.success
+      : tone === "warn"
+        ? p.warning
+        : tone === "bad"
+          ? p.danger
+          : p.accent;
+  const surface =
+    tone === "good"
+      ? p.successSurface
+      : tone === "warn"
+        ? p.warningSurface
+        : tone === "bad"
+          ? p.dangerSurface
+          : p.accentSurface;
+
+  return (
+    <View
+      accessibilityLiveRegion="polite"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space.sm,
+        backgroundColor: surface,
+        borderRadius: radius.md,
+        padding: space.md,
+        marginBottom: space.lg,
+      }}
+    >
+      <Ionicons name={icon} size={18} color={colour} />
+      <Text role="label" weight="semibold" style={{ flex: 1, color: colour }}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Waiting, said once and the same way everywhere.
+ *
+ * There were twenty-four bare `ActivityIndicator`s across the screens in three sizes and
+ * two colours, some centred, some not, some with a word beside them and most without. A
+ * spinner is the first thing a user sees on every screen in this app; it should not be the
+ * least considered thing on it.
+ */
+export function Loading({ label }: { label?: string }) {
+  const p = usePalette();
+  return (
+    <View
+      style={{ paddingVertical: space.xxxl, alignItems: "center", gap: space.md }}
+      accessibilityRole="progressbar"
+      accessibilityLabel={label ?? "Loading"}
+    >
+      <ActivityIndicator size="large" color={p.accent} />
+      {label ? (
+        <Text role="label" tone="muted">
+          {label}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
 export function FieldError({ message }: { message: string }) {
   const p = usePalette();
@@ -830,15 +1519,7 @@ export function FieldError({ message }: { message: string }) {
       accessibilityRole="alert"
     >
       <Ionicons name="alert-circle" size={15} color={p.danger} style={{ marginTop: 1 }} />
-      <Text
-        style={{
-          color: p.danger,
-          fontSize: type.caption,
-          marginLeft: space.xs,
-          flex: 1,
-          lineHeight: 17,
-        }}
-      >
+      <Text role="caption" tone="danger" style={{ marginLeft: space.xs, flex: 1 }}>
         {message}
       </Text>
     </View>
@@ -876,13 +1557,9 @@ export function StatusPill({
     >
       {icon ? <Ionicons name={icon} size={12} color={c.fg} /> : null}
       <Text
-        style={{
-          color: c.fg,
-          fontSize: type.micro,
-          ...font("semibold"),
-          marginLeft: icon ? space.xs : 0,
-          letterSpacing: 0.2,
-        }}
+        role="caption"
+        weight="semibold"
+        style={{ color: c.fg, marginLeft: icon ? space.xs : 0 }}
       >
         {label}
       </Text>
@@ -921,27 +1598,15 @@ export function Notice({
       >
         <Ionicons name={icon} size={26} color={fg} />
       </View>
-      <Text
-        style={{
-          fontSize: type.subheading,
-          ...font("semibold"),
-          color: p.text,
-          marginTop: space.lg,
-          textAlign: "center",
-        }}
-      >
+      <Text role="heading" align="center" style={{ marginTop: space.lg }}>
         {title}
       </Text>
       {body ? (
         <Text
-          style={{
-            fontSize: type.label,
-            color: p.textMuted,
-            marginTop: space.sm,
-            textAlign: "center",
-            lineHeight: 21,
-            maxWidth: 380,
-          }}
+          role="label"
+          tone="muted"
+          align="center"
+          style={{ marginTop: space.sm, maxWidth: 380 }}
         >
           {body}
         </Text>
@@ -1015,29 +1680,14 @@ export function StatTile({
         ) : null}
       </View>
 
-      <Text
-        style={{
-          fontSize: type.display,
-          ...font("heavy"),
-          color: ink,
-          letterSpacing: -1,
-          lineHeight: type.display + 2,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
+      <Text role="display" numeric style={{ color: ink }}>
         {value}
       </Text>
-      <Text
-        style={{ fontSize: type.label, ...font("semibold"), color: p.text, marginTop: space.xs }}
-        numberOfLines={1}
-      >
+      <Text role="label" weight="semibold" lines={1} style={{ marginTop: space.xs }}>
         {label}
       </Text>
       {caption ? (
-        <Text
-          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          numberOfLines={1}
-        >
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           {caption}
         </Text>
       ) : null}

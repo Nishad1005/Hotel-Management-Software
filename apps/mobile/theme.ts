@@ -46,20 +46,53 @@ export const radius = {
  */
 export const touch = {
   field: 60,
-  fieldLarge: 84,
   desk: 44,
-  deskCompact: 36,
 } as const;
 
+/**
+ * The size ramp.
+ *
+ * It was 34/24/18/16/15/14/12/11 — eight roles, of which the bottom five spanned five
+ * pixels. `body` and `label` were 1px apart, `subheading` and `body` were 1px apart,
+ * `caption` and `micro` were 1px apart. You cannot build hierarchy out of a 6% size step,
+ * so the screens compensated with colour instead: 46 status pills doing six different
+ * jobs, and a customer's onboarding progress conveyed by how many of them were green.
+ *
+ * More damning, a count of every `type.*` reference in the app found **57% of them at 11
+ * or 12 pixels**. The de facto body text of an operations product used in gloves, at
+ * night, in direct sun was 12px.
+ *
+ * So this is five sizes where there were eight: 32 / 22 / 17 / 15 / 13. `label` and
+ * `caption` share 13 in `text` below — the difference between a field label and a row's
+ * metadata was always weight and colour, never size.
+ *
+ * `subheading` and `micro` are gone. They survived the first pass as aliases so that
+ * migrating a screen would not also mean editing its every call site; every screen has
+ * migrated, so the aliases have no callers left. **Nothing new should reference this
+ * object.** It exists for the handful of `TextInput`s that genuinely need a bare
+ * `fontSize`; everything with words in it says `role` on `Text` instead.
+ */
 export const type = {
-  display: 34,
-  title: 24,
-  heading: 18,
-  subheading: 16,
+  display: 32,
+  title: 22,
+  heading: 17,
   body: 15,
-  label: 14,
-  caption: 12,
-  micro: 11,
+  label: 13,
+  caption: 13,
+} as const;
+
+/**
+ * Where the app is being looked at.
+ *
+ * Two values, not five. There is one decision — is there room for a sidebar — and one
+ * secondary one for whether a list can afford columns. A `sm/md/lg/xl/2xl` ladder is a
+ * web-framework habit that would be applied inconsistently across twenty-five screens.
+ */
+export const breakpoints = {
+  /** Below this the app is a single column with a drawer; at or above it, a sidebar. */
+  expanded: 1024,
+  /** Above this a list row can spread its metadata into real columns. */
+  wide: 1440,
 } as const;
 
 export const weight = {
@@ -106,6 +139,103 @@ export function font(w: WeightName) {
  * can use is not a token.
  */
 export const tabular: { fontVariant: ["tabular-nums"] } = { fontVariant: ["tabular-nums"] };
+
+/**
+ * Text styles — a role, not a size.
+ *
+ * This is the token that was missing, and its absence is why the app looks the way it
+ * does. `type` gave you a number; everything else — weight, line height, tracking — had
+ * to be reassembled by hand at every call site. So it was: **192 of 203 `<Text>` elements
+ * declared their own typography**, 38 line heights were hand-typed across six values, and
+ * thirteen different letter-spacings floated loose. The same "section label" role was
+ * tracked at 0.9 inside the design system and 1.2 in seven screens — two design languages
+ * shipping side by side, and nobody could see it because nobody could see them together.
+ *
+ * A role bundles all five decisions. `<Text role="label">` is now a complete instruction.
+ *
+ * Line heights are absolute, not multipliers: React Native's `lineHeight` is in pixels,
+ * and a ratio would round differently per size and reintroduce the drift this replaces.
+ */
+export interface TextStyleToken {
+  fontSize: number;
+  lineHeight: number;
+  letterSpacing: number;
+  weight: WeightName;
+  /**
+   * Always present, never optional. An optional member here would be `"uppercase" |
+   * undefined` at the one call site that reads it, which `exactOptionalPropertyTypes`
+   * rejects — and working around that with a conditional spread is how a primitive used
+   * on every row starts collecting special cases.
+   */
+  textTransform: "none" | "uppercase";
+}
+
+export const text = {
+  /** The one big figure on a tile. Never a sentence. */
+  display: {
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -0.8,
+    weight: "heavy",
+    textTransform: "none",
+  },
+  /** Screen titles. */
+  title: {
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: -0.4,
+    weight: "bold",
+    textTransform: "none",
+  },
+  /** Card headings, and the figure at the end of a list row. */
+  heading: {
+    fontSize: 17,
+    lineHeight: 24,
+    letterSpacing: -0.2,
+    weight: "semibold",
+    textTransform: "none",
+  },
+  /** Prose, field values, button labels, the name in a list row. The workhorse. */
+  body: {
+    fontSize: 15,
+    lineHeight: 22,
+    letterSpacing: 0,
+    weight: "regular",
+    textTransform: "none",
+  },
+  /** The metadata line under a name. The 15 → 13 gap is what makes a list scannable. */
+  label: {
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    weight: "regular",
+    textTransform: "none",
+  },
+  /** Tertiary — hints, and a third line only where one is genuinely conditional. */
+  caption: {
+    fontSize: 13,
+    lineHeight: 18,
+    letterSpacing: 0,
+    weight: "regular",
+    textTransform: "none",
+  },
+  /**
+   * Uppercase section labels and pills, and nothing else.
+   *
+   * 11px is not a content size. It was used as one 32 times, which is where "compensate
+   * with colour" came from — you cannot make 11px carry meaning any other way. It earns
+   * its place here only because uppercase, weight and tracking do the work instead.
+   */
+  overline: {
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+    weight: "bold",
+    textTransform: "uppercase",
+  },
+} as const satisfies Record<string, TextStyleToken>;
+
+export type TextRole = keyof typeof text;
 
 export interface Palette {
   background: string;
@@ -168,7 +298,19 @@ const light: Palette = {
   borderStrong: "#C9BCAE",
   text: "#1F1B18",
   textMuted: "#736A62",
-  textFaint: "#A69C93",
+  /**
+   * Was `#A69C93`, which is **2.52:1** against this background — WCAG AA wants 4.5:1 for
+   * normal text. It was used 51 times, usually at 11px, in a product whose own brief says
+   * it must be read in direct sun with cold hands.
+   *
+   * Solving for the lightest warm grey that still passes lands on almost exactly
+   * `textMuted`, and that is the real finding: **this palette has room for two text
+   * colours, not three.** So the third tier is gone as a visual device — hierarchy comes
+   * from size, weight and space now, which is what `text` above is for. The token stays
+   * only so the 51 call sites keep compiling; they collapse onto `textMuted` as screens
+   * migrate, and then it goes.
+   */
+  textFaint: "#7A7068",
   primary: "#33241D",
   onPrimary: "#FFFFFF",
   brand: "#33241D",

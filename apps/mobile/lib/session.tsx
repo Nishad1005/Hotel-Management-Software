@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { amIPlatformAdmin } from "./platform";
 import { isConfigured, supabase } from "./supabase";
 
 /**
@@ -39,6 +40,14 @@ interface SessionState {
   signOut: () => Promise<void>;
   /** True when the active property allows editing master data. */
   canEditMasters: boolean;
+  /**
+   * Vendor staff, not a property's.
+   *
+   * Held here rather than asked per screen: it decides a section of the navigation and a
+   * row on the home screen, and the home screen was asking on every focus. It is a fact
+   * about the signed-in person, which is exactly what this context is for.
+   */
+  isPlatformAdmin: boolean;
 }
 
 const SessionContext = createContext<SessionState | null>(null);
@@ -50,6 +59,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [properties, setProperties] = useState<PropertyAccess[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -136,6 +146,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [session]);
 
+  // Vendor staff, asked once per session rather than on every focus of the home screen.
+  // Deliberately not gated on `loading`: it decides a navigation section, not whether the
+  // app renders, so it is allowed to arrive a moment late and add a section.
+  useEffect(() => {
+    if (!supabase || !session) {
+      setIsPlatformAdmin(false);
+      return;
+    }
+    let alive = true;
+    void amIPlatformAdmin().then((yes) => {
+      if (alive) setIsPlatformAdmin(yes);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [session]);
+
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) return { error: "Supabase is not configured." };
     setLoading(true);
@@ -170,6 +197,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     canEditMasters: (activeProperty?.roles ?? []).some((r) => EDIT_ROLES.includes(r)),
+    isPlatformAdmin,
   };
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
