@@ -536,35 +536,22 @@ export function Section({
   hint?: string;
   children: ReactNode;
 }) {
-  const p = usePalette();
   return (
     <View style={{ marginBottom: space.xl }}>
       {title ? (
-        <RNText
+        <Text
           accessibilityRole="header"
-          style={{
-            fontSize: type.micro,
-            ...font("bold"),
-            letterSpacing: 0.9,
-            textTransform: "uppercase",
-            color: p.textFaint,
-            marginBottom: hint ? space.xxs : space.sm,
-          }}
+          role="overline"
+          tone="muted"
+          style={{ marginBottom: hint ? space.xxs : space.sm }}
         >
           {title}
-        </RNText>
+        </Text>
       ) : null}
       {hint ? (
-        <RNText
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            marginBottom: space.sm,
-            lineHeight: 17,
-          }}
-        >
+        <Text role="caption" tone="muted" style={{ marginBottom: space.sm }}>
           {hint}
-        </RNText>
+        </Text>
       ) : null}
       {children}
     </View>
@@ -655,23 +642,18 @@ export function Row({
         </View>
       ) : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <RNText
-          numberOfLines={1}
-          style={{
-            fontSize: density === "field" ? type.subheading : type.body,
-            ...font("semibold"),
-            color: tint === "danger" ? p.danger : p.text,
-          }}
+        <Text
+          role={density === "field" ? "heading" : "body"}
+          weight="semibold"
+          tone={tint === "danger" ? "danger" : "default"}
+          lines={1}
         >
           {label}
-        </RNText>
+        </Text>
         {value ? (
-          <RNText
-            numberOfLines={1}
-            style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          >
+          <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
             {value}
-          </RNText>
+          </Text>
         ) : null}
       </View>
       {trailing ??
@@ -793,17 +775,9 @@ export function PrimaryButton({
       ) : icon ? (
         <Ionicons name={icon} size={18} color={fg} />
       ) : null}
-      <RNText
-        style={{
-          color: fg,
-          fontSize: type.body,
-          ...font("semibold"),
-          marginLeft: icon && !loading ? space.sm : 0,
-          letterSpacing: 0.1,
-        }}
-      >
+      <Text weight="semibold" style={{ color: fg, marginLeft: icon && !loading ? space.sm : 0 }}>
         {label}
-      </RNText>
+      </Text>
     </Pressable>
   );
 }
@@ -869,28 +843,19 @@ export function ChoiceTile({
       }
     >
       <Ionicons name={icon} size={22} color={selected ? p.accent : p.textMuted} />
-      <RNText
-        style={{
-          fontSize: type.caption,
-          ...font("semibold"),
-          color: selected ? p.accent : p.text,
-          marginTop: space.xs,
-          textAlign: "center",
-        }}
+      <Text
+        role="label"
+        weight="semibold"
+        tone={selected ? "accent" : "default"}
+        align="center"
+        style={{ marginTop: space.xs }}
       >
         {label}
-      </RNText>
+      </Text>
       {hint ? (
-        <RNText
-          style={{
-            fontSize: type.micro,
-            color: p.textFaint,
-            marginTop: 2,
-            textAlign: "center",
-          }}
-        >
+        <Text role="caption" tone="muted" align="center" style={{ marginTop: 2 }}>
           {hint}
-        </RNText>
+        </Text>
       ) : null}
     </Pressable>
   );
@@ -947,19 +912,16 @@ export function Stepper({
       }}
     >
       {button(-1, "remove", "One fewer")}
-      <RNText
+      <Text
         accessibilityLiveRegion="polite"
-        style={{
-          flex: 1,
-          textAlign: "center",
-          fontSize: type.display,
-          ...font("bold"),
-          color: p.text,
-          fontVariant: ["tabular-nums"],
-        }}
+        role="display"
+        weight="bold"
+        numeric
+        align="center"
+        style={{ flex: 1 }}
       >
         {value}
-      </RNText>
+      </Text>
       {button(1, "add", "One more")}
     </View>
   );
@@ -996,16 +958,9 @@ export function Field({
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ marginBottom: space.lg }}>
-      <RNText
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         {label}
-      </RNText>
+      </Text>
       <View
         style={{
           flexDirection: "row",
@@ -1042,22 +997,15 @@ export function Field({
           }
         />
         {suffix ? (
-          <RNText style={{ fontSize: type.caption, color: p.textMuted, ...font("medium") }}>
+          <Text role="label" tone="muted" weight="medium">
             {suffix}
-          </RNText>
+          </Text>
         ) : null}
       </View>
       {hint && !error ? (
-        <RNText
-          style={{
-            fontSize: type.caption,
-            color: p.textMuted,
-            marginTop: space.xs,
-            lineHeight: 17,
-          }}
-        >
+        <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
           {hint}
-        </RNText>
+        </Text>
       ) : null}
       {error ? <FieldError message={error} /> : null}
     </View>
@@ -1095,18 +1043,11 @@ export function Toggle({
       }}
     >
       <View style={{ flex: 1, marginRight: space.md }}>
-        <RNText style={{ fontSize: type.body, ...font("semibold"), color: p.text }}>{label}</RNText>
+        <Text weight="semibold">{label}</Text>
         {hint ? (
-          <RNText
-            style={{
-              fontSize: type.caption,
-              color: p.textMuted,
-              marginTop: space.xxs,
-              lineHeight: 17,
-            }}
-          >
+          <Text role="caption" tone="muted" style={{ marginTop: space.xxs }}>
             {hint}
-          </RNText>
+          </Text>
         ) : null}
       </View>
       <Switch
@@ -1222,16 +1163,9 @@ export function SelectRow({
 
   return (
     <View style={{ marginBottom: space.lg }}>
-      <RNText
-        style={{
-          fontSize: type.label,
-          ...font("semibold"),
-          color: p.text,
-          marginBottom: space.xs,
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
         {label}
-      </RNText>
+      </Text>
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
@@ -1249,13 +1183,13 @@ export function SelectRow({
           backgroundColor: pressed ? p.surfaceSunken : p.surface,
         })}
       >
-        <RNText style={{ flex: 1, fontSize: type.body, color: selected ? p.text : p.textFaint }}>
+        <Text tone={selected ? "default" : "muted"} style={{ flex: 1 }}>
           {selected ? selected.label : placeholder}
-        </RNText>
+        </Text>
         {selected?.sublabel ? (
-          <RNText style={{ fontSize: type.caption, color: p.textMuted, marginRight: space.sm }}>
+          <Text role="caption" tone="muted" style={{ marginRight: space.sm }}>
             {selected.sublabel}
-          </RNText>
+          </Text>
         ) : null}
         <Ionicons name="chevron-down" size={18} color={p.textFaint} />
       </Pressable>
@@ -1544,17 +1478,9 @@ export function Banner({
       }}
     >
       <Ionicons name={icon} size={18} color={colour} />
-      <RNText
-        style={{
-          flex: 1,
-          fontSize: textStyles.label.fontSize,
-          lineHeight: textStyles.label.lineHeight,
-          color: colour,
-          ...font("semibold"),
-        }}
-      >
+      <Text role="label" weight="semibold" style={{ flex: 1, color: colour }}>
         {children}
-      </RNText>
+      </Text>
     </View>
   );
 }
@@ -1593,17 +1519,9 @@ export function FieldError({ message }: { message: string }) {
       accessibilityRole="alert"
     >
       <Ionicons name="alert-circle" size={15} color={p.danger} style={{ marginTop: 1 }} />
-      <RNText
-        style={{
-          color: p.danger,
-          fontSize: type.caption,
-          marginLeft: space.xs,
-          flex: 1,
-          lineHeight: 17,
-        }}
-      >
+      <Text role="caption" tone="danger" style={{ marginLeft: space.xs, flex: 1 }}>
         {message}
-      </RNText>
+      </Text>
     </View>
   );
 }
@@ -1638,17 +1556,13 @@ export function StatusPill({
       }}
     >
       {icon ? <Ionicons name={icon} size={12} color={c.fg} /> : null}
-      <RNText
-        style={{
-          color: c.fg,
-          fontSize: type.micro,
-          ...font("semibold"),
-          marginLeft: icon ? space.xs : 0,
-          letterSpacing: 0.2,
-        }}
+      <Text
+        role="caption"
+        weight="semibold"
+        style={{ color: c.fg, marginLeft: icon ? space.xs : 0 }}
       >
         {label}
-      </RNText>
+      </Text>
     </View>
   );
 }
@@ -1684,30 +1598,18 @@ export function Notice({
       >
         <Ionicons name={icon} size={26} color={fg} />
       </View>
-      <RNText
-        style={{
-          fontSize: type.subheading,
-          ...font("semibold"),
-          color: p.text,
-          marginTop: space.lg,
-          textAlign: "center",
-        }}
-      >
+      <Text role="heading" align="center" style={{ marginTop: space.lg }}>
         {title}
-      </RNText>
+      </Text>
       {body ? (
-        <RNText
-          style={{
-            fontSize: type.label,
-            color: p.textMuted,
-            marginTop: space.sm,
-            textAlign: "center",
-            lineHeight: 21,
-            maxWidth: 380,
-          }}
+        <Text
+          role="label"
+          tone="muted"
+          align="center"
+          style={{ marginTop: space.sm, maxWidth: 380 }}
         >
           {body}
-        </RNText>
+        </Text>
       ) : null}
       {action ? <View style={{ marginTop: space.xl }}>{action}</View> : null}
     </View>
@@ -1778,31 +1680,16 @@ export function StatTile({
         ) : null}
       </View>
 
-      <RNText
-        style={{
-          fontSize: type.display,
-          ...font("heavy"),
-          color: ink,
-          letterSpacing: -1,
-          lineHeight: type.display + 2,
-          fontVariant: ["tabular-nums"],
-        }}
-      >
+      <Text role="display" numeric style={{ color: ink }}>
         {value}
-      </RNText>
-      <RNText
-        style={{ fontSize: type.label, ...font("semibold"), color: p.text, marginTop: space.xs }}
-        numberOfLines={1}
-      >
+      </Text>
+      <Text role="label" weight="semibold" lines={1} style={{ marginTop: space.xs }}>
         {label}
-      </RNText>
+      </Text>
       {caption ? (
-        <RNText
-          style={{ fontSize: type.caption, color: p.textMuted, marginTop: 1 }}
-          numberOfLines={1}
-        >
+        <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
           {caption}
-        </RNText>
+        </Text>
       ) : null}
     </>
   );

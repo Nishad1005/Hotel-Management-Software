@@ -46,9 +46,7 @@ export const radius = {
  */
 export const touch = {
   field: 60,
-  fieldLarge: 84,
   desk: 44,
-  deskCompact: 36,
 } as const;
 
 /**
@@ -64,23 +62,23 @@ export const touch = {
  * or 12 pixels**. The de facto body text of an operations product used in gloves, at
  * night, in direct sun was 12px.
  *
- * So this is six real sizes wearing eight names: 32 / 22 / 17 / 15 / 13 / 11. `label` and
- * `caption` deliberately share 13 — the difference between a field label and a row's
- * metadata was always weight and colour, never size — and `subheading` collapses onto
- * `heading`. The names are all kept so that changing these numbers touches no call site;
- * the duplicates are retired as screens migrate to `text` below.
+ * So this is five sizes where there were eight: 32 / 22 / 17 / 15 / 13. `label` and
+ * `caption` share 13 in `text` below — the difference between a field label and a row's
+ * metadata was always weight and colour, never size.
+ *
+ * `subheading` and `micro` are gone. They survived the first pass as aliases so that
+ * migrating a screen would not also mean editing its every call site; every screen has
+ * migrated, so the aliases have no callers left. **Nothing new should reference this
+ * object.** It exists for the handful of `TextInput`s that genuinely need a bare
+ * `fontSize`; everything with words in it says `role` on `Text` instead.
  */
 export const type = {
   display: 32,
   title: 22,
   heading: 17,
-  /** @deprecated Sat 1px from `body`. Use `heading`, or `body` at semibold. */
-  subheading: 17,
   body: 15,
   label: 13,
   caption: 13,
-  /** Uppercase eyebrows only. 11px cannot carry content — see `text.overline`. */
-  micro: 11,
 } as const;
 
 /**
