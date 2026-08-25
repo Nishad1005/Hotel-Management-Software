@@ -982,6 +982,7 @@ export function Field({
   hint,
   error,
   invalid = false,
+  describedBy,
   suffix,
   onSubmitEditing,
   returnKeyType,
@@ -1006,6 +1007,11 @@ export function Field({
    * caller places the one message.
    */
   invalid?: boolean;
+  /**
+   * The `id` of a message that explains what is wrong, when the message lives outside
+   * this field — a form-level failure that implicates more than one input.
+   */
+  describedBy?: string;
   suffix?: string;
   /** Lets a short form submit from the keyboard instead of reaching for the button. */
   onSubmitEditing?: () => void;
@@ -1016,6 +1022,31 @@ export function Field({
 }) {
   const p = usePalette();
   const [focused, setFocused] = useState(false);
+  const wrong = !!error || invalid;
+  const ownErrorId = "field-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-error";
+
+  /**
+   * Web-only ARIA, spread through a cast.
+   *
+   * React Native's types stop at the handful of `aria-*` props it maps onto native
+   * accessibility traits; `aria-invalid` and `aria-describedby` are not among them.
+   * react-native-web forwards both — they are in its `forwardedProps` allowlist — so on
+   * the platform this app actually ships to they reach the DOM. On native they are
+   * unknown props and ignored.
+   *
+   * Without these, a rejected sign-in is a red outline and nothing else: no state a
+   * screen reader can report, and no link from the input to the sentence explaining it.
+   * That is the colour-only signalling WCAG 1.4.1 exists to stop.
+   */
+  const aria = {
+    ...(wrong ? { "aria-invalid": true } : {}),
+    ...(describedBy
+      ? { "aria-describedby": describedBy }
+      : error
+        ? { "aria-describedby": ownErrorId }
+        : {}),
+  } as object;
+
   return (
     <View style={{ marginBottom: space.lg }}>
       <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
@@ -1025,8 +1056,8 @@ export function Field({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          borderWidth: focused || error || invalid ? 2 : StyleSheet.hairlineWidth,
-          borderColor: error || invalid ? p.danger : focused ? p.focus : p.border,
+          borderWidth: focused || wrong ? 2 : StyleSheet.hairlineWidth,
+          borderColor: wrong ? p.danger : focused ? p.focus : p.border,
           borderRadius: radius.md,
           backgroundColor: p.surface,
           paddingRight: suffix ? space.md : 0,
@@ -1044,6 +1075,7 @@ export function Field({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           accessibilityLabel={label}
+          {...aria}
           {...(onSubmitEditing ? { onSubmitEditing, blurOnSubmit: false } : {})}
           {...(returnKeyType ? { returnKeyType } : {})}
           {...(textContentType ? { textContentType } : {})}
@@ -1071,7 +1103,7 @@ export function Field({
           {hint}
         </Text>
       ) : null}
-      {error ? <FieldError message={error} /> : null}
+      {error ? <FieldError message={error} id={ownErrorId} /> : null}
     </View>
   );
 }
@@ -1639,12 +1671,17 @@ export function Loading({ label }: { label?: string }) {
   );
 }
 
-export function FieldError({ message }: { message: string }) {
+export function FieldError({ message, id }: { message: string; id?: string }) {
   const p = usePalette();
   return (
     <View
-      style={{ flexDirection: "row", alignItems: "flex-start", marginTop: space.xs }}
+      // `alert` is an assertive live region on web, so the message is spoken when it
+      // appears rather than only when somebody happens to tab onto it.
       accessibilityRole="alert"
+      // Named so an input can declare itself described by this. Without it the failure
+      // exists for a screen reader as a colour, which is to say not at all.
+      {...(id ? { nativeID: id } : {})}
+      style={{ flexDirection: "row", alignItems: "flex-start", marginTop: space.xs }}
     >
       <Ionicons name="alert-circle" size={15} color={p.danger} style={{ marginTop: 1 }} />
       <Text role="caption" tone="danger" style={{ marginLeft: space.xs, flex: 1 }}>
