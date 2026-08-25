@@ -293,7 +293,9 @@ function LotRow({
       style={{
         borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
         borderBottomColor: p.border,
-        opacity: left <= 0 ? 0.45 : 1,
+        // Taken-out rows recede through their own tones, not a 0.45 veil that took the
+        // item name to 2.87:1.
+        backgroundColor: left <= 0 ? p.surfaceSunken : "transparent",
       }}
     >
       <Pressable

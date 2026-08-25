@@ -121,16 +121,20 @@ function ReceiptRow({
           borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
           borderBottomColor: p.border,
           backgroundColor: pressed ? p.surfaceSunken : "transparent",
-          // Dimmed rather than hidden. It is still what was posted, and an inspector's
-          // question is whether a receipt was changed — not what it says now.
-          opacity: superseded ? 0.6 : 1,
           cursor: "pointer",
         }) as ViewStyle
       }
     >
       <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text lines={1} weight="semibold">
+          {/*
+            Quieter rather than dimmed. It is still what was posted, and an inspector's
+            question is whether a receipt was changed — not what it says now — so the row
+            has to stay readable. `opacity: 0.6` put it at 4.51:1, which cleared AA by
+            0.01 and only because this row sits on white; the same treatment on a tinted
+            surface would not have.
+          */}
+          <Text lines={1} weight="semibold" tone={superseded ? "muted" : "default"}>
             {receipt.vendorName ?? "Vendor not named"}
           </Text>
           <Text lines={1} role="caption" tone="muted" numeric style={{ marginTop: 1 }}>

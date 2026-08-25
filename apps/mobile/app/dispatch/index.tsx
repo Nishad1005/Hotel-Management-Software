@@ -316,7 +316,9 @@ function LotRow({
       style={{
         borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
         borderBottomColor: p.border,
-        opacity: left <= 0 ? 0.45 : 1,
+        // See the note on the issue screen: a sunken fill says "nothing left here"
+        // without dragging the label under AA.
+        backgroundColor: left <= 0 ? p.surfaceSunken : "transparent",
       }}
     >
       <Pressable
