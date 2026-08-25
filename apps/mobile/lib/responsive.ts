@@ -29,19 +29,17 @@ export function useBreakpoint(): Breakpoint {
   return width >= breakpoints.expanded ? "expanded" : "compact";
 }
 
+/*
+ * There was a `useIsWide()` here, reading `breakpoints.wide` for list rows that could
+ * afford real columns. It was written speculatively and never called by anything, so it
+ * has gone: an unused breakpoint is an invitation to start answering a question nobody
+ * has asked yet, which is exactly how a two-value system becomes a five-value one.
+ *
+ * `breakpoints.wide` stays in the theme — the list-column work is real and still to come.
+ * The hook comes back when something calls it.
+ */
+
 /** True when the sidebar is showing and the content sits beside it. */
 export function useIsExpanded(): boolean {
   return useBreakpoint() === "expanded";
-}
-
-/**
- * Enough width that a list row can spread its metadata into real columns.
- *
- * Separate from `expanded` because they are different thresholds for different reasons:
- * a sidebar needs about 1024, and a table-like row needs considerably more before columns
- * beat a single line of `·`-separated metadata.
- */
-export function useIsWide(): boolean {
-  const { width } = useWindowDimensions();
-  return width >= breakpoints.wide;
 }

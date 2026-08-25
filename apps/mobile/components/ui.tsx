@@ -981,7 +981,12 @@ export function Field({
   autoCapitalize = "none",
   hint,
   error,
+  invalid = false,
   suffix,
+  onSubmitEditing,
+  returnKeyType,
+  textContentType,
+  autoComplete,
 }: {
   label: string;
   value: string;
@@ -992,7 +997,22 @@ export function Field({
   autoCapitalize?: "none" | "characters" | "words" | "sentences";
   hint?: string;
   error?: string;
+  /**
+   * Marked wrong, without saying why here.
+   *
+   * For the failure that implicates more than one field at once: "wrong email or
+   * password" is a single message about a pair of inputs, and rendering it under both
+   * would state the problem twice and imply two problems. This draws the border; the
+   * caller places the one message.
+   */
+  invalid?: boolean;
   suffix?: string;
+  /** Lets a short form submit from the keyboard instead of reaching for the button. */
+  onSubmitEditing?: () => void;
+  returnKeyType?: "done" | "next" | "go";
+  /** iOS/Android autofill. A gate phone should offer the saved password, not a keyboard. */
+  textContentType?: "emailAddress" | "password";
+  autoComplete?: "email" | "current-password";
 }) {
   const p = usePalette();
   const [focused, setFocused] = useState(false);
@@ -1005,8 +1025,8 @@ export function Field({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          borderWidth: focused || error ? 2 : StyleSheet.hairlineWidth,
-          borderColor: error ? p.danger : focused ? p.focus : p.border,
+          borderWidth: focused || error || invalid ? 2 : StyleSheet.hairlineWidth,
+          borderColor: error || invalid ? p.danger : focused ? p.focus : p.border,
           borderRadius: radius.md,
           backgroundColor: p.surface,
           paddingRight: suffix ? space.md : 0,
@@ -1024,6 +1044,10 @@ export function Field({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           accessibilityLabel={label}
+          {...(onSubmitEditing ? { onSubmitEditing, blurOnSubmit: false } : {})}
+          {...(returnKeyType ? { returnKeyType } : {})}
+          {...(textContentType ? { textContentType } : {})}
+          {...(autoComplete ? { autoComplete } : {})}
           style={
             {
               flex: 1,
