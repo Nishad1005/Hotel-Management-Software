@@ -66,7 +66,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const groups = navigationFor(activeProperty?.roles ?? [], isPlatformAdmin);
   const current = activeHref(pathname, groups);
-  useDocumentTitle(labelFor(current, groups));
+  const pageLabel = labelFor(current, groups);
+  useDocumentTitle(pageLabel);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
@@ -112,13 +113,27 @@ export function AppShell({ children }: { children: ReactNode }) {
           tone="onBrand"
           onPress={() => setDrawerOpen(true)}
         />
-        <Wordmark />
+        {/*
+          The wordmark on the landing screen, the page name everywhere else.
+
+          A phone app bar that says the product's name on all twenty-five screens tells you
+          nothing you did not know when you opened it. Deeper in, with the sidebar hidden
+          behind a hamburger, the one thing worth the space is where you are — a
+          storekeeper who put the phone down mid-task comes back to an answer.
+        */}
+        {pageLabel && pageLabel !== "Home" ? (
+          <Text role="heading" tone="onBrand" lines={1} style={{ flex: 1 }}>
+            {pageLabel}
+          </Text>
+        ) : (
+          <Wordmark />
+        )}
       </View>
 
       <View style={{ flex: 1 }}>{children}</View>
 
       <Drawer open={drawerOpen} onClose={closeDrawer}>
-        <SidebarBody groups={groups} current={current} />
+        <SidebarBody groups={groups} current={current} onClose={closeDrawer} />
       </Drawer>
     </View>
   );
@@ -209,15 +224,40 @@ function Drawer({
   );
 }
 
-function SidebarBody({ groups, current }: { groups: NavGroup[]; current: string | null }) {
+function SidebarBody({
+  groups,
+  current,
+  onClose,
+}: {
+  groups: NavGroup[];
+  current: string | null;
+  /** Present only in the drawer. The persistent sidebar has nothing to close. */
+  onClose?: () => void;
+}) {
   const { activeProperty, properties, session, setActiveProperty, signOut } = useSession();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ padding: space.md, paddingBottom: space.sm }}>
-        <Wordmark />
+      <View
+        style={{
+          padding: space.md,
+          paddingBottom: space.sm,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Wordmark />
+        </View>
+        {/*
+          Escape and a tap on the scrim both close this, and neither is discoverable with a
+          thumb. On a phone the drawer covers the screen, so the way out has to be visible.
+        */}
+        {onClose ? (
+          <IconButton icon="close" label="Close navigation" tone="onBrand" onPress={onClose} />
+        ) : null}
       </View>
 
       {activeProperty ? (
@@ -238,16 +278,22 @@ function SidebarBody({ groups, current }: { groups: NavGroup[]; current: string 
         showsVerticalScrollIndicator={false}
       >
         {groups.map((group, index) => (
-          <View key={group.title || `group-${index}`} style={{ marginBottom: space.sm }}>
+          <View
+            key={group.title || `group-${index}`}
+            /*
+              One rhythm, set here rather than by each label's own padding.
+
+              A group's separation from the one above it belongs to the group, not to the
+              eyebrow inside it — which is why the untitled first group (Home, no label)
+              used to sit at a different distance from its neighbour than every other pair.
+            */
+            style={{ marginTop: index === 0 ? 0 : space.lg }}
+          >
             {group.title ? (
               <Text
                 role="overline"
                 tone="onBrandMuted"
-                style={{
-                  paddingHorizontal: space.md,
-                  paddingTop: space.sm,
-                  paddingBottom: space.xs,
-                }}
+                style={{ paddingHorizontal: space.md, paddingBottom: space.xs }}
               >
                 {group.title}
               </Text>
@@ -268,25 +314,27 @@ function SidebarBody({ groups, current }: { groups: NavGroup[]; current: string 
         style={{
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: NAV_DIVIDER,
-          padding: space.md,
-          paddingBottom: space.md + insets.bottom,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space.sm,
+          padding: space.sm,
+          paddingBottom: space.sm + insets.bottom,
         }}
       >
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text role="label" tone="onBrand" lines={1}>
-            {session?.user.email ?? "Signed in"}
-          </Text>
-        </View>
-        <IconButton
-          icon="log-out-outline"
-          label="Sign out"
-          tone="onBrand"
-          size={20}
-          onPress={() => void signOut()}
-        />
+        <Text
+          role="caption"
+          tone="onBrandMuted"
+          lines={1}
+          style={{ paddingHorizontal: space.sm, paddingBottom: space.xs }}
+        >
+          {session?.user.email ?? "Signed in"}
+        </Text>
+        {/*
+          A labelled action, not a bare glyph.
+
+          Signing out was an icon of a door with an arrow, which is only obvious once you
+          already know. It is also the one control here whose consequence you cannot undo
+          without your password — the last thing that should be guessed at. Full width,
+          because unlike the tiles on the dashboard there is nothing beside it competing.
+        */}
+        <SidebarAction icon="log-out-outline" label="Sign out" onPress={() => void signOut()} />
       </View>
     </View>
   );
@@ -320,6 +368,7 @@ function PropertyButton({
   onPress: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const p = usePalette();
 
   const body = (
@@ -332,7 +381,16 @@ function PropertyButton({
           {code}
         </Text>
       </View>
-      {switchable ? <Ionicons name="swap-horizontal" size={16} color={p.onBrandMuted} /> : null}
+      {/*
+        A chevron, not a swap glyph.
+        
+        `swap-horizontal` is a picture of the outcome; a chevron is the convention for
+        "this opens something", which is the thing a person needs to recognise without
+        being taught. Absent when there is one property, because then this is a label.
+      */}
+      {switchable ? (
+        <Ionicons name="chevron-down" size={16} color={hovered ? p.onBrand : p.onBrandMuted} />
+      ) : null}
     </View>
   );
 
@@ -346,7 +404,10 @@ function PropertyButton({
     borderColor: NAV_DIVIDER,
   };
 
-  if (!switchable) return <View style={boxed}>{body}</View>;
+  // Flat and borderless with one property: an outlined box that does nothing looks like a
+  // control that is broken rather than a label that is complete.
+  if (!switchable)
+    return <View style={{ ...boxed, borderWidth: 0, paddingHorizontal: space.md }}>{body}</View>;
 
   return (
     <Pressable
@@ -355,15 +416,69 @@ function PropertyButton({
       accessibilityLabel={`Switch property. Currently ${name}`}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       style={({ pressed }) =>
         ({
           ...boxed,
           backgroundColor: pressed || hovered ? NAV_HOVER : "transparent",
+          borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
+          borderColor: focused ? p.onBrand : NAV_DIVIDER,
           cursor: "pointer",
         }) as ViewStyle
       }
     >
       {body}
+    </Pressable>
+  );
+}
+
+/**
+ * A full-width labelled control for the sidebar's foot.
+ *
+ * Not `IconButton`: that is a 44px square for a glyph, and the point here is the word.
+ */
+function SidebarAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  onPress: () => void;
+}) {
+  const p = usePalette();
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={({ pressed }) =>
+        ({
+          minHeight: touch.desk,
+          paddingHorizontal: space.sm,
+          borderRadius: radius.md,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space.sm,
+          backgroundColor: pressed || hovered ? NAV_HOVER : "transparent",
+          borderWidth: focused ? 2 : 0,
+          borderColor: p.onBrand,
+          cursor: "pointer",
+        }) as ViewStyle
+      }
+    >
+      <Ionicons name={icon} size={18} color={p.onBrandMuted} />
+      <Text role="body" tone="onBrand" weight="medium">
+        {label}
+      </Text>
     </Pressable>
   );
 }
