@@ -1,14 +1,15 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
+import { AuthLayout } from "../components/auth-layout";
 import { Card, Field, FieldError, Notice, PrimaryButton, Text } from "../components/ui";
 import { useSession } from "../lib/session";
-import { radius, space, usePalette } from "../theme";
+import { space, usePalette } from "../theme";
+
+/** Both inputs declare themselves described by this one message. */
+const SIGN_IN_ERROR_ID = "sign-in-error";
 
 export default function SignIn() {
   const p = usePalette();
-  const insets = useSafeAreaInsets();
   const { signIn, configured } = useSession();
 
   const [email, setEmail] = useState("");
@@ -63,12 +64,23 @@ export default function SignIn() {
     const result = await signIn(email, password);
     setBusy(false);
     if (result.error) {
-      // Supabase returns "Invalid login credentials" for a wrong password AND for an
-      // unconfirmed account, which sends people hunting for a typo that is not there.
+      /*
+        Written for a storekeeper, not for whoever wrote the auth library.
+
+        Supabase returns one string, "Invalid login credentials", for a wrong password AND
+        for an account nobody has activated yet — so the honest message has to cover both
+        without pretending to know which. The previous wording said "the account has not
+        been confirmed yet", which is the library's vocabulary: nobody at a property calls
+        it confirming an account, and it gives them nothing to do.
+
+        This says what to try and who to ask. Any other error is the network or the server,
+        and "check your connection" is more use than the raw string, which is usually
+        something like "Failed to fetch".
+      */
       setError(
         result.error === "Invalid login credentials"
-          ? "Wrong email or password — or the account has not been confirmed yet."
-          : result.error,
+          ? "That email and password do not match. Check both — and if the account is new, ask whoever set it up to finish activating it."
+          : "Could not reach PARGOLAI. Check the internet connection and try again.",
       );
     }
   }
@@ -83,109 +95,58 @@ export default function SignIn() {
   const rejected = error !== null && !incomplete;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: p.background }}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/*
-        A full-width band of the product's own colour, with the form on the page
-        beneath it. Colour blocking rather than a shadow: this is a flat design, and a
-        contrasting section does the work an elevation would have done — it gives the
-        screen a top edge and somewhere for the identity to live, instead of a logo
-        floating in the middle of an empty page.
-      */}
-      <View
-        style={{
-          // p.brand, not p.primary. `primary` is a FOREGROUND colour and flips to a
-          // near-white in dark mode, so using it as a background produced a pale band
-          // across a near-black page with a hard seam through the middle.
-          backgroundColor: p.brand,
-          paddingTop: insets.top + space.xxxl,
-          paddingBottom: space.xxxl + space.xl,
-          paddingHorizontal: space.xl,
-          alignItems: "center",
-        }}
-      >
-        <View
-          style={{
-            width: 58,
-            height: 58,
-            borderRadius: radius.lg,
-            backgroundColor: p.accent,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Ionicons name="cube" size={29} color={p.onAccent} />
-        </View>
-        <Text role="display" tone="onBrand" style={{ marginTop: space.lg, letterSpacing: 1.5 }}>
-          PARGOLAI
-        </Text>
-        <Text role="label" tone="onBrandMuted" weight="medium" style={{ marginTop: space.xxs }}>
-          Quantity. Movement. Accountability.
-        </Text>
-      </View>
-
-      <View
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          alignSelf: "center",
-          paddingHorizontal: space.xl,
-          paddingBottom: space.xxl,
-          // Lifts the card over the band's lower edge, so the two sections read as one
-          // composition rather than two stacked blocks.
-          marginTop: -space.xxl,
-        }}
-      >
-        <Card>
-          <Field
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            autoComplete="email"
-            returnKeyType="next"
-            invalid={rejected}
-            {...(attempted && missingEmail
-              ? { error: "Enter the email address you sign in with." }
-              : {})}
-          />
-          <Field
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            textContentType="password"
-            autoComplete="current-password"
-            returnKeyType="go"
-            // Enter submits. On a phone at the gate that saves reaching for the button
-            // with the keyboard covering half the screen.
-            onSubmitEditing={() => void submit()}
-            invalid={rejected}
-            {...(attempted && missingPassword ? { error: "Enter your password." } : {})}
-          />
-
-          {error ? (
-            <View style={{ marginBottom: space.md }}>
-              <FieldError message={error} />
-            </View>
-          ) : null}
-
-          {/*
-            Live from the start. Only `loading` takes it out of service, and that is a
-            state you can only reach by having pressed it.
-          */}
-          <PrimaryButton label="Sign in" onPress={() => void submit()} loading={busy} />
-        </Card>
-
+    <AuthLayout
+      footer={
         <Text role="caption" tone="muted" align="center" style={{ marginTop: space.xl }}>
           Accounts are created by an administrator.{"\n"}There is no public sign-up.
         </Text>
-      </View>
-    </ScrollView>
+      }
+    >
+      <Card>
+        <Field
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
+          returnKeyType="next"
+          invalid={rejected}
+          {...(rejected ? { describedBy: SIGN_IN_ERROR_ID } : {})}
+          {...(attempted && missingEmail
+            ? { error: "Enter the email address you use to sign in." }
+            : {})}
+        />
+        <Field
+          label="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          textContentType="password"
+          autoComplete="current-password"
+          returnKeyType="go"
+          // Enter submits. On a phone at the gate that saves reaching for the button
+          // with the keyboard covering half the screen.
+          onSubmitEditing={() => void submit()}
+          invalid={rejected}
+          {...(rejected ? { describedBy: SIGN_IN_ERROR_ID } : {})}
+          {...(attempted && missingPassword ? { error: "Enter your password." } : {})}
+        />
+
+        {/*
+          One message for a failure that implicates both inputs, and both inputs point at
+          it. Supabase will not say which of the two was wrong and should not — but a red
+          outline with nothing behind it is a state only a sighted user can perceive.
+        */}
+        {error ? (
+          <View style={{ marginBottom: space.md }}>
+            <FieldError message={error} id={SIGN_IN_ERROR_ID} />
+          </View>
+        ) : null}
+
+        <PrimaryButton label="Sign in" onPress={() => void submit()} loading={busy} />
+      </Card>
+    </AuthLayout>
   );
 }

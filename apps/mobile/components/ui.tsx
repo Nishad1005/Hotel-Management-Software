@@ -260,7 +260,9 @@ export function IconButton({
                 ? p.surfaceSunken
                 : "transparent",
           borderWidth: focused ? 2 : 0,
-          borderColor: p.focus,
+          // On the brand band the dark ring would be invisible; the glyph's own colour is
+          // the one already proven legible there.
+          borderColor: tone === "onBrand" ? p.onBrand : p.focus,
           cursor: disabled ? "not-allowed" : "pointer",
         }) as ViewStyle
       }
@@ -801,7 +803,14 @@ export function PrimaryButton({
           // The focus ring replaces the outline rather than stacking on it, so an
           // outlined button does not gain a second border when tabbed to.
           borderWidth: focused ? 2 : shape === "outline" || inert ? StyleSheet.hairlineWidth : 0,
-          borderColor: focused ? p.focus : p.borderStrong,
+          // A solid button stands on its own fill, so the ring has to contrast with that
+          // rather than with the page. `p.focus` is 1.00:1 on terracotta; `onAccent` is
+          // 5.18:1. Outline and ghost buttons sit on the page and take the page's ring.
+          borderColor: focused
+            ? shape === "solid" && !inert
+              ? p.onAccent
+              : p.focus
+            : p.borderStrong,
           cursor: inert ? "not-allowed" : "pointer",
         } as ViewStyle,
         shape === "solid" && !inert ? elevation(1, p) : {},
@@ -982,6 +991,7 @@ export function Field({
   hint,
   error,
   invalid = false,
+  describedBy,
   suffix,
   onSubmitEditing,
   returnKeyType,
@@ -1006,6 +1016,11 @@ export function Field({
    * caller places the one message.
    */
   invalid?: boolean;
+  /**
+   * The `id` of a message that explains what is wrong, when the message lives outside
+   * this field — a form-level failure that implicates more than one input.
+   */
+  describedBy?: string;
   suffix?: string;
   /** Lets a short form submit from the keyboard instead of reaching for the button. */
   onSubmitEditing?: () => void;
@@ -1016,6 +1031,31 @@ export function Field({
 }) {
   const p = usePalette();
   const [focused, setFocused] = useState(false);
+  const wrong = !!error || invalid;
+  const ownErrorId = "field-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-error";
+
+  /**
+   * Web-only ARIA, spread through a cast.
+   *
+   * React Native's types stop at the handful of `aria-*` props it maps onto native
+   * accessibility traits; `aria-invalid` and `aria-describedby` are not among them.
+   * react-native-web forwards both — they are in its `forwardedProps` allowlist — so on
+   * the platform this app actually ships to they reach the DOM. On native they are
+   * unknown props and ignored.
+   *
+   * Without these, a rejected sign-in is a red outline and nothing else: no state a
+   * screen reader can report, and no link from the input to the sentence explaining it.
+   * That is the colour-only signalling WCAG 1.4.1 exists to stop.
+   */
+  const aria = {
+    ...(wrong ? { "aria-invalid": true } : {}),
+    ...(describedBy
+      ? { "aria-describedby": describedBy }
+      : error
+        ? { "aria-describedby": ownErrorId }
+        : {}),
+  } as object;
+
   return (
     <View style={{ marginBottom: space.lg }}>
       <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
@@ -1025,8 +1065,8 @@ export function Field({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          borderWidth: focused || error || invalid ? 2 : StyleSheet.hairlineWidth,
-          borderColor: error || invalid ? p.danger : focused ? p.focus : p.border,
+          borderWidth: focused || wrong ? 2 : StyleSheet.hairlineWidth,
+          borderColor: wrong ? p.danger : focused ? p.focus : p.border,
           borderRadius: radius.md,
           backgroundColor: p.surface,
           paddingRight: suffix ? space.md : 0,
@@ -1044,6 +1084,7 @@ export function Field({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           accessibilityLabel={label}
+          {...aria}
           {...(onSubmitEditing ? { onSubmitEditing, blurOnSubmit: false } : {})}
           {...(returnKeyType ? { returnKeyType } : {})}
           {...(textContentType ? { textContentType } : {})}
@@ -1071,7 +1112,7 @@ export function Field({
           {hint}
         </Text>
       ) : null}
-      {error ? <FieldError message={error} /> : null}
+      {error ? <FieldError message={error} id={ownErrorId} /> : null}
     </View>
   );
 }
@@ -1639,12 +1680,17 @@ export function Loading({ label }: { label?: string }) {
   );
 }
 
-export function FieldError({ message }: { message: string }) {
+export function FieldError({ message, id }: { message: string; id?: string }) {
   const p = usePalette();
   return (
     <View
-      style={{ flexDirection: "row", alignItems: "flex-start", marginTop: space.xs }}
+      // `alert` is an assertive live region on web, so the message is spoken when it
+      // appears rather than only when somebody happens to tab onto it.
       accessibilityRole="alert"
+      // Named so an input can declare itself described by this. Without it the failure
+      // exists for a screen reader as a colour, which is to say not at all.
+      {...(id ? { nativeID: id } : {})}
+      style={{ flexDirection: "row", alignItems: "flex-start", marginTop: space.xs }}
     >
       <Ionicons name="alert-circle" size={15} color={p.danger} style={{ marginTop: 1 }} />
       <Text role="caption" tone="danger" style={{ marginLeft: space.xs, flex: 1 }}>
@@ -1841,22 +1887,37 @@ export function StatTile({
     </>
   );
 
+  /** Urgent and non-empty. A red 0 is not a problem, so it does not get the stripe. */
+  const pressing = !empty && (tone === "bad" || tone === "warn");
+
   const frame = (pressed: boolean) =>
     ({
       flexGrow: 1,
-      flexBasis: 150,
+      /*
+        260, not 150, and this number is the whole responsive grid.
+
+        With `flexWrap` the tiles lay themselves out from their own minimum: a 1200px
+        column fits four, a 768px tablet fits two, a 360px phone fits one. That is the
+        3-up / 2-up / 1-up the design asks for, arrived at without a third breakpoint to
+        maintain. At 150 they packed five or six to a row and the grid was 3-then-4 with
+        no relationship between the rows.
+      */
+      flexBasis: 260,
       padding: space.lg,
       borderRadius: radius.lg,
       backgroundColor: p.surface,
       borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
       borderColor: focused ? p.focus : hovered && onPress ? p.borderStrong : p.border,
+      // A stripe down the edge of the tiles that mean something, so the eye finds the
+      // work before it reads a single label.
+      ...(pressing ? { borderLeftWidth: 4, borderLeftColor: ink } : {}),
       // Scale rather than a background change. The surface is already white on a tinted
       // page, so darkening it reads as a rendering glitch rather than a press.
       transform: [{ scale: pressed ? 0.98 : 1 }],
       cursor: onPress ? "pointer" : "default",
     }) as ViewStyle;
 
-  if (!onPress) return <View style={frame(false)}>{inner}</View>;
+  if (!onPress) return <View style={[frame(false), elevation(1, p)]}>{inner}</View>;
 
   return (
     <Pressable
@@ -1864,7 +1925,9 @@ export function StatTile({
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}${caption ? `. ${caption}` : ""}`}
       {...handlers}
-      style={({ pressed }) => frame(pressed)}
+      // Lifting on hover is the affordance that says the whole tile is the target, not
+      // the little chevron in its corner.
+      style={({ pressed }) => [frame(pressed), elevation(hovered && !pressed ? 2 : 1, p)]}
     >
       {inner}
     </Pressable>
@@ -1876,6 +1939,13 @@ export function StatTile({
  *
  * `flexBasis` with wrap rather than a breakpoint: the same code gives two columns on a
  * phone and four on a laptop without having to know which it is running on.
+ */
+/**
+ * A row of tiles that wraps.
+ *
+ * Deliberately dumb: it sets a direction and a gap, and the tiles decide how many fit
+ * from their own `flexBasis`. A grid that took a column count would need a breakpoint per
+ * count, and every screen would pick a different one.
  */
 export function StatGrid({ children }: { children: ReactNode }) {
   return <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>{children}</View>;
