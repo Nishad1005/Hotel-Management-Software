@@ -248,14 +248,18 @@ function TabChip({
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       accessibilityLabel={`${label}. ${hint}`}
-      style={({ pressed }) =>
+      style={({ pressed, hovered }) =>
         ({
           paddingHorizontal: space.md,
           paddingVertical: space.sm,
           borderRadius: radius.md,
           borderWidth: selected ? 2 : StyleSheet.hairlineWidth,
           borderColor: selected ? p.accent : p.border,
-          backgroundColor: selected ? p.accentSurface : pressed ? p.surfaceSunken : p.surface,
+          backgroundColor: selected
+            ? p.accentSurface
+            : pressed || hovered
+              ? p.surfaceSunken
+              : p.surface,
           cursor: "pointer",
         }) as ViewStyle
       }
@@ -375,10 +379,10 @@ function InwardRowView({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Trace ${row.itemName}, batch ${row.batchNo ?? ""}`}
-      style={({ pressed }) =>
+      style={({ pressed, hovered }) =>
         ({
           ...style,
-          backgroundColor: pressed ? p.surfaceSunken : "transparent",
+          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
           cursor: "pointer",
         }) as ViewStyle
       }

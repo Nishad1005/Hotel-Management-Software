@@ -3,7 +3,7 @@ import { GOLAI_ROLES, looksLikePhone } from "@golai/domain";
 import type { MembershipRole } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import {
   Card,
   Field,
@@ -13,6 +13,7 @@ import {
   Screen,
   Section,
   SelectRow,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -95,6 +96,7 @@ export default function Users() {
 
   return (
     <Screen
+      onSubmit={() => void add()}
       title="People"
       subtitle="Who works here, and what they may do"
       onBack={() => router.back()}
@@ -201,7 +203,7 @@ export default function Users() {
 
       <Section title={loading ? "The team" : `The team · ${team.length}`}>
         {loading ? (
-          <ActivityIndicator style={{ marginTop: space.xl }} color={p.accent} />
+          <SkeletonList rows={3} />
         ) : team.length === 0 ? (
           <Notice
             icon="people-outline"

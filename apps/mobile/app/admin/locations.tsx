@@ -205,14 +205,14 @@ export default function Locations() {
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={`${z.name}, ${z.children.length} locations`}
-                style={({ pressed }) =>
+                style={({ pressed, hovered }) =>
                   ({
                     flexDirection: "row",
                     alignItems: "center",
                     minHeight: touch.desk,
                     paddingHorizontal: space.lg,
                     paddingVertical: space.md,
-                    backgroundColor: pressed ? p.surfaceSunken : "transparent",
+                    backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
                     cursor: "pointer",
                   }) as never
                 }

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -156,6 +156,19 @@ export function Text({
     </RNText>
   );
 }
+
+/**
+ * What Enter does inside this screen or dialog.
+ *
+ * A form's commit action is known by the screen, not by the field — so making every input
+ * submit on Enter used to mean threading a callback through 48 call sites, and predictably
+ * only one of them ever got it. A `Screen` or `Dialog` declares `onSubmit` once and every
+ * `Field` inside it inherits.
+ *
+ * This is not a nicety. Receiving and issuing are done dozens of times a shift, and a
+ * storekeeper who must reach for the button after every line pays that tax all day.
+ */
+const SubmitContext = createContext<(() => void) | null>(null);
 
 const heightFor = (d: Density) => (d === "field" ? touch.field : touch.desk);
 
@@ -371,6 +384,7 @@ export function Screen({
   wide = false,
   scroll = true,
   onBrand = false,
+  onSubmit,
 }: {
   title: string;
   subtitle?: string;
@@ -388,6 +402,8 @@ export function Screen({
   scroll?: boolean;
   /** The brand band. See `Header`'s `onBrand` — one screen uses it. */
   onBrand?: boolean;
+  /** What Enter does in any `Field` on this screen. Usually the footer's button. */
+  onSubmit?: () => void;
 }) {
   const p = usePalette();
   const insets = useSafeAreaInsets();
@@ -402,64 +418,66 @@ export function Screen({
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <View
-        style={[
-          {
-            backgroundColor: onBrand ? p.brand : p.surface,
-            paddingTop: (expanded ? insets.top : 0) + space.lg,
-            paddingHorizontal: space.lg,
-            paddingBottom: band ? space.md : space.sm,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: onBrand ? p.brand : p.border,
-          },
-          elevation(1, p),
-        ]}
-      >
-        <Page wide={wide}>
-          <Header
-            title={title}
-            onBrand={onBrand}
-            {...(subtitle === undefined ? {} : { subtitle })}
-            {...(onBack === undefined ? {} : { onBack })}
-            {...(actions === undefined ? {} : { right: actions })}
-          />
-          {band}
-        </Page>
-      </View>
-
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={{
-            padding: space.lg,
-            paddingBottom: footer ? space.lg : insets.bottom + space.lg,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {body}
-        </ScrollView>
-      ) : (
-        <View style={{ flex: 1, padding: space.lg }}>{body}</View>
-      )}
-
-      {footer ? (
+    <SubmitContext.Provider value={onSubmit ?? null}>
+      <View style={{ flex: 1, backgroundColor: p.background }}>
         <View
           style={[
             {
-              backgroundColor: p.surface,
-              borderTopWidth: StyleSheet.hairlineWidth,
-              borderTopColor: p.border,
+              backgroundColor: onBrand ? p.brand : p.surface,
+              paddingTop: (expanded ? insets.top : 0) + space.lg,
               paddingHorizontal: space.lg,
-              paddingTop: space.md,
-              paddingBottom: space.md + insets.bottom,
+              paddingBottom: band ? space.md : space.sm,
+              borderBottomWidth: StyleSheet.hairlineWidth,
+              borderBottomColor: onBrand ? p.brand : p.border,
             },
-            elevation(2, p),
+            elevation(1, p),
           ]}
         >
-          <Page wide={wide}>{footer}</Page>
+          <Page wide={wide}>
+            <Header
+              title={title}
+              onBrand={onBrand}
+              {...(subtitle === undefined ? {} : { subtitle })}
+              {...(onBack === undefined ? {} : { onBack })}
+              {...(actions === undefined ? {} : { right: actions })}
+            />
+            {band}
+          </Page>
         </View>
-      ) : null}
-    </View>
+
+        {scroll ? (
+          <ScrollView
+            contentContainerStyle={{
+              padding: space.lg,
+              paddingBottom: footer ? space.lg : insets.bottom + space.lg,
+            }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {body}
+          </ScrollView>
+        ) : (
+          <View style={{ flex: 1, padding: space.lg }}>{body}</View>
+        )}
+
+        {footer ? (
+          <View
+            style={[
+              {
+                backgroundColor: p.surface,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: p.border,
+                paddingHorizontal: space.lg,
+                paddingTop: space.md,
+                paddingBottom: space.md + insets.bottom,
+              },
+              elevation(2, p),
+            ]}
+          >
+            <Page wide={wide}>{footer}</Page>
+          </View>
+        ) : null}
+      </View>
+    </SubmitContext.Provider>
   );
 }
 
@@ -1032,6 +1050,9 @@ export function Field({
   const p = usePalette();
   const [focused, setFocused] = useState(false);
   const wrong = !!error || invalid;
+  // An explicit handler always wins; the screen's is the default.
+  const inheritedSubmit = useContext(SubmitContext);
+  const submit = onSubmitEditing ?? inheritedSubmit;
   const ownErrorId = "field-" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-error";
 
   /**
@@ -1085,8 +1106,8 @@ export function Field({
           onBlur={() => setFocused(false)}
           accessibilityLabel={label}
           {...aria}
-          {...(onSubmitEditing ? { onSubmitEditing, blurOnSubmit: false } : {})}
-          {...(returnKeyType ? { returnKeyType } : {})}
+          {...(submit ? { onSubmitEditing: submit, blurOnSubmit: false } : {})}
+          {...(returnKeyType ? { returnKeyType } : submit ? { returnKeyType: "go" as const } : {})}
           {...(textContentType ? { textContentType } : {})}
           {...(autoComplete ? { autoComplete } : {})}
           style={
@@ -1401,11 +1422,14 @@ export function Dialog({
   header,
   footer,
   scroll = true,
+  onSubmit,
 }: {
   visible: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
+  /** What Enter does in any `Field` inside. See `SubmitContext`. */
+  onSubmit?: () => void;
   /** Extra band content under the title — a search field, a filter row. */
   header?: ReactNode;
   footer?: ReactNode;
@@ -1434,94 +1458,96 @@ export function Dialog({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: expanded ? "center" : "flex-end",
-          alignItems: "center",
-          padding: expanded ? space.xl : 0,
-        }}
-      >
-        {/*
-         * The backdrop is a sibling under the panel rather than its parent, so a press
-         * that lands on the panel is never also a press on the backdrop. Wrapping the
-         * panel in a Pressable is the usual way to write this and the usual way to make a
-         * dialog close when you click its own heading.
-         */}
-        <Pressable
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM }]}
-        />
+      <SubmitContext.Provider value={onSubmit ?? null}>
         <View
-          // Screen readers stop at the panel instead of wandering into the page behind it.
-          accessibilityViewIsModal
-          style={[
-            {
-              width: "100%",
-              maxWidth: expanded ? 560 : undefined,
-              maxHeight: expanded ? "88%" : "90%",
-              backgroundColor: p.background,
-              borderTopLeftRadius: radius.lg,
-              borderTopRightRadius: radius.lg,
-              borderBottomLeftRadius: expanded ? radius.lg : 0,
-              borderBottomRightRadius: expanded ? radius.lg : 0,
-              overflow: "hidden",
-            },
-            elevation(2, p),
-          ]}
+          style={{
+            flex: 1,
+            justifyContent: expanded ? "center" : "flex-end",
+            alignItems: "center",
+            padding: expanded ? space.xl : 0,
+          }}
         >
+          {/*
+           * The backdrop is a sibling under the panel rather than its parent, so a press
+           * that lands on the panel is never also a press on the backdrop. Wrapping the
+           * panel in a Pressable is the usual way to write this and the usual way to make a
+           * dialog close when you click its own heading.
+           */}
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            style={[StyleSheet.absoluteFill, { backgroundColor: SCRIM }]}
+          />
           <View
-            style={{
-              paddingHorizontal: space.lg,
-              paddingTop: space.md,
-              paddingBottom: header ? space.md : space.xs,
-              backgroundColor: p.surface,
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: p.border,
-            }}
+            // Screen readers stop at the panel instead of wandering into the page behind it.
+            accessibilityViewIsModal
+            style={[
+              {
+                width: "100%",
+                maxWidth: expanded ? 560 : undefined,
+                maxHeight: expanded ? "88%" : "90%",
+                backgroundColor: p.background,
+                borderTopLeftRadius: radius.lg,
+                borderTopRightRadius: radius.lg,
+                borderBottomLeftRadius: expanded ? radius.lg : 0,
+                borderBottomRightRadius: expanded ? radius.lg : 0,
+                overflow: "hidden",
+              },
+              elevation(2, p),
+            ]}
           >
-            {/* The grab handle is a phone affordance and a distraction on a desktop. */}
-            {expanded ? null : (
-              <View
-                style={{
-                  alignSelf: "center",
-                  width: 36,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: p.border,
-                  marginBottom: space.sm,
-                }}
-              />
-            )}
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text role="heading" accessibilityRole="header" style={{ flex: 1 }} lines={1}>
-                {title}
-              </Text>
-              <CloseButton onPress={onClose} />
-            </View>
-            {header}
-          </View>
-
-          {body}
-
-          {footer ? (
             <View
               style={{
                 paddingHorizontal: space.lg,
                 paddingTop: space.md,
-                paddingBottom: space.md + (expanded ? 0 : insets.bottom),
+                paddingBottom: header ? space.md : space.xs,
                 backgroundColor: p.surface,
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: p.border,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: p.border,
               }}
             >
-              {footer}
+              {/* The grab handle is a phone affordance and a distraction on a desktop. */}
+              {expanded ? null : (
+                <View
+                  style={{
+                    alignSelf: "center",
+                    width: 36,
+                    height: 4,
+                    borderRadius: 2,
+                    backgroundColor: p.border,
+                    marginBottom: space.sm,
+                  }}
+                />
+              )}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text role="heading" accessibilityRole="header" style={{ flex: 1 }} lines={1}>
+                  {title}
+                </Text>
+                <CloseButton onPress={onClose} />
+              </View>
+              {header}
             </View>
-          ) : null}
+
+            {body}
+
+            {footer ? (
+              <View
+                style={{
+                  paddingHorizontal: space.lg,
+                  paddingTop: space.md,
+                  paddingBottom: space.md + (expanded ? 0 : insets.bottom),
+                  backgroundColor: p.surface,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                  borderTopColor: p.border,
+                }}
+              >
+                {footer}
+              </View>
+            ) : null}
+          </View>
         </View>
-      </View>
+      </SubmitContext.Provider>
     </Modal>
   );
 }

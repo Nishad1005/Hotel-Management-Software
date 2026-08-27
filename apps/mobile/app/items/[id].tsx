@@ -221,6 +221,7 @@ export default function ItemForm() {
 
   return (
     <Screen
+      onSubmit={save}
       title={isNew ? "New item" : "Edit item"}
       onBack={() => router.back()}
       footer={

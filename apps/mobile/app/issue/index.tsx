@@ -138,6 +138,7 @@ export default function IssueStock() {
 
   return (
     <Screen
+      onSubmit={() => void send()}
       title="Issue stock"
       subtitle="Gate 8 — out of the store, into a department"
       onBack={() => router.back()}
@@ -304,14 +305,14 @@ function LotRow({
         accessibilityRole="button"
         accessibilityState={{ expanded: open, disabled: left <= 0 }}
         accessibilityLabel={`${lot.itemName}, batch ${lot.batchNo}, ${left} ${lot.uomCode} at ${lot.locationCode}`}
-        style={({ pressed }) =>
+        style={({ pressed, hovered }) =>
           ({
             flexDirection: "row",
             alignItems: "center",
             paddingHorizontal: space.lg,
             paddingVertical: space.md,
             minHeight: 68,
-            backgroundColor: pressed ? p.surfaceSunken : "transparent",
+            backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
             cursor: left > 0 ? "pointer" : "not-allowed",
           }) as ViewStyle
         }
@@ -439,13 +440,13 @@ function DraftRow({
         accessibilityRole="button"
         accessibilityLabel={`Remove ${line.lot.itemName} from this issue`}
         hitSlop={10}
-        style={({ pressed }) => ({
+        style={({ pressed, hovered }) => ({
           width: 40,
           height: 40,
           alignItems: "center",
           justifyContent: "center",
           borderRadius: radius.sm,
-          backgroundColor: pressed ? p.dangerSurface : "transparent",
+          backgroundColor: pressed || hovered ? p.dangerSurface : "transparent",
           cursor: "pointer",
         })}
       >

@@ -165,6 +165,7 @@ export default function StageDispatch() {
 
   return (
     <Screen
+      onSubmit={() => void send()}
       title="Send out"
       subtitle="Gate 9 — stage it at Terminal 2"
       onBack={() => router.back()}
@@ -330,14 +331,14 @@ function LotRow({
         accessibilityRole="button"
         accessibilityState={{ expanded: open, disabled: left <= 0 }}
         accessibilityLabel={`${lot.itemName}, batch ${lot.batchNo}, ${left} ${lot.uomCode} at ${lot.locationCode}`}
-        style={({ pressed }) =>
+        style={({ pressed, hovered }) =>
           ({
             flexDirection: "row",
             alignItems: "center",
             paddingHorizontal: space.lg,
             paddingVertical: space.md,
             minHeight: 68,
-            backgroundColor: pressed ? p.surfaceSunken : "transparent",
+            backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
             cursor: left > 0 ? "pointer" : "not-allowed",
           }) as ViewStyle
         }
@@ -431,14 +432,14 @@ function DraftRow({
         accessibilityRole="button"
         accessibilityLabel={`Remove ${line.lot.itemName}`}
         hitSlop={10}
-        style={({ pressed }) =>
+        style={({ pressed, hovered }) =>
           ({
             width: 40,
             height: 40,
             alignItems: "center",
             justifyContent: "center",
             borderRadius: radius.sm,
-            backgroundColor: pressed ? p.dangerSurface : "transparent",
+            backgroundColor: pressed || hovered ? p.dangerSurface : "transparent",
             cursor: "pointer",
           }) as ViewStyle
         }

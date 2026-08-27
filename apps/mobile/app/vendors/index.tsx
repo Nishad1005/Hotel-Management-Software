@@ -148,14 +148,14 @@ function PartyRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${party.name}, ${kind}${party.onHold ? ", on hold" : ""}`}
-      style={({ pressed }) =>
+      style={({ pressed, hovered }) =>
         ({
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: space.lg,
           paddingVertical: space.md,
           minHeight: 64,
-          backgroundColor: pressed ? p.surfaceSunken : "transparent",
+          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
           borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
           borderBottomColor: p.border,
           cursor: "pointer",
@@ -271,6 +271,7 @@ function PartyEditor({
 
   return (
     <Dialog
+      onSubmit={() => void save()}
       visible={subject !== null}
       title={isNew ? "New counterparty" : (existing?.name ?? "")}
       onClose={onClose}

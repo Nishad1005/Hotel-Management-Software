@@ -135,6 +135,29 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 - Tables and columns `snake_case`; TypeScript `camelCase`; the boundary is `packages/db`.
 - **Relative imports are extensionless.** Never write `./thing.js`. Everything here is bundled — Metro, Turbopack, Vite — and Metro does not rewrite `.js` to `.ts` the way `tsc` under NodeNext does, so such an import typechecks, passes tests, and then fails to bundle. `moduleResolution` is `bundler` repo-wide for this reason.
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
+- **A scripted edit must assert before it writes.** Bulk edits here are usually a
+  search-and-replace over a set of files, and a search string that no longer matches
+  fails _silently_ — the script reports success, the commit lands, typecheck and tests
+  pass, and the change simply is not there. It has happened: a tile's cleared-state tick
+  was reported as done, screenshotted, and reviewed, and the replacement had been a no-op
+  because the file said `p.textFaint` where the pattern said `p.textMuted`. Assert the
+  pattern is present, or count the replacements and compare — never print "ok" at the end
+  of a loop that did not check.
+- **A check that can only return the answer you expect is not a check.** Both of the
+  verification failures below are instances of this, and it is the general form: a
+  deploy watcher that exits on the first match can only ever report success; a marker
+  chosen from text the change _moved_ rather than _added_ is present either way. Pick
+  the discriminator from what a change actually introduces or removes, and prefer a
+  **removal** — a string the new code deletes fails loudly against a stale build, where
+  an addition can be missed if the check itself is wrong. Structural refactors are the
+  hard case: moving a screen onto an existing component adds almost no new text, so the
+  discriminator has to come from the few strings it genuinely changes, not from the
+  ones it carried across.
+- **Verify a deploy twice before believing it.** The Cloudflare edge serves inconsistently
+  during a rollout, so a single poll can report the new bundle and the next request still
+  get the old one — or the reverse. A watcher that exits on one match will lie to you.
+  Confirm the same hash twice, spaced, then check a marker string inside the served bundle
+  rather than trusting the hash alone.
 - Workspace packages export TypeScript source, not compiled output, so the app and server share one definition of the rules with no build step between them. Next needs `transpilePackages`; Metro handles it natively.
 - Photos: client-side compression **under 400 KB** (PRD §13), content-addressed, immutable, with `retention_until`.
 - Anything user-facing at the gate or dock needs large touch targets — cold hands, gloves, night shift, direct sun.
