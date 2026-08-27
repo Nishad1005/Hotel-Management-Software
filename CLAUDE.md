@@ -143,6 +143,16 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
   because the file said `p.textFaint` where the pattern said `p.textMuted`. Assert the
   pattern is present, or count the replacements and compare — never print "ok" at the end
   of a loop that did not check.
+- **A check that can only return the answer you expect is not a check.** Both of the
+  verification failures below are instances of this, and it is the general form: a
+  deploy watcher that exits on the first match can only ever report success; a marker
+  chosen from text the change _moved_ rather than _added_ is present either way. Pick
+  the discriminator from what a change actually introduces or removes, and prefer a
+  **removal** — a string the new code deletes fails loudly against a stale build, where
+  an addition can be missed if the check itself is wrong. Structural refactors are the
+  hard case: moving a screen onto an existing component adds almost no new text, so the
+  discriminator has to come from the few strings it genuinely changes, not from the
+  ones it carried across.
 - **Verify a deploy twice before believing it.** The Cloudflare edge serves inconsistently
   during a rollout, so a single poll can report the new bundle and the next request still
   get the old one — or the reverse. A watcher that exits on one match will lie to you.
