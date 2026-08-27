@@ -1808,6 +1808,7 @@ export function StatTile({
   caption,
   icon,
   tone = "neutral",
+  kind = "gauge",
   onPress,
 }: {
   label: string;
@@ -1815,6 +1816,15 @@ export function StatTile({
   caption?: string;
   icon: IoniconName;
   tone?: "neutral" | "accent" | "warn" | "bad";
+  /**
+   * What kind of number this is, which decides what zero means.
+   *
+   * A **queue** counts work waiting on a person, so zero is an achievement — the dock is
+   * clear. A **gauge** counts a condition, so zero is a fact: "0 items" is not good news,
+   * it is an empty item master. The same grey nought was being used for both, which made
+   * a cleared queue look like a switched-off control.
+   */
+  kind?: "queue" | "gauge";
   onPress?: () => void;
 }) {
   const p = usePalette();
@@ -1832,6 +1842,9 @@ export function StatTile({
    * hidden. It just stops competing.
    */
   const empty = value === 0 || value === "0";
+  /** An empty queue. Not an absence — a result. */
+  const cleared = empty && kind === "queue";
+
   const ink = empty
     ? p.textMuted
     : tone === "bad"
@@ -1841,8 +1854,9 @@ export function StatTile({
         : tone === "accent"
           ? p.accent
           : p.text;
-  const wash =
-    empty || tone === "neutral"
+  const wash = cleared
+    ? p.successSurface
+    : empty || tone === "neutral"
       ? p.surfaceSunken
       : tone === "bad"
         ? p.dangerSurface
@@ -1887,8 +1901,20 @@ export function StatTile({
     </>
   );
 
-  /** Urgent and non-empty. A red 0 is not a problem, so it does not get the stripe. */
-  const pressing = !empty && (tone === "bad" || tone === "warn");
+  /**
+   * A stripe, never a fill.
+   *
+   * Terracotta had come to mean two things: it is the fill of the primary button, and now
+   * also the colour of a tile with something waiting on it. On a screen carrying "New
+   * arrival" in the header and "1 to receive" below it, one colour was saying both "press
+   * this" and "attend to this". So a *fill* is reserved for actions, and a *state* is only
+   * ever an edge stripe with a matching figure. The two can share a hue without a person
+   * having to work out which is which — one is a slab you press, the other is a line down
+   * the side of a card.
+   *
+   * Zero never gets a stripe, whatever the tone: nought expired is not a problem.
+   */
+  const pressing = !empty && (tone === "bad" || tone === "warn" || tone === "accent");
 
   const frame = (pressed: boolean) =>
     ({

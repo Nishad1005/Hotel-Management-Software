@@ -237,6 +237,13 @@ function SidebarBody({
   const { activeProperty, properties, session, setActiveProperty, signOut } = useSession();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const p = usePalette();
+
+  const [viewport, setViewport] = useState(0);
+  const [content, setContent] = useState(0);
+  const [offset, setOffset] = useState(0);
+  // A pixel of slack, so a list that fits to the exact pixel does not claim otherwise.
+  const more = content - viewport - offset > 1;
 
   return (
     <View style={{ flex: 1 }}>
@@ -272,10 +279,27 @@ function SidebarBody({
         />
       ) : null}
 
+      {/*
+        The nav says when it has more to show.
+
+        Seventeen rows at 44px do not fit a 900px laptop, and until now that failed
+        silently: the list simply stopped at whatever the window allowed and three
+        destinations were invisible with nothing to suggest they existed. A scroll bar
+        would be the obvious answer and it is hidden here — deliberately, it looked like
+        debris on a dark panel — so the affordance has to be drawn.
+        
+        Trimming the list to fit was the other option and it is not a fix. It works at one
+        window height until somebody adds a nav item, and then it fails silently again.
+        Overflowing is fine; overflowing without saying so is not.
+      */}
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingVertical: space.sm }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onLayout={(e) => setViewport(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_w, h) => setContent(h)}
+        onScroll={(e) => setOffset(e.nativeEvent.contentOffset.y)}
       >
         {groups.map((group, index) => (
           <View
@@ -309,6 +333,32 @@ function SidebarBody({
           </View>
         ))}
       </ScrollView>
+
+      {/*
+        Drawn between the list and the footer rather than floating over the last row: a
+        fade over content is prettier and needs a gradient, which would be a dependency for
+        one edge. A line and an arrow are unambiguous and cost nothing.
+      */}
+      {more ? (
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: space.xs,
+            paddingVertical: space.xs,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderTopColor: NAV_DIVIDER,
+          }}
+        >
+          <Ionicons name="chevron-down" size={12} color={p.onBrandMuted} />
+          <Text role="overline" tone="onBrandMuted">
+            More
+          </Text>
+        </View>
+      ) : null}
 
       <View
         style={{

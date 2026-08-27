@@ -183,21 +183,37 @@ export default function Home() {
             hint="Each of these is a job somebody has to do today."
           >
             <StatGrid>
+              {/*
+                Amber means late, not busy.
+
+                The rule was `waiting ? warn`, so a single arrival that had been at the
+                gate for twenty minutes turned the tile amber — and on a quiet day the one
+                coloured thing on the whole dashboard was a false alarm. That is worse than
+                no colour at all: it teaches people that the colour means nothing.
+              */}
               <StatTile
+                kind="queue"
                 icon="car-outline"
                 label="To receive"
                 value={overview?.arrivalsWaiting ?? 0}
                 caption={
                   overview?.arrivalsOverdue
                     ? `${overview.arrivalsOverdue} waiting over four hours`
-                    : "Arrivals with no receipt"
+                    : overview?.arrivalsWaiting
+                      ? "Arrivals with no receipt"
+                      : "Nothing waiting at the gate"
                 }
                 tone={
-                  overview?.arrivalsOverdue ? "bad" : overview?.arrivalsWaiting ? "warn" : "neutral"
+                  overview?.arrivalsOverdue
+                    ? "bad"
+                    : overview?.arrivalsWaiting
+                      ? "accent"
+                      : "neutral"
                 }
                 onPress={() => router.push("/receive")}
               />
               <StatTile
+                kind="queue"
                 icon="file-tray-stacked-outline"
                 label="To put away"
                 value={overview?.quarantineLines ?? 0}
@@ -206,15 +222,30 @@ export default function Home() {
                     ? `Oldest ${overview.quarantineOldestHours.toFixed(1)} h at T1`
                     : "Nothing at Terminal 1"
                 }
-                tone={(overview?.quarantineOldestHours ?? 0) >= 4 ? "warn" : "neutral"}
+                // Four hours is the dwell threshold. Below it, stock at T1 is in transit,
+                // not overdue.
+                tone={
+                  (overview?.quarantineOldestHours ?? 0) >= 4
+                    ? "warn"
+                    : overview?.quarantineLines
+                      ? "accent"
+                      : "neutral"
+                }
                 onPress={() => router.push("/putaway")}
               />
               <StatTile
+                kind="queue"
                 icon="shield-checkmark-outline"
                 label="To gate out"
                 value={overview?.awaitingGatePass ?? 0}
-                caption="Staged, still on the property"
-                tone={overview?.awaitingGatePass ? "warn" : "neutral"}
+                caption={
+                  overview?.awaitingGatePass
+                    ? "Staged, still on the property"
+                    : "Nothing waiting to leave"
+                }
+                // Staged stock is not late by virtue of being staged; it is waiting for
+                // Security, which is the normal state of Terminal 2.
+                tone={overview?.awaitingGatePass ? "accent" : "neutral"}
                 onPress={() => router.push("/gate-out")}
               />
             </StatGrid>
