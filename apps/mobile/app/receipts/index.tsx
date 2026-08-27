@@ -114,13 +114,13 @@ function ReceiptRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${receipt.grnNo} from ${receipt.vendorName ?? "an unnamed vendor"}`}
-      style={({ pressed }) =>
+      style={({ pressed, hovered }) =>
         ({
           paddingHorizontal: space.lg,
           paddingVertical: space.md,
           borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
           borderBottomColor: p.border,
-          backgroundColor: pressed ? p.surfaceSunken : "transparent",
+          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
           cursor: "pointer",
         }) as ViewStyle
       }

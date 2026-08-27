@@ -202,7 +202,7 @@ export default function Perishables() {
                 onPress={() => setShowFresh(true)}
                 accessibilityRole="button"
                 accessibilityLabel={`Show ${rows.length} fresh items`}
-                style={({ pressed }) =>
+                style={({ pressed, hovered }) =>
                   ({
                     flexDirection: "row",
                     alignItems: "center",
@@ -210,7 +210,7 @@ export default function Perishables() {
                     minHeight: touch.desk,
                     marginTop: space.md,
                     borderRadius: radius.md,
-                    backgroundColor: pressed ? p.surfaceSunken : "transparent",
+                    backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
                     cursor: "pointer",
                   }) as never
                 }

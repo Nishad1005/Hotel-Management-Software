@@ -175,14 +175,14 @@ function ItemRow({
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         accessibilityLabel={`${group.itemName}, ${group.available} ${group.uomCode} issuable of ${group.total}`}
-        style={({ pressed }) =>
+        style={({ pressed, hovered }) =>
           ({
             flexDirection: "row",
             alignItems: "center",
             paddingHorizontal: space.lg,
             paddingVertical: space.md,
             minHeight: 64,
-            backgroundColor: pressed ? p.surfaceSunken : "transparent",
+            backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
             cursor: "pointer",
           }) as ViewStyle
         }

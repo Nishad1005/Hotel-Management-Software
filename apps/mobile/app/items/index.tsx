@@ -166,12 +166,12 @@ function ItemRow({
       accessibilityLabel={`${item.name}, ${item.code}`}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={({ pressed }) => ({
+      style={({ pressed, hovered }) => ({
         paddingHorizontal: space.lg,
         paddingVertical: space.md,
         borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
         borderBottomColor: p.border,
-        backgroundColor: pressed ? p.surfaceSunken : "transparent",
+        backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
         borderWidth: focused ? 2 : 0,
         borderColor: p.focus,
       })}
@@ -230,13 +230,18 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
-      style={({ pressed }) => ({
+      style={({ pressed, hovered }) => ({
         paddingHorizontal: space.md,
         paddingVertical: space.xs + 2,
         borderRadius: radius.pill,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: active ? p.accent : p.border,
-        backgroundColor: active ? p.accentSurface : pressed ? p.surfaceSunken : "transparent",
+        backgroundColor: active
+          ? p.accentSurface
+          : pressed || hovered
+            ? p.surfaceSunken
+            : "transparent",
+        cursor: "pointer",
       })}
     >
       <Text role="label" weight="semibold" tone={active ? "accent" : "muted"}>
