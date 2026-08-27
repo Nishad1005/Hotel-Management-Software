@@ -138,6 +138,7 @@ export default function IssueStock() {
 
   return (
     <Screen
+      onSubmit={() => void send()}
       title="Issue stock"
       subtitle="Gate 8 — out of the store, into a department"
       onBack={() => router.back()}

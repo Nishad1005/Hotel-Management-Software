@@ -165,6 +165,7 @@ export default function StageDispatch() {
 
   return (
     <Screen
+      onSubmit={() => void send()}
       title="Send out"
       subtitle="Gate 9 — stage it at Terminal 2"
       onBack={() => router.back()}

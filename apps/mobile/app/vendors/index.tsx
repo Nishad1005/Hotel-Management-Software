@@ -271,6 +271,7 @@ function PartyEditor({
 
   return (
     <Dialog
+      onSubmit={() => void save()}
       visible={subject !== null}
       title={isNew ? "New counterparty" : (existing?.name ?? "")}
       onClose={onClose}

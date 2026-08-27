@@ -95,6 +95,7 @@ export default function Users() {
 
   return (
     <Screen
+      onSubmit={() => void add()}
       title="People"
       subtitle="Who works here, and what they may do"
       onBack={() => router.back()}

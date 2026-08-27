@@ -131,6 +131,7 @@ export default function OpeningStock() {
 
   return (
     <Screen
+      onSubmit={save}
       title="Opening stock"
       subtitle="Record what is physically in the store"
       onBack={() => router.back()}

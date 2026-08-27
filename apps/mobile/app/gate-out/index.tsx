@@ -321,11 +321,12 @@ function PassPanel({
         {error ? <FieldError message={error} /> : null}
 
         <PrimaryButton
-          label={busy ? "Issuing…" : "Issue the gate pass"}
+          label="Issue the gate pass"
           icon="exit-outline"
           density="field"
           onPress={() => void pass()}
-          disabled={busy || !ready}
+          loading={busy}
+          disabled={!ready}
         />
       </Card>
 
