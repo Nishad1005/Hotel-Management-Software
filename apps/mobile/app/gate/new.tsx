@@ -8,17 +8,16 @@ import {
 } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, TextInput, View } from "react-native";
 import {
   ChoiceTile,
   Dialog,
   FieldError,
   PrimaryButton,
   Row,
+  Screen,
   Section,
   Stepper,
-  Text,
   Text as UIText,
 } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
@@ -66,7 +65,6 @@ const ERROR_TEXT: Record<GateEntryError, string> = {
 export default function NewGateEntry() {
   const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty, session } = useSession();
 
   const [vendor, setVendor] = useState<VendorRef | null>(null);
@@ -150,36 +148,35 @@ export default function NewGateEntry() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <ScrollView
-        contentContainerStyle={{
-          padding: space.md,
-          paddingTop: insets.top + space.md,
-          paddingBottom: space.xxl * 2,
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text role="title">New arrival</Text>
-        <Text role="label" tone="muted" style={{ marginBottom: space.lg }}>
-          Record what arrived before anything is unloaded.
-        </Text>
+    <Screen
+      title="New arrival"
+      subtitle="Record what arrived before anything is unloaded."
+      onBack={() => router.back()}
+      footer={
+        <PrimaryButton
+          label="Record arrival"
+          icon="arrow-forward"
+          density="field"
+          onPress={record}
+        />
+      }
+    >
+      <Section title="Vendor">
+        <Row
+          icon={vendor ? "business" : "qr-code-outline"}
+          label={vendor ? vendorLabel : "Scan card or choose vendor"}
+          {...(vendor
+            ? { value: vendor.kind === "REGISTERED" ? "Registered" : "Not registered" }
+            : {})}
+          selected={!!vendor}
+          onPress={() => setPickerOpen(true)}
+        />
+        {has("VENDOR_REQUIRED") ? <FieldError message={ERROR_TEXT.VENDOR_REQUIRED} /> : null}
+      </Section>
 
-        <Section title="Vendor">
-          <Row
-            icon={vendor ? "business" : "qr-code-outline"}
-            label={vendor ? vendorLabel : "Scan card or choose vendor"}
-            {...(vendor
-              ? { value: vendor.kind === "REGISTERED" ? "Registered" : "Not registered" }
-              : {})}
-            selected={!!vendor}
-            onPress={() => setPickerOpen(true)}
-          />
-          {has("VENDOR_REQUIRED") ? <FieldError message={ERROR_TEXT.VENDOR_REQUIRED} /> : null}
-        </Section>
-
-        <Section title="Bill" hint="A missing bill is normal. Say so rather than leaving it blank.">
-          <View style={{ flexDirection: "row", gap: space.sm }}>
-            {/*
+      <Section title="Bill" hint="A missing bill is normal. Say so rather than leaving it blank.">
+        <View style={{ flexDirection: "row", gap: space.sm }}>
+          {/*
               Disabled until the camera is wired, rather than standing in for it.
               It previously wrote the literal string "placeholder://bill.jpg", which
               satisfies gate_entry_photo_matches_bill_state — so every synced record
@@ -187,83 +184,66 @@ export default function NewGateEntry() {
               a record carrying a false assertion is worse than an honest gap, and a
               compliance record is exactly where that matters.
             */}
-            <ChoiceTile
-              icon="camera"
-              label="Photograph bill"
-              disabled
-              hint="Coming soon"
-              selected={bill.kind === "PHOTOGRAPHED"}
-              onPress={() => {}}
-            />
-            <ChoiceTile
-              icon="document-outline"
-              label="No bill"
-              selected={bill.kind === "NONE"}
-              onPress={() => setBill({ kind: "NONE" })}
-            />
-          </View>
-          {has("BILL_UNANSWERED") ? <FieldError message={ERROR_TEXT.BILL_UNANSWERED} /> : null}
-          {has("BILL_PHOTO_MISSING") ? (
-            <FieldError message={ERROR_TEXT.BILL_PHOTO_MISSING} />
-          ) : null}
-        </Section>
+          <ChoiceTile
+            icon="camera"
+            label="Photograph bill"
+            disabled
+            hint="Coming soon"
+            selected={bill.kind === "PHOTOGRAPHED"}
+            onPress={() => {}}
+          />
+          <ChoiceTile
+            icon="document-outline"
+            label="No bill"
+            selected={bill.kind === "NONE"}
+            onPress={() => setBill({ kind: "NONE" })}
+          />
+        </View>
+        {has("BILL_UNANSWERED") ? <FieldError message={ERROR_TEXT.BILL_UNANSWERED} /> : null}
+        {has("BILL_PHOTO_MISSING") ? <FieldError message={ERROR_TEXT.BILL_PHOTO_MISSING} /> : null}
+      </Section>
 
-        <Section title="Packages" hint="Count packages only. Weight is Terminal 1's job.">
-          <Stepper value={packageCount} onChange={setPackageCount} min={0} max={999} />
-          {has("PACKAGE_COUNT_REQUIRED") ? (
-            <FieldError message={ERROR_TEXT.PACKAGE_COUNT_REQUIRED} />
-          ) : null}
-        </Section>
+      <Section title="Packages" hint="Count packages only. Weight is Terminal 1's job.">
+        <Stepper value={packageCount} onChange={setPackageCount} min={0} max={999} />
+        {has("PACKAGE_COUNT_REQUIRED") ? (
+          <FieldError message={ERROR_TEXT.PACKAGE_COUNT_REQUIRED} />
+        ) : null}
+      </Section>
 
-        <Section title="Vehicle" hint="Optional. A hand-cart has no number.">
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
-            {VEHICLE_OPTIONS.map((v) => (
-              <View key={v.mode} style={{ width: "48%" }}>
-                <ChoiceTile
-                  icon={v.icon}
-                  label={v.label}
-                  selected={vehicleMode === v.mode}
-                  onPress={() => setVehicleMode(vehicleMode === v.mode ? undefined : v.mode)}
-                />
-              </View>
-            ))}
-          </View>
-          {vehicleMode && vehicleMode !== "HAND_CART" ? (
-            <View style={{ marginTop: space.sm }}>
-              <Text role="label" style={{ marginBottom: space.xs }}>
-                Vehicle number
-              </Text>
-              <TextInput
-                value={vehicleNumber}
-                onChangeText={(t) => setVehicleNumber(t.toUpperCase())}
-                placeholder="AS 06 AB 1234"
-                placeholderTextColor={p.textMuted}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                accessibilityLabel="Vehicle number"
-                style={[
-                  styles.input,
-                  { backgroundColor: p.surface, borderColor: p.border, color: p.text },
-                ]}
+      <Section title="Vehicle" hint="Optional. A hand-cart has no number.">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+          {VEHICLE_OPTIONS.map((v) => (
+            <View key={v.mode} style={{ width: "48%" }}>
+              <ChoiceTile
+                icon={v.icon}
+                label={v.label}
+                selected={vehicleMode === v.mode}
+                onPress={() => setVehicleMode(vehicleMode === v.mode ? undefined : v.mode)}
               />
             </View>
-          ) : null}
-        </Section>
-      </ScrollView>
-
-      <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: p.surface,
-            borderTopColor: p.border,
-            paddingBottom: insets.bottom + space.md,
-          },
-        ]}
-      >
-        <PrimaryButton label="Record arrival" icon="arrow-forward" onPress={record} />
-      </View>
-
+          ))}
+        </View>
+        {vehicleMode && vehicleMode !== "HAND_CART" ? (
+          <View style={{ marginTop: space.sm }}>
+            <UIText role="label" weight="semibold" style={{ marginBottom: space.xs }}>
+              Vehicle number
+            </UIText>
+            <TextInput
+              value={vehicleNumber}
+              onChangeText={(t) => setVehicleNumber(t.toUpperCase())}
+              placeholder="AS 06 AB 1234"
+              placeholderTextColor={p.textMuted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              accessibilityLabel="Vehicle number"
+              style={[
+                styles.input,
+                { backgroundColor: p.surface, borderColor: p.border, color: p.text },
+              ]}
+            />
+          </View>
+        ) : null}
+      </Section>
       <VendorPicker
         open={pickerOpen}
         parties={parties}
@@ -276,7 +256,7 @@ export default function NewGateEntry() {
           setPickerOpen(false);
         }}
       />
-    </View>
+    </Screen>
   );
 }
 
