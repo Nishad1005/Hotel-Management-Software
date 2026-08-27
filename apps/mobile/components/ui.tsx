@@ -1887,22 +1887,37 @@ export function StatTile({
     </>
   );
 
+  /** Urgent and non-empty. A red 0 is not a problem, so it does not get the stripe. */
+  const pressing = !empty && (tone === "bad" || tone === "warn");
+
   const frame = (pressed: boolean) =>
     ({
       flexGrow: 1,
-      flexBasis: 150,
+      /*
+        260, not 150, and this number is the whole responsive grid.
+
+        With `flexWrap` the tiles lay themselves out from their own minimum: a 1200px
+        column fits four, a 768px tablet fits two, a 360px phone fits one. That is the
+        3-up / 2-up / 1-up the design asks for, arrived at without a third breakpoint to
+        maintain. At 150 they packed five or six to a row and the grid was 3-then-4 with
+        no relationship between the rows.
+      */
+      flexBasis: 260,
       padding: space.lg,
       borderRadius: radius.lg,
       backgroundColor: p.surface,
       borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
       borderColor: focused ? p.focus : hovered && onPress ? p.borderStrong : p.border,
+      // A stripe down the edge of the tiles that mean something, so the eye finds the
+      // work before it reads a single label.
+      ...(pressing ? { borderLeftWidth: 4, borderLeftColor: ink } : {}),
       // Scale rather than a background change. The surface is already white on a tinted
       // page, so darkening it reads as a rendering glitch rather than a press.
       transform: [{ scale: pressed ? 0.98 : 1 }],
       cursor: onPress ? "pointer" : "default",
     }) as ViewStyle;
 
-  if (!onPress) return <View style={frame(false)}>{inner}</View>;
+  if (!onPress) return <View style={[frame(false), elevation(1, p)]}>{inner}</View>;
 
   return (
     <Pressable
@@ -1910,7 +1925,9 @@ export function StatTile({
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${value}${caption ? `. ${caption}` : ""}`}
       {...handlers}
-      style={({ pressed }) => frame(pressed)}
+      // Lifting on hover is the affordance that says the whole tile is the target, not
+      // the little chevron in its corner.
+      style={({ pressed }) => [frame(pressed), elevation(hovered && !pressed ? 2 : 1, p)]}
     >
       {inner}
     </Pressable>
@@ -1922,6 +1939,13 @@ export function StatTile({
  *
  * `flexBasis` with wrap rather than a breakpoint: the same code gives two columns on a
  * phone and four on a laptop without having to know which it is running on.
+ */
+/**
+ * A row of tiles that wraps.
+ *
+ * Deliberately dumb: it sets a direction and a gap, and the tiles decide how many fit
+ * from their own `flexBasis`. A grid that took a column count would need a breakpoint per
+ * count, and every screen would pick a different one.
  */
 export function StatGrid({ children }: { children: ReactNode }) {
   return <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>{children}</View>;

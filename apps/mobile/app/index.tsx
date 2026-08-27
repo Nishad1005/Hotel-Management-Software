@@ -1,15 +1,22 @@
-import { Ionicons } from "@expo/vector-icons";
+import type { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Header, Page, PrimaryButton, StatGrid, StatTile, Text } from "../components/ui";
+import { View } from "react-native";
+import {
+  Banner,
+  Loading,
+  PrimaryButton,
+  Screen,
+  Section,
+  StatGrid,
+  StatTile,
+} from "../components/ui";
 import type { Capability } from "@golai/domain";
 import { memberCan } from "../lib/access";
 import { onOutboxChange, outbox } from "../lib/outbox";
 import { loadOverview, type PropertyOverview } from "../lib/overview";
 import { useSession } from "../lib/session";
-import { radius, space, usePalette } from "../theme";
+import { space } from "../theme";
 
 interface StartAction {
   capability: Capability;
@@ -43,9 +50,7 @@ const STARTS: StartAction[] = [
  * red it looks: stock expiring in six days does not need anybody before lunch.
  */
 export default function Home() {
-  const p = usePalette();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { activeProperty } = useSession();
 
   const [pending, setPending] = useState(0);
@@ -115,186 +120,146 @@ export default function Home() {
   const starts = STARTS.filter((s) => memberCan(roles, s.capability));
 
   return (
-    <View style={{ flex: 1, backgroundColor: p.background }}>
-      <ScrollView
-        contentContainerStyle={{
-          padding: space.lg,
-          paddingTop: insets.top + space.lg,
-          paddingBottom: insets.bottom + space.xxl,
-        }}
-      >
-        <Page wide>
-          <Header
-            title={activeProperty?.propertyName ?? "PARGOLAI"}
-            {...(activeProperty
-              ? { subtitle: `${activeProperty.propertyCode} · ${activeProperty.organisationName}` }
-              : {})}
-          />
-
-          {/* Sync state earns a place at the top only when there is something to say. */}
-          {blocked > 0 || pending > 0 ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: blocked > 0 ? p.dangerSurface : p.warningSurface,
-                borderRadius: radius.md,
-                padding: space.md,
-                marginBottom: space.lg,
-              }}
-            >
-              <Ionicons
-                name={blocked > 0 ? "warning" : "cloud-upload-outline"}
-                size={18}
-                color={blocked > 0 ? p.danger : p.warning}
-              />
-              <Text
-                role="label"
-                tone={blocked > 0 ? "danger" : "warning"}
-                weight="semibold"
-                style={{ marginLeft: space.sm, flex: 1 }}
-              >
-                {blocked > 0
-                  ? `${blocked} record${blocked === 1 ? "" : "s"} stuck and need attention`
-                  : `${pending} waiting to sync`}
-              </Text>
-            </View>
-          ) : null}
-
-          {starts.length > 0 ? (
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: space.sm,
-                marginBottom: space.xl,
-              }}
-            >
-              {starts.map((s, index) => (
-                <View key={s.href} style={{ flexGrow: 1, flexBasis: 200 }}>
+    <Screen
+      title={activeProperty?.propertyName ?? "PARGOLAI"}
+      {...(activeProperty
+        ? { subtitle: `${activeProperty.propertyCode} · ${activeProperty.organisationName}` }
+        : {})}
+      wide
+      {...(starts.length > 0
+        ? {
+            /*
+              A button group, sized to its labels.
+              
+              These were three slabs each a third of the content width, which at 1200px
+              made "New arrival" a 380-pixel-wide control — the visual weight of a page
+              banner for what is one of several things you might do. Sized to content they
+              read as what they are, and the first is the only one wearing the accent.
+            */
+            band: (
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+                {starts.map((s, index) => (
                   <PrimaryButton
+                    key={s.href}
                     label={s.label}
                     icon={s.icon}
-                    // One primary action per screen. Everything after the first is the
-                    // same job in a quieter voice, not a competing one.
                     tone={index === 0 ? "accent" : "neutral"}
                     onPress={() => router.push(s.href)}
                   />
-                </View>
-              ))}
-            </View>
-          ) : null}
+                ))}
+              </View>
+            ),
+          }
+        : {})}
+    >
+      {/* Sync state earns a place at the top only when there is something to say. */}
+      {blocked > 0 || pending > 0 ? (
+        <Banner
+          icon={blocked > 0 ? "warning" : "cloud-upload-outline"}
+          tone={blocked > 0 ? "bad" : "warn"}
+        >
+          {blocked > 0
+            ? `${blocked} record${blocked === 1 ? "" : "s"} stuck and need attention`
+            : `${pending} waiting to sync`}
+        </Banner>
+      ) : null}
 
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
           {/*
-            The figures, and the two that can demand action before the two that merely
-            describe. Nothing here is decorative: every tile is a number somebody would
-            otherwise have to open a screen to learn.
+            Two sections, and the split is the point.
+
+            Both grids used to sit under one heading whose text changed — so "Waiting on
+            someone" was, much of the time, the label over four stock metrics that are not
+            waiting on anyone. A queue and a gauge are different kinds of number: one is a
+            job with a person's name implicitly on it, the other is a condition to know
+            about. Reading them as one list is how a storekeeper ends up treating "412
+            stock lines" as a task.
           */}
-          <Text role="overline" tone="muted" style={{ marginBottom: space.md }}>
-            {queued > 0 ? "Waiting on someone" : atRisk > 0 ? "Needs watching" : "The store today"}
-          </Text>
+          <Section
+            title={queued > 0 ? `Waiting on someone · ${queued}` : "Waiting on someone"}
+            hint="Each of these is a job somebody has to do today."
+          >
+            <StatGrid>
+              <StatTile
+                icon="car-outline"
+                label="To receive"
+                value={overview?.arrivalsWaiting ?? 0}
+                caption={
+                  overview?.arrivalsOverdue
+                    ? `${overview.arrivalsOverdue} waiting over four hours`
+                    : "Arrivals with no receipt"
+                }
+                tone={
+                  overview?.arrivalsOverdue ? "bad" : overview?.arrivalsWaiting ? "warn" : "neutral"
+                }
+                onPress={() => router.push("/receive")}
+              />
+              <StatTile
+                icon="file-tray-stacked-outline"
+                label="To put away"
+                value={overview?.quarantineLines ?? 0}
+                caption={
+                  overview?.quarantineOldestHours
+                    ? `Oldest ${overview.quarantineOldestHours.toFixed(1)} h at T1`
+                    : "Nothing at Terminal 1"
+                }
+                tone={(overview?.quarantineOldestHours ?? 0) >= 4 ? "warn" : "neutral"}
+                onPress={() => router.push("/putaway")}
+              />
+              <StatTile
+                icon="shield-checkmark-outline"
+                label="To gate out"
+                value={overview?.awaitingGatePass ?? 0}
+                caption="Staged, still on the property"
+                tone={overview?.awaitingGatePass ? "warn" : "neutral"}
+                onPress={() => router.push("/gate-out")}
+              />
+            </StatGrid>
+          </Section>
 
-          {loading ? (
-            <View
-              style={{
-                height: 148,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: p.surface,
-                borderRadius: radius.lg,
-                borderWidth: StyleSheet.hairlineWidth,
-                borderColor: p.border,
-              }}
-            >
-              <ActivityIndicator color={p.accent} />
-            </View>
-          ) : (
-            <>
-              {/*
-                The work queues first, and in flow order — gate, dock, gate again. These
-                are three jobs somebody has to do today, and they were invisible on this
-                screen until now even though the app had grown six screens to do them on.
-              */}
-              <StatGrid>
-                <StatTile
-                  icon="car-outline"
-                  label="To receive"
-                  value={overview?.arrivalsWaiting ?? 0}
-                  caption={
-                    overview?.arrivalsOverdue
-                      ? `${overview.arrivalsOverdue} waiting over four hours`
-                      : "Arrivals with no receipt"
-                  }
-                  tone={
-                    overview?.arrivalsOverdue
-                      ? "bad"
-                      : overview?.arrivalsWaiting
-                        ? "warn"
-                        : "neutral"
-                  }
-                  onPress={() => router.push("/receive")}
-                />
-                <StatTile
-                  icon="file-tray-stacked-outline"
-                  label="To put away"
-                  value={overview?.quarantineLines ?? 0}
-                  caption={
-                    overview?.quarantineOldestHours
-                      ? `Oldest ${overview.quarantineOldestHours.toFixed(1)} h at T1`
-                      : "Nothing at Terminal 1"
-                  }
-                  tone={(overview?.quarantineOldestHours ?? 0) >= 4 ? "warn" : "neutral"}
-                  onPress={() => router.push("/putaway")}
-                />
-                <StatTile
-                  icon="shield-checkmark-outline"
-                  label="To gate out"
-                  value={overview?.awaitingGatePass ?? 0}
-                  caption="Staged, still on the property"
-                  tone={overview?.awaitingGatePass ? "warn" : "neutral"}
-                  onPress={() => router.push("/gate-out")}
-                />
-              </StatGrid>
-
-              <View style={{ height: space.md }} />
-
-              <StatGrid>
-                <StatTile
-                  icon="alert-circle"
-                  label="Expired"
-                  value={overview?.expired ?? 0}
-                  caption={overview?.expired ? "Cannot be served" : "Nothing past date"}
-                  tone={overview?.expired ? "bad" : "neutral"}
-                  onPress={() => router.push("/perishables")}
-                />
-                <StatTile
-                  icon="hourglass"
-                  label="Use this week"
-                  value={overview?.expiringSoon ?? 0}
-                  caption="Within seven days"
-                  tone={overview?.expiringSoon ? "warn" : "neutral"}
-                  onPress={() => router.push("/perishables")}
-                />
-                <StatTile
-                  icon="layers-outline"
-                  label="Stock lines"
-                  value={overview?.stockLines ?? 0}
-                  caption="Issuable, across every bin"
-                  tone="accent"
-                  onPress={() => router.push("/stock")}
-                />
-                <StatTile
-                  icon="cube-outline"
-                  label="Items"
-                  value={overview?.items ?? 0}
-                  caption={`${overview?.bins ?? 0} bins · ${overview?.vendors ?? 0} vendors`}
-                  onPress={() => router.push("/items")}
-                />
-              </StatGrid>
-            </>
-          )}
-        </Page>
-      </ScrollView>
-    </View>
+          <Section
+            title={atRisk > 0 ? `Stock health · ${atRisk} to watch` : "Stock health"}
+            hint="Worth knowing. None of it needs anybody before lunch."
+          >
+            <StatGrid>
+              <StatTile
+                icon="alert-circle"
+                label="Expired"
+                value={overview?.expired ?? 0}
+                caption={overview?.expired ? "Cannot be served" : "Nothing past date"}
+                tone={overview?.expired ? "bad" : "neutral"}
+                onPress={() => router.push("/perishables")}
+              />
+              <StatTile
+                icon="hourglass"
+                label="Use this week"
+                value={overview?.expiringSoon ?? 0}
+                caption="Within seven days"
+                tone={overview?.expiringSoon ? "warn" : "neutral"}
+                onPress={() => router.push("/perishables")}
+              />
+              <StatTile
+                icon="layers-outline"
+                label="Stock lines"
+                value={overview?.stockLines ?? 0}
+                caption="Issuable, across every bin"
+                tone="accent"
+                onPress={() => router.push("/stock")}
+              />
+              <StatTile
+                icon="cube-outline"
+                label="Items"
+                value={overview?.items ?? 0}
+                caption={`${overview?.bins ?? 0} bins · ${overview?.vendors ?? 0} vendors`}
+                onPress={() => router.push("/items")}
+              />
+            </StatGrid>
+          </Section>
+        </>
+      )}
+    </Screen>
   );
 }
