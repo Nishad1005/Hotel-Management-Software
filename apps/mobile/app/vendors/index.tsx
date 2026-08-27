@@ -9,11 +9,11 @@ import {
   Field,
   FieldError,
   IconButton,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
   SelectRow,
+  SkeletonList,
   StatusPill,
   Text,
   Toggle,
@@ -94,7 +94,7 @@ export default function Vendors() {
       }
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
       ) : parties.length === 0 ? (

@@ -10,7 +10,15 @@ import type { ExpiryState } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Card, Loading, Notice, PrimaryButton, Screen, StatusPill, Text } from "../components/ui";
+import {
+  Card,
+  Notice,
+  PrimaryButton,
+  Screen,
+  SkeletonList,
+  StatusPill,
+  Text,
+} from "../components/ui";
 import { useSession } from "../lib/session";
 import { listStockOnHand, moveStockOut, newSubmissionId, type StockLine } from "../lib/stock";
 import { radius, space, touch, usePalette } from "../theme";
@@ -167,7 +175,7 @@ export default function Perishables() {
         : {})}
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice icon="alert-circle-outline" tone="bad" title="Could not load stock" body={error} />
       ) : totalTracked === 0 ? (

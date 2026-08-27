@@ -28,6 +28,16 @@ type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 export interface NavItem {
   href: string;
   /**
+   * Other routes this item stands for.
+   *
+   * A hub row is visible if the user can reach *any* of them, and stays lit while they are
+   * on *any* of them — so "Setup" highlights on `/items` and does not appear at all for
+   * somebody who may edit none of the four. Without this, a hub would need its own
+   * capability, which would either hide it from people who can use half of it or offer it
+   * to people who can use none.
+   */
+  covers?: string[];
+  /**
    * The `ROUTE_CAPABILITY` key for this route — the path without its leading slash.
    *
    * Kept separate from `href` rather than derived, because the two genuinely differ for
@@ -113,17 +123,16 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Master data",
+    // Untitled: one row does not need a heading announcing it.
+    title: "",
     items: [
-      { href: "/items", segment: "items", label: "Items", icon: "pricetags-outline" },
       {
-        href: "/admin/locations",
-        segment: "admin/locations",
-        label: "Zones & bins",
-        icon: "map-outline",
+        href: "/setup",
+        segment: "setup",
+        covers: ["items", "admin/locations", "vendors", "admin/users"],
+        label: "Setup",
+        icon: "settings-outline",
       },
-      { href: "/vendors", segment: "vendors", label: "Vendors", icon: "business-outline" },
-      { href: "/admin/users", segment: "admin/users", label: "People", icon: "people-outline" },
     ],
   },
 ];
@@ -150,6 +159,8 @@ export function navigationFor(
   const groups = GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
+      // A hub is worth showing when any one of the screens behind it is.
+      if (item.covers) return item.covers.some((seg) => granted.has(ROUTE_CAPABILITY[seg]!));
       const needed = ROUTE_CAPABILITY[item.segment];
       // No entry means the route is open to anyone signed in — the home screen. Absence
       // is deliberate rather than an oversight, so it is treated as such.
@@ -171,7 +182,11 @@ export function activeHref(pathname: string, groups: readonly NavGroup[]): strin
   let best: string | null = null;
   for (const group of groups) {
     for (const item of group.items) {
-      const hit = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+      const hit =
+        item.href === "/"
+          ? pathname === "/"
+          : pathname.startsWith(item.href) ||
+            (item.covers?.some((seg) => pathname.startsWith("/" + seg)) ?? false);
       if (hit && (best === null || item.href.length > best.length)) best = item.href;
     }
   }

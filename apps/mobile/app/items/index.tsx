@@ -5,11 +5,11 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import {
   Card,
   IconButton,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
   SearchField,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -116,7 +116,7 @@ export default function ItemsList() {
       }
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice icon="alert-circle-outline" tone="bad" title="Could not load items" body={error} />
       ) : items.length === 0 ? (

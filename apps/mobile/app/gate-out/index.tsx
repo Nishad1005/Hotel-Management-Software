@@ -6,10 +6,10 @@ import {
   Card,
   Field,
   FieldError,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -114,7 +114,7 @@ export default function GateOut() {
           </View>
         </Card>
       ) : loading ? (
-        <Loading />
+        <SkeletonList />
       ) : loadError ? (
         <Notice
           icon="cloud-offline-outline"
@@ -125,6 +125,9 @@ export default function GateOut() {
       ) : waiting.length === 0 ? (
         <Notice
           icon="checkmark-circle-outline"
+          action={
+            <PrimaryButton label="Stage something" onPress={() => router.push("/dispatch")} />
+          }
           title="Nothing is waiting to leave"
           body="Consignments appear here once they are staged at Terminal 2. Nothing leaves the property except through this screen."
         />

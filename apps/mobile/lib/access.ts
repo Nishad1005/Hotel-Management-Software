@@ -60,6 +60,9 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   // surfaced.
   "admin/locations": "masters.edit",
   "admin/users": "users.manage",
+  // The hub. It shows when any of the four screens behind it does, which `NavItem.covers`
+  // works out — this entry is the floor, so the route itself is never open to nobody.
+  setup: "masters.edit",
   // Deliberately absent: `platform` is vendor staff, not a property capability, and the
   // server decides it. A route capability here would imply a property role grants it.
 };

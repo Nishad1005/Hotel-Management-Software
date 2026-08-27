@@ -4,9 +4,9 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Card,
-  Loading,
   Notice,
   Screen,
+  SkeletonList,
   StatGrid,
   StatTile,
   StatusPill,
@@ -118,7 +118,7 @@ export default function Registers() {
       onBack={() => router.back()}
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice
           icon="cloud-offline-outline"

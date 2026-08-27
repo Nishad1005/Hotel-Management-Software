@@ -7,12 +7,12 @@ import {
   Card,
   Field,
   FieldError,
-  Loading,
   Notice,
   PrimaryButton,
   Result,
   Screen,
   SelectRow,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -164,7 +164,7 @@ export default function IssueStock() {
         : {})}
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : loadError ? (
         <Notice
           icon="cloud-offline-outline"

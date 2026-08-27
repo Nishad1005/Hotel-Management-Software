@@ -1655,6 +1655,76 @@ export function Skeleton({
 }
 
 /**
+ * The shape of a list, before the list arrives.
+ *
+ * A spinner tells you to wait. This tells you what you are waiting for — a card, with
+ * rows, each with a name and a line of metadata — so the screen is recognisable before it
+ * has any content in it, and nothing jumps when the content lands. The old spinner
+ * occupied a fixed 148px block and the list that replaced it never did.
+ *
+ * Row heights match `Row` and the hand-built list rows at 72px, so the reflow is a
+ * substitution rather than a resize.
+ */
+export function SkeletonList({ rows = 5 }: { rows?: number }) {
+  const p = usePalette();
+  return (
+    <Card padded={false}>
+      {Array.from({ length: rows }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space.md,
+            paddingHorizontal: space.lg,
+            paddingVertical: space.md,
+            minHeight: 72,
+            borderBottomWidth: i < rows - 1 ? StyleSheet.hairlineWidth : 0,
+            borderBottomColor: p.border,
+          }}
+        >
+          <Skeleton width={36} height={36} radius={radius.sm} />
+          <View style={{ flex: 1, gap: space.sm }}>
+            {/* Varied widths, because five identical bars read as a pattern rather than
+                as text that has not arrived. */}
+            <Skeleton width={i % 2 === 0 ? "62%" : "48%"} height={14} />
+            <Skeleton width={i % 3 === 0 ? "34%" : "44%"} height={11} />
+          </View>
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+/** The dashboard's own shape: two bands of tiles at the height they will occupy. */
+export function SkeletonTiles({ count = 3 }: { count?: number }) {
+  const p = usePalette();
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
+      {Array.from({ length: count }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            flexGrow: 1,
+            flexBasis: 260,
+            padding: space.lg,
+            gap: space.md,
+            borderRadius: radius.lg,
+            backgroundColor: p.surface,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: p.border,
+          }}
+        >
+          <Skeleton width={30} height={30} radius={radius.sm} />
+          <Skeleton width={64} height={30} />
+          <Skeleton width="52%" height={12} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
  * Waiting, said once and the same way everywhere.
  *
  * There were twenty-four bare `ActivityIndicator`s across the screens in three sizes and
@@ -1808,6 +1878,7 @@ export function StatTile({
   caption,
   icon,
   tone = "neutral",
+  kind = "gauge",
   onPress,
 }: {
   label: string;
@@ -1815,6 +1886,15 @@ export function StatTile({
   caption?: string;
   icon: IoniconName;
   tone?: "neutral" | "accent" | "warn" | "bad";
+  /**
+   * What kind of number this is, which decides what zero means.
+   *
+   * A **queue** counts work waiting on a person, so zero is an achievement — the dock is
+   * clear. A **gauge** counts a condition, so zero is a fact: "0 items" is not good news,
+   * it is an empty item master. The same grey nought was being used for both, which made
+   * a cleared queue look like a switched-off control.
+   */
+  kind?: "queue" | "gauge";
   onPress?: () => void;
 }) {
   const p = usePalette();
@@ -1832,6 +1912,9 @@ export function StatTile({
    * hidden. It just stops competing.
    */
   const empty = value === 0 || value === "0";
+  /** An empty queue. Not an absence — a result. */
+  const cleared = empty && kind === "queue";
+
   const ink = empty
     ? p.textMuted
     : tone === "bad"
@@ -1841,8 +1924,9 @@ export function StatTile({
         : tone === "accent"
           ? p.accent
           : p.text;
-  const wash =
-    empty || tone === "neutral"
+  const wash = cleared
+    ? p.successSurface
+    : empty || tone === "neutral"
       ? p.surfaceSunken
       : tone === "bad"
         ? p.dangerSurface
@@ -1863,12 +1947,26 @@ export function StatTile({
             justifyContent: "center",
           }}
         >
-          <Ionicons name={icon} size={17} color={ink} />
+          {/*
+            A cleared queue says so with a tick, in place of the domain glyph.
+
+            Deliberately NOT in place of the chevron. Stage C made the whole tile the
+            target and the chevron is the only mark on it that says so; swapping that for a
+            tick would have announced the good news by removing the affordance. So the tick
+            takes the icon chip — which was only ever decorative, since the label directly
+            under it already says which queue this is — and the chevron stays exactly where
+            it was on every other tile.
+          */}
+          <Ionicons
+            name={cleared ? "checkmark" : icon}
+            size={17}
+            color={cleared ? p.success : ink}
+          />
         </View>
         {onPress ? (
           <>
             <View style={{ flex: 1 }} />
-            <Ionicons name="chevron-forward" size={15} color={p.textFaint} />
+            <Ionicons name="chevron-forward" size={15} color={p.textMuted} />
           </>
         ) : null}
       </View>
@@ -1887,8 +1985,24 @@ export function StatTile({
     </>
   );
 
-  /** Urgent and non-empty. A red 0 is not a problem, so it does not get the stripe. */
-  const pressing = !empty && (tone === "bad" || tone === "warn");
+  /**
+   * A stripe, never a fill.
+   *
+   * Terracotta had come to mean two things: it is the fill of the primary button, and now
+   * also the colour of a tile with something waiting on it. On a screen carrying "New
+   * arrival" in the header and "1 to receive" below it, one colour was saying both "press
+   * this" and "attend to this". So a *fill* is reserved for actions, and a *state* is only
+   * ever an edge stripe with a matching figure. The two can share a hue without a person
+   * having to work out which is which — one is a slab you press, the other is a line down
+   * the side of a card.
+   *
+   * Zero never gets a stripe, whatever the tone: nought expired is not a problem. Nor does
+   * a gauge that is merely terracotta — "1180 stock lines" is the store being full, and a
+   * stripe down its edge would be the card claiming somebody has to do something about it.
+   * A gauge earns one only by being amber or red, which are conditions rather than counts.
+   */
+  const pressing =
+    !empty && (tone === "bad" || tone === "warn" || (tone === "accent" && kind === "queue"));
 
   const frame = (pressed: boolean) =>
     ({

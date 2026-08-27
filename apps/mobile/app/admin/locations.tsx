@@ -19,12 +19,12 @@ import {
   ChoiceTile,
   Field,
   FieldError,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
   Section,
   SelectRow,
+  SkeletonList,
   Text,
 } from "../../components/ui";
 import { printer } from "../../lib/print";
@@ -186,7 +186,7 @@ export default function Locations() {
       ) : null}
 
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : zones.length === 0 ? (
         <Notice
           icon="map-outline"
