@@ -64,12 +64,23 @@ export default function SignIn() {
     const result = await signIn(email, password);
     setBusy(false);
     if (result.error) {
-      // Supabase returns "Invalid login credentials" for a wrong password AND for an
-      // unconfirmed account, which sends people hunting for a typo that is not there.
+      /*
+        Written for a storekeeper, not for whoever wrote the auth library.
+
+        Supabase returns one string, "Invalid login credentials", for a wrong password AND
+        for an account nobody has activated yet — so the honest message has to cover both
+        without pretending to know which. The previous wording said "the account has not
+        been confirmed yet", which is the library's vocabulary: nobody at a property calls
+        it confirming an account, and it gives them nothing to do.
+
+        This says what to try and who to ask. Any other error is the network or the server,
+        and "check your connection" is more use than the raw string, which is usually
+        something like "Failed to fetch".
+      */
       setError(
         result.error === "Invalid login credentials"
-          ? "Wrong email or password — or the account has not been confirmed yet."
-          : result.error,
+          ? "That email and password do not match. Check both — and if the account is new, ask whoever set it up to finish activating it."
+          : "Could not reach PARGOLAI. Check the internet connection and try again.",
       );
     }
   }
@@ -104,7 +115,7 @@ export default function SignIn() {
           invalid={rejected}
           {...(rejected ? { describedBy: SIGN_IN_ERROR_ID } : {})}
           {...(attempted && missingEmail
-            ? { error: "Enter the email address you sign in with." }
+            ? { error: "Enter the email address you use to sign in." }
             : {})}
         />
         <Field

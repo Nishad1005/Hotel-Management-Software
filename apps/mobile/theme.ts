@@ -339,8 +339,25 @@ const light: Palette = {
   warningSurface: "#FBF3DF",
   danger: "#CC2936",
   dangerSurface: "#FDECEE",
-  // Blue on purpose: a focus ring that matches the brand is a focus ring nobody sees.
-  focus: "#2563EB",
+  /**
+   * The keyboard focus indicator.
+   *
+   * Was `#2563EB`, chosen on the reasoning that "a focus ring that matches the brand is a
+   * focus ring nobody sees". Measured against the grounds it actually lands on, that blue
+   * was **1.00:1 on the terracotta button** — identical luminance, an indicator that
+   * literally cannot be seen on the app's primary action — and 2.88:1 on a sidebar row,
+   * under the 3:1 WCAG 2.4.11 asks of a focus indicator. It was legible on white and
+   * nowhere that mattered.
+   *
+   * The lesson is that a focus ring has no single correct colour, because it has no single
+   * background. This is the ring for light grounds — 14.88:1 on a card input. Controls
+   * standing on a dark ground pick the legible foreground they already have:
+   * `onAccent` on the terracotta button (5.18:1), `onBrand` in the sidebar (14.42:1).
+   *
+   * Two pixels wide and only ever drawn on focus, so "it looks like a border" is not the
+   * risk the old comment feared.
+   */
+  focus: "#33241D",
   shadow: "#4A342A",
 };
 

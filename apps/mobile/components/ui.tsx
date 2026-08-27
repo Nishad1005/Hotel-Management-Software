@@ -260,7 +260,9 @@ export function IconButton({
                 ? p.surfaceSunken
                 : "transparent",
           borderWidth: focused ? 2 : 0,
-          borderColor: p.focus,
+          // On the brand band the dark ring would be invisible; the glyph's own colour is
+          // the one already proven legible there.
+          borderColor: tone === "onBrand" ? p.onBrand : p.focus,
           cursor: disabled ? "not-allowed" : "pointer",
         }) as ViewStyle
       }
@@ -801,7 +803,14 @@ export function PrimaryButton({
           // The focus ring replaces the outline rather than stacking on it, so an
           // outlined button does not gain a second border when tabbed to.
           borderWidth: focused ? 2 : shape === "outline" || inert ? StyleSheet.hairlineWidth : 0,
-          borderColor: focused ? p.focus : p.borderStrong,
+          // A solid button stands on its own fill, so the ring has to contrast with that
+          // rather than with the page. `p.focus` is 1.00:1 on terracotta; `onAccent` is
+          // 5.18:1. Outline and ghost buttons sit on the page and take the page's ring.
+          borderColor: focused
+            ? shape === "solid" && !inert
+              ? p.onAccent
+              : p.focus
+            : p.borderStrong,
           cursor: inert ? "not-allowed" : "pointer",
         } as ViewStyle,
         shape === "solid" && !inert ? elevation(1, p) : {},

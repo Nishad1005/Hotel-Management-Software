@@ -404,7 +404,9 @@ function NavRow({
           gap: space.sm,
           backgroundColor: active ? p.accent : pressed || hovered ? NAV_HOVER : "transparent",
           borderWidth: focused ? 2 : 0,
-          borderColor: p.focus,
+          // Cream, not `p.focus`: the rows stand on the brand band, where the dark ring
+          // measures 2.88:1 and this measures 14.42:1.
+          borderColor: p.onBrand,
           cursor: "pointer",
         }) as ViewStyle
       }
