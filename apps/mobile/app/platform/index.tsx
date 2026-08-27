@@ -181,6 +181,13 @@ export default function PlatformConsole() {
               icon="business-outline"
               title="No customers yet"
               body="Onboarding one creates their organisation, their property, their owner's login and the seed masters that let them work on the first morning."
+              action={
+                <PrimaryButton
+                  label="Onboard the first"
+                  icon="add"
+                  onPress={() => setAdding(true)}
+                />
+              }
             />
           ) : (
             tenants.map((t) => (

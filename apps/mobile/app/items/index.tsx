@@ -130,6 +130,17 @@ export default function ItemsList() {
                 ? "Add the items this property receives. Nothing can be received against an item that does not exist here."
                 : "An administrator needs to add items before anything can be received."
           }
+          {...(canEditMasters && !search && !categoryId
+            ? {
+                action: (
+                  <PrimaryButton
+                    label="Add the first item"
+                    icon="add"
+                    onPress={() => router.push("/items/new")}
+                  />
+                ),
+              }
+            : {})}
         />
       ) : (
         <Card padded={false}>
