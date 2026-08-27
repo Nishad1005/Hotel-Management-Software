@@ -1,9 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -249,15 +252,25 @@ export function IconButton({
           alignItems: "center",
           justifyContent: "center",
           borderRadius: radius.md,
-          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
+          backgroundColor: disabled
+            ? "transparent"
+            : pressed
+              ? p.border
+              : hovered
+                ? p.surfaceSunken
+                : "transparent",
           borderWidth: focused ? 2 : 0,
           borderColor: p.focus,
-          opacity: disabled ? 0.4 : 1,
           cursor: disabled ? "not-allowed" : "pointer",
         }) as ViewStyle
       }
     >
-      <Ionicons name={icon} size={size} color={colour} />
+      {/*
+        Muted ink rather than `opacity: 0.4`, which took the glyph to 2.47:1 — under the
+        3:1 that a meaningful icon needs. A disabled control still has to be readable;
+        that is what tells you which control is unavailable.
+      */}
+      <Ionicons name={icon} size={size} color={disabled ? p.textMuted : colour} />
     </Pressable>
   );
 }
@@ -586,10 +599,13 @@ export function Card({ children, padded = true }: { children: ReactNode; padded?
  * 720px is a reading measure — right for a form, a receipt or a column of prose, and it is
  * what every screen has used. It is wrong for a grid of figures, which has no measure to
  * respect and simply wants the room, so a dashboard can ask for `wide` instead.
+ *
+ * `wide` is 1200, not the 1080 it started at. With a 264px sidebar beside it, 1080 left a
+ * 1440px laptop with a visible gutter on the right and nothing in it.
  */
 export function Page({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   return (
-    <View style={{ width: "100%", maxWidth: wide ? 1080 : 720, alignSelf: "center" }}>
+    <View style={{ width: "100%", maxWidth: wide ? 1200 : 720, alignSelf: "center" }}>
       {children}
     </View>
   );
@@ -738,10 +754,29 @@ export function PrimaryButton({
 
   const shape: ButtonVariant = variant ?? (tone === "neutral" ? "outline" : "solid");
   const accentColour = tone === "danger" ? p.danger : tone === "neutral" ? p.text : p.accent;
-
-  const bg = shape === "solid" ? accentColour : shape === "outline" ? p.surface : "transparent";
-  const fg = shape === "solid" ? p.onAccent : accentColour;
   const inert = disabled || loading;
+
+  /**
+   * Disabled is a colour, not a transparency.
+   *
+   * `opacity: 0.4` on the whole control composited white-on-terracotta down to **1.87:1**
+   * against the page — worse than any static pair in the palette, and the reason the
+   * button was described as "pale salmon, looks permanently disabled". Group opacity does
+   * that: it fades the label and the fill towards the background together, so the two
+   * converge and the contrast collapses. The measurement never showed it because the
+   * palette was only ever checked as token-against-token.
+   *
+   * A stated disabled surface instead — sunken fill, muted ink — reads as deliberately
+   * off at 4.63:1 rather than half-rendered.
+   */
+  const bg = inert
+    ? p.surfaceSunken
+    : shape === "solid"
+      ? accentColour
+      : shape === "outline"
+        ? p.surface
+        : "transparent";
+  const fg = inert ? p.textMuted : shape === "solid" ? p.onAccent : accentColour;
 
   return (
     <Pressable
@@ -759,11 +794,13 @@ export function PrimaryButton({
           minHeight: heightFor(density),
           borderRadius: radius.md,
           paddingHorizontal: space.xl,
-          backgroundColor: pressed && shape !== "solid" ? p.surfaceSunken : bg,
-          opacity: disabled ? 0.4 : pressed ? 0.85 : hovered ? 0.94 : 1,
+          backgroundColor: pressed && shape !== "solid" && !inert ? p.surfaceSunken : bg,
+          // Press and hover still dip the whole control, because there the label and the
+          // fill are both legible at either end of the range. Disabled does not.
+          opacity: inert ? 1 : pressed ? 0.85 : hovered ? 0.94 : 1,
           // The focus ring replaces the outline rather than stacking on it, so an
           // outlined button does not gain a second border when tabbed to.
-          borderWidth: focused ? 2 : shape === "outline" ? StyleSheet.hairlineWidth : 0,
+          borderWidth: focused ? 2 : shape === "outline" || inert ? StyleSheet.hairlineWidth : 0,
           borderColor: focused ? p.focus : p.borderStrong,
           cursor: inert ? "not-allowed" : "pointer",
         } as ViewStyle,
@@ -832,21 +869,23 @@ export function ChoiceTile({
                 : hovered && live
                   ? p.borderStrong
                   : p.border,
-          backgroundColor: selected
-            ? p.accentSurface
-            : (pressed || hovered) && live
-              ? p.surfaceSunken
-              : p.surface,
-          opacity: live ? 1 : 0.45,
+          // A sunken fill says unavailable where `opacity: 0.45` said 2.92:1.
+          backgroundColor: !live
+            ? p.surfaceSunken
+            : selected
+              ? p.accentSurface
+              : pressed || hovered
+                ? p.surfaceSunken
+                : p.surface,
           cursor: live ? "pointer" : "not-allowed",
         }) as ViewStyle
       }
     >
-      <Ionicons name={icon} size={22} color={selected ? p.accent : p.textMuted} />
+      <Ionicons name={icon} size={22} color={selected && live ? p.accent : p.textMuted} />
       <Text
         role="label"
         weight="semibold"
-        tone={selected ? "accent" : "default"}
+        tone={!live ? "muted" : selected ? "accent" : "default"}
         align="center"
         style={{ marginTop: space.xs }}
       >
@@ -890,13 +929,14 @@ export function Stepper({
           alignItems: "center",
           justifyContent: "center",
           borderRadius: radius.md,
-          backgroundColor: pressed ? p.surfaceSunken : p.surface,
+          backgroundColor: disabled ? p.surfaceSunken : pressed ? p.surfaceSunken : p.surface,
           borderWidth: StyleSheet.hairlineWidth,
           borderColor: p.border,
-          opacity: disabled ? 0.35 : 1,
         })}
       >
-        <Ionicons name={icon} size={26} color={p.text} />
+        {/* 26px of glyph at `opacity: 0.35` was 2.17:1. The floor of a stepper is a
+            control a gloved hand has to find, not one that fades out. */}
+        <Ionicons name={icon} size={26} color={disabled ? p.textMuted : p.text} />
       </Pressable>
     );
   };
@@ -941,7 +981,12 @@ export function Field({
   autoCapitalize = "none",
   hint,
   error,
+  invalid = false,
   suffix,
+  onSubmitEditing,
+  returnKeyType,
+  textContentType,
+  autoComplete,
 }: {
   label: string;
   value: string;
@@ -952,7 +997,22 @@ export function Field({
   autoCapitalize?: "none" | "characters" | "words" | "sentences";
   hint?: string;
   error?: string;
+  /**
+   * Marked wrong, without saying why here.
+   *
+   * For the failure that implicates more than one field at once: "wrong email or
+   * password" is a single message about a pair of inputs, and rendering it under both
+   * would state the problem twice and imply two problems. This draws the border; the
+   * caller places the one message.
+   */
+  invalid?: boolean;
   suffix?: string;
+  /** Lets a short form submit from the keyboard instead of reaching for the button. */
+  onSubmitEditing?: () => void;
+  returnKeyType?: "done" | "next" | "go";
+  /** iOS/Android autofill. A gate phone should offer the saved password, not a keyboard. */
+  textContentType?: "emailAddress" | "password";
+  autoComplete?: "email" | "current-password";
 }) {
   const p = usePalette();
   const [focused, setFocused] = useState(false);
@@ -965,8 +1025,8 @@ export function Field({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          borderWidth: focused || error ? 2 : StyleSheet.hairlineWidth,
-          borderColor: error ? p.danger : focused ? p.focus : p.border,
+          borderWidth: focused || error || invalid ? 2 : StyleSheet.hairlineWidth,
+          borderColor: error || invalid ? p.danger : focused ? p.focus : p.border,
           borderRadius: radius.md,
           backgroundColor: p.surface,
           paddingRight: suffix ? space.md : 0,
@@ -984,6 +1044,10 @@ export function Field({
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           accessibilityLabel={label}
+          {...(onSubmitEditing ? { onSubmitEditing, blurOnSubmit: false } : {})}
+          {...(returnKeyType ? { returnKeyType } : {})}
+          {...(textContentType ? { textContentType } : {})}
+          {...(autoComplete ? { autoComplete } : {})}
           style={
             {
               flex: 1,
@@ -1486,6 +1550,70 @@ export function Banner({
 }
 
 /**
+ * The shape of what is coming, while it is coming.
+ *
+ * A spinner says "wait"; a skeleton says "wait, and here is where the four figures and the
+ * eleven rows will be". On a hotel's connection that difference is several seconds of the
+ * screen not appearing to be broken, and it removes the layout jump that a spinner
+ * guarantees — the spinner occupies 148px and the content that replaces it does not.
+ *
+ * The pulse is opacity on a plain block with no text in it, which is the one place group
+ * opacity is safe: there is nothing to read, so there is no contrast to lose.
+ *
+ * Not yet wired into any screen. It lands with the per-screen sweep; building it here
+ * means the sweep is mechanical rather than twenty separate judgements about what a
+ * loading receipt list should look like.
+ */
+export function Skeleton({
+  width = "100%",
+  height = 16,
+  radius: r = radius.sm,
+  style,
+}: {
+  width?: number | `${number}%`;
+  height?: number;
+  radius?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const p = usePalette();
+  const pulse = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: Platform.OS !== "web",
+        }),
+        Animated.timing(pulse, {
+          toValue: 0.5,
+          duration: 700,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: Platform.OS !== "web",
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  return (
+    <Animated.View
+      // Hidden from screen readers. A reader announcing eleven placeholder blocks is
+      // worse than silence; the region that replaces them announces itself.
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[
+        { width, height, borderRadius: r, backgroundColor: p.surfaceSunken, opacity: pulse },
+        style,
+      ]}
+    />
+  );
+}
+
+/**
  * Waiting, said once and the same way everywhere.
  *
  * There were twenty-four bare `ActivityIndicator`s across the screens in three sizes and
@@ -1646,16 +1774,35 @@ export function StatTile({
   const p = usePalette();
   const { hovered, focused, handlers } = useInteractionState();
 
-  const ink =
-    tone === "bad" ? p.danger : tone === "warn" ? p.warning : tone === "accent" ? p.accent : p.text;
-  const wash =
-    tone === "bad"
-      ? p.dangerSurface
+  /**
+   * A count of nothing recedes.
+   *
+   * Seven tiles rendering `0` in 32px near-black carried exactly the weight of the one
+   * rendering `4` — so a dashboard where all the work is done looked identical, at a
+   * glance, to one with four vehicles at the gate. The figure is the whole content of a
+   * stat tile; if it cannot vary, the tile cannot inform.
+   *
+   * Zero is a real and good answer, so it stays legible at 4.96:1 rather than being
+   * hidden. It just stops competing.
+   */
+  const empty = value === 0 || value === "0";
+  const ink = empty
+    ? p.textMuted
+    : tone === "bad"
+      ? p.danger
       : tone === "warn"
-        ? p.warningSurface
+        ? p.warning
         : tone === "accent"
-          ? p.accentSurface
-          : p.surfaceSunken;
+          ? p.accent
+          : p.text;
+  const wash =
+    empty || tone === "neutral"
+      ? p.surfaceSunken
+      : tone === "bad"
+        ? p.dangerSurface
+        : tone === "warn"
+          ? p.warningSurface
+          : p.accentSurface;
 
   const inner = (
     <>

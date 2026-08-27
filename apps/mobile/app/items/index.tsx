@@ -174,12 +174,17 @@ function ItemRow({
         backgroundColor: pressed ? p.surfaceSunken : "transparent",
         borderWidth: focused ? 2 : 0,
         borderColor: p.focus,
-        opacity: item.isActive ? 1 : 0.5,
       })}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text weight="semibold" lines={1}>
+          {/*
+            Muted rather than dimmed. `opacity: 0.5` on the row took this name to 3.30:1
+            and its metadata line to 2.06:1 — a retired item became genuinely hard to
+            read, when all it needs is to look quieter than a live one. The "Inactive"
+            pill to the right is what actually carries the meaning.
+          */}
+          <Text weight="semibold" lines={1} tone={item.isActive ? "default" : "muted"}>
             {item.name}
           </Text>
           <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>

@@ -15,6 +15,20 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * Whether the form has been sent yet.
+   *
+   * The button used to be `disabled` whenever either field was empty — which is always
+   * true on load, so the **first thing anybody ever saw was the disabled state**. Before
+   * Stage A that rendered at 1.87:1 and read as a broken control; even legible, a form
+   * whose only action is greyed out before you have touched it is telling you the wrong
+   * thing.
+   *
+   * So the button is live from the start and the form answers on submit. Errors appear
+   * only after an attempt, matching the gate capture screen: showing them while the form
+   * is still blank reads as scolding somebody who has not done anything yet.
+   */
+  const [attempted, setAttempted] = useState(false);
 
   if (!configured) {
     return (
@@ -33,8 +47,18 @@ export default function SignIn() {
     );
   }
 
+  const missingEmail = email.trim().length === 0;
+  const missingPassword = password.length === 0;
+  const incomplete = missingEmail || missingPassword;
+
   async function submit() {
+    setAttempted(true);
     setError(null);
+    // Nothing is sent for a blank field — the two red borders below say what is wrong,
+    // and a round trip to Supabase to be told "invalid credentials" would be a slower way
+    // of saying something we already know.
+    if (incomplete) return;
+
     setBusy(true);
     const result = await signIn(email, password);
     setBusy(false);
@@ -48,6 +72,15 @@ export default function SignIn() {
       );
     }
   }
+
+  /**
+   * A rejected sign-in marks both fields and explains once.
+   *
+   * The message is about the pair — either could be the wrong one, and Supabase will not
+   * say which — so putting it under each field would state one problem twice and imply
+   * two. `invalid` draws the border; the single message sits above the button.
+   */
+  const rejected = error !== null && !incomplete;
 
   return (
     <ScrollView
@@ -113,8 +146,28 @@ export default function SignIn() {
             onChangeText={setEmail}
             placeholder="you@example.com"
             keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+            returnKeyType="next"
+            invalid={rejected}
+            {...(attempted && missingEmail
+              ? { error: "Enter the email address you sign in with." }
+              : {})}
           />
-          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+          <Field
+            label="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            textContentType="password"
+            autoComplete="current-password"
+            returnKeyType="go"
+            // Enter submits. On a phone at the gate that saves reaching for the button
+            // with the keyboard covering half the screen.
+            onSubmitEditing={() => void submit()}
+            invalid={rejected}
+            {...(attempted && missingPassword ? { error: "Enter your password." } : {})}
+          />
 
           {error ? (
             <View style={{ marginBottom: space.md }}>
@@ -122,12 +175,11 @@ export default function SignIn() {
             </View>
           ) : null}
 
-          <PrimaryButton
-            label="Sign in"
-            onPress={submit}
-            loading={busy}
-            disabled={email.trim().length === 0 || password.length === 0}
-          />
+          {/*
+            Live from the start. Only `loading` takes it out of service, and that is a
+            state you can only reach by having pressed it.
+          */}
+          <PrimaryButton label="Sign in" onPress={() => void submit()} loading={busy} />
         </Card>
 
         <Text role="caption" tone="muted" align="center" style={{ marginTop: space.xl }}>

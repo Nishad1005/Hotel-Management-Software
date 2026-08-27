@@ -299,18 +299,19 @@ const light: Palette = {
   text: "#1F1B18",
   textMuted: "#736A62",
   /**
-   * Was `#A69C93`, which is **2.52:1** against this background — WCAG AA wants 4.5:1 for
-   * normal text. It was used 51 times, usually at 11px, in a product whose own brief says
-   * it must be read in direct sun with cold hands.
+   * Was `#A69C93` (2.52:1), then `#7A7068`. Both were measured against the *page* and
+   * both were wrong for the surface this colour actually lands on: it is used for
+   * placeholders and glyphs inside `surfaceSunken` inputs, where `#7A7068` came to
+   * **4.23:1** — under AA, and nobody noticed because the check had been run against
+   * `background`.
    *
-   * Solving for the lightest warm grey that still passes lands on almost exactly
-   * `textMuted`, and that is the real finding: **this palette has room for two text
-   * colours, not three.** So the third tier is gone as a visual device — hierarchy comes
-   * from size, weight and space now, which is what `text` above is for. The token stays
-   * only so the 51 call sites keep compiling; they collapse onto `textMuted` as screens
-   * migrate, and then it goes.
+   * `#6E655D` clears 4.5:1 on all three surfaces (page 5.34, card 5.70, sunken 4.99),
+   * which is the property this token needs: it is the one ink that moves between them.
+   *
+   * It remains decoration only. The palette has room for two text colours, not three —
+   * hierarchy comes from size, weight and space.
    */
-  textFaint: "#7A7068",
+  textFaint: "#6E655D",
   primary: "#33241D",
   onPrimary: "#FFFFFF",
   brand: "#33241D",
@@ -319,11 +320,22 @@ const light: Palette = {
   accent: "#C2410C",
   onAccent: "#FFFFFF",
   accentSurface: "#FCEFE7",
-  success: "#15803D",
+  /**
+   * The semantic inks are darkened from `#15803D` and `#A16207`.
+   *
+   * Both passed against the page and failed against their own tinted surface — 4.48:1 and
+   * 4.45:1, short of AA by 0.02 and 0.05. That is invisible to the eye and real to an
+   * auditor, and it is the pairing that matters: these colours are almost always set on
+   * their own surface, in a `Banner` or a `StatusPill`, rather than on the page.
+   *
+   * Every ink here is now checked against all four grounds it can land on — its own
+   * surface, the page, a card, and a sunken input.
+   */
+  success: "#12682F",
   successSurface: "#E9F5EC",
   // Pushed towards yellow rather than orange, because the accent is already terracotta
   // and a warning that shares its hue stops being a warning.
-  warning: "#A16207",
+  warning: "#8A5406",
   warningSurface: "#FBF3DF",
   danger: "#CC2936",
   dangerSurface: "#FDECEE",

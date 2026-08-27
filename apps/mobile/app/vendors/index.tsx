@@ -158,13 +158,14 @@ function PartyRow({
           backgroundColor: pressed ? p.surfaceSunken : "transparent",
           borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
           borderBottomColor: p.border,
-          opacity: party.isActive ? 1 : 0.5,
           cursor: "pointer",
         }) as ViewStyle
       }
     >
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text weight="semibold" lines={1}>
+        {/* Muted, not dimmed — see the note on the item row. The "Not in use" pill
+            below says what the fade was trying to say, and says it legibly. */}
+        <Text weight="semibold" lines={1} tone={party.isActive ? "default" : "muted"}>
           {party.name}
         </Text>
         <Text role="caption" tone="muted" lines={1} style={{ marginTop: 1 }}>
