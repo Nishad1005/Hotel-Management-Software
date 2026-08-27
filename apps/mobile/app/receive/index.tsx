@@ -2,7 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Card, Loading, Notice, Screen, StatusPill, Text } from "../../components/ui";
+import {
+  Card,
+  Notice,
+  PrimaryButton,
+  Screen,
+  SkeletonList,
+  StatusPill,
+  Text,
+} from "../../components/ui";
 import { listOpenArrivals, type OpenArrival } from "../../lib/receiving";
 import { useSession } from "../../lib/session";
 import { radius, space, usePalette } from "../../theme";
@@ -75,7 +83,7 @@ export default function ReceivingWorklist() {
       onBack={() => router.back()}
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice
           icon="cloud-offline-outline"
@@ -88,6 +96,9 @@ export default function ReceivingWorklist() {
           icon="checkmark-circle-outline"
           title="Every arrival is accounted for"
           body="Security records vehicles as they reach the gate, and each one appears here until a goods receipt is posted against it. Nothing is outstanding."
+          action={
+            <PrimaryButton label="Record an arrival" onPress={() => router.push("/gate/new")} />
+          }
         />
       ) : (
         <Card padded={false}>

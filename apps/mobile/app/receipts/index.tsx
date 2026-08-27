@@ -4,10 +4,10 @@ import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Card,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -71,7 +71,7 @@ export default function Receipts() {
       onBack={() => router.back()}
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
       ) : receipts.length === 0 ? (

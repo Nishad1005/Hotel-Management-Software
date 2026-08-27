@@ -4,11 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Card,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
   SearchField,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -109,7 +109,7 @@ export default function StockOnHand() {
       }
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice icon="cloud-offline-outline" title="Could not count" body={error} tone="bad" />
       ) : groups.length === 0 ? (

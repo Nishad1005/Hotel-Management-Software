@@ -7,10 +7,10 @@ import {
   Card,
   Field,
   FieldError,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
+  SkeletonList,
   StatGrid,
   StatTile,
   StatusPill,
@@ -122,7 +122,7 @@ export default function PlatformConsole() {
       ) : null}
 
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice icon="cloud-offline-outline" title="Could not load" body={error} tone="bad" />
       ) : (

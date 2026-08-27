@@ -4,10 +4,10 @@ import { useCallback, useState } from "react";
 import { View } from "react-native";
 import {
   Banner,
-  Loading,
   PrimaryButton,
   Screen,
   Section,
+  SkeletonTiles,
   StatGrid,
   StatTile,
 } from "../components/ui";
@@ -165,7 +165,14 @@ export default function Home() {
       ) : null}
 
       {loading ? (
-        <Loading />
+        <>
+          <Section title="Waiting on someone">
+            <SkeletonTiles count={3} />
+          </Section>
+          <Section title="Stock health">
+            <SkeletonTiles count={4} />
+          </Section>
+        </>
       ) : (
         <>
           {/*

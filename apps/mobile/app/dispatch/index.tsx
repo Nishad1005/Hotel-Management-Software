@@ -8,12 +8,12 @@ import {
   Card,
   Field,
   FieldError,
-  Loading,
   Notice,
   PrimaryButton,
   Result,
   Screen,
   SelectRow,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -190,7 +190,7 @@ export default function StageDispatch() {
         : {})}
     >
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : loadError ? (
         <Notice
           icon="cloud-offline-outline"
@@ -201,6 +201,9 @@ export default function StageDispatch() {
       ) : lots.length === 0 ? (
         <Notice
           icon="checkmark-circle-outline"
+          action={
+            <PrimaryButton label="See what is in the store" onPress={() => router.push("/stock")} />
+          }
           title="Nothing to send out"
           body="Rejected goods, empties, linen and equipment appear here. Nothing is waiting."
         />

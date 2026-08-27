@@ -9,10 +9,10 @@ import {
   Card,
   Field,
   FieldError,
-  Loading,
   Notice,
   PrimaryButton,
   Screen,
+  SkeletonList,
   StatusPill,
   Text,
 } from "../../components/ui";
@@ -93,7 +93,7 @@ export default function PutAway() {
       ) : null}
 
       {loading ? (
-        <Loading />
+        <SkeletonList />
       ) : error ? (
         <Notice
           icon="cloud-offline-outline"
