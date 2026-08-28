@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -60,6 +61,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [properties, setProperties] = useState<PropertyAccess[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  /** Whether a session was already in hand, so a refresh is not mistaken for a sign-in. */
+  const hadSession = useRef(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -77,7 +80,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
-      if (!next) {
+      if (next) {
+        /*
+          A session arriving where there was none — a successful sign-in. Memberships are
+          not known yet, so the guard has to hold rather than send somebody to the property
+          chooser for the moment it takes to find out they have one property.
+
+          Guarded on the *transition*, not on `next` being truthy: this callback also fires
+          for a token refresh mid-shift, and raising `loading` there would black out the app
+          with a spinner while somebody is halfway through receiving a delivery.
+        */
+        if (!hadSession.current) setLoading(true);
+        hadSession.current = true;
+      } else {
+        hadSession.current = false;
         setProperties([]);
         setActiveId(null);
         setLoading(false);
@@ -163,18 +179,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [session]);
 
+  /**
+   * `loading` is "we do not yet know who you are", not "a request is in flight".
+   *
+   * This used to raise `loading` for the duration of the sign-in call, and the guard in
+   * `app/_layout.tsx` renders a spinner *instead of the navigator* whenever `loading` is
+   * true. So pressing Sign in unmounted the sign-in screen, and settling the request
+   * mounted a brand new one — with blank fields and no error, because `setError` had
+   * written to a component that no longer existed.
+   *
+   * The visible failure was that a wrong password did nothing at all: no message, no
+   * marked fields, the typed email gone. The validation branch appeared to work only
+   * because it returns before this call, so `loading` never moved.
+   *
+   * The button has its own `busy` state for the in-flight case. This flag belongs to
+   * session resolution alone.
+   */
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) return { error: "Supabase is not configured." };
-    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
-    if (error) {
-      setLoading(false);
-      return { error: error.message };
-    }
-    return { error: null };
+    return { error: error ? error.message : null };
   }, []);
 
   const signOut = useCallback(async () => {
