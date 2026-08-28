@@ -36,7 +36,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      # v6, not v4, and for two reasons. v5 moved the action onto Node 24 — v4 is one of
+      # the two actions GitHub is currently force-migrating and will eventually stop
+      # running. v6 adds pnpm 11 support, which this repo needs: the root package.json
+      # pins `pnpm@11.21.0`.
+      - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v5
         with:
@@ -79,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.113.0
 
@@ -152,7 +156,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.113.0
 
