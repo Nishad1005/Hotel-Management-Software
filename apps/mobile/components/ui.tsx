@@ -1043,9 +1043,16 @@ export function Field({
   /** Lets a short form submit from the keyboard instead of reaching for the button. */
   onSubmitEditing?: () => void;
   returnKeyType?: "done" | "next" | "go";
-  /** iOS/Android autofill. A gate phone should offer the saved password, not a keyboard. */
-  textContentType?: "emailAddress" | "password";
-  autoComplete?: "email" | "current-password";
+  /**
+   * iOS/Android autofill. A gate phone should offer the saved password, not a keyboard.
+   *
+   * `username` is here because sign-in takes an email address *or* a mobile number in one
+   * field, and neither `emailAddress` nor `telephoneNumber` is honest about a field that
+   * accepts both — `username` is what the platforms mean by "the identifier you log in
+   * with", and it is what makes a saved credential match either way.
+   */
+  textContentType?: "emailAddress" | "telephoneNumber" | "username" | "password";
+  autoComplete?: "email" | "tel" | "username" | "current-password";
 }) {
   const p = usePalette();
   const [focused, setFocused] = useState(false);

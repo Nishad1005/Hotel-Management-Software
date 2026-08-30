@@ -1,4 +1,5 @@
 import type { MembershipRole } from "@golai/db";
+import { looksLikePhone, normalisePhone } from "@golai/domain";
 import type { Session } from "@supabase/supabase-js";
 import {
   createContext,
@@ -37,7 +38,8 @@ interface SessionState {
   properties: PropertyAccess[];
   activeProperty: PropertyAccess | null;
   setActiveProperty: (propertyId: string) => void;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  /** Takes an email address or a mobile number — whichever the account was made with. */
+  signIn: (identifier: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   /** True when the active property allows editing master data. */
   canEditMasters: boolean;
@@ -194,11 +196,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    *
    * The button has its own `busy` state for the in-flight case. This flag belongs to
    * session resolution alone.
+   *
+   * ## Either identifier, because accounts are created with either
+   *
+   * `provision-tenant` and `create-user` both accept an email *or* a mobile number and
+   * mint the account accordingly — so an owner can exist whose only credential is a phone.
+   * This function only ever called `signInWithPassword({ email })`, which meant those
+   * accounts could be created and then could not log in: the number went to Supabase as an
+   * email address and came back "Invalid login credentials", which is indistinguishable
+   * from a wrong password to the person holding the temporary one they were just given.
+   *
+   * `looksLikePhone` and `normalisePhone` already existed in `@golai/domain`, tested, with
+   * a doc comment describing this exact decision. Nothing had imported them.
+   *
+   * Supabase wants E.164 with the leading plus for the phone grant, which is what
+   * `normalisePhone` returns and what the edge functions store.
    */
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (identifier: string, password: string) => {
     if (!supabase) return { error: "Supabase is not configured." };
+
+    if (looksLikePhone(identifier)) {
+      const phone = normalisePhone(identifier);
+      // Refused rather than guessed: a mangled number produces a rejection that reads as
+      // a wrong password, and the person retypes the password instead of the number.
+      if (!phone) {
+        return {
+          error:
+            "That does not look like a complete mobile number. Include the country code, or use the email address instead.",
+        };
+      }
+      const { error } = await supabase.auth.signInWithPassword({ phone, password });
+      return { error: error ? error.message : null };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: identifier.trim().toLowerCase(),
       password,
     });
     return { error: error ? error.message : null };
