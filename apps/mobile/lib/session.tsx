@@ -39,7 +39,7 @@ interface SessionState {
   activeProperty: PropertyAccess | null;
   setActiveProperty: (propertyId: string) => void;
   /** Takes an email address or a mobile number — whichever the account was made with. */
-  signIn: (identifier: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (identifier: string, password: string) => Promise<SignInResult>;
   signOut: () => Promise<void>;
   /** True when the active property allows editing master data. */
   canEditMasters: boolean;
@@ -51,6 +51,21 @@ interface SessionState {
    * about the signed-in person, which is exactly what this context is for.
    */
   isPlatformAdmin: boolean;
+}
+
+/**
+ * What went wrong, in the server's own words as well as ours.
+ *
+ * `code` is carried because the message is not a stable thing to branch on and, worse,
+ * mapping only the codes we anticipated is how a precise server answer gets replaced by a
+ * guess. Supabase said `phone_provider_disabled` — "Phone logins are disabled" — and the
+ * screen told somebody to check their internet connection, which was both wrong and
+ * unfalsifiable from where they were standing.
+ */
+export interface SignInResult {
+  error: string | null;
+  /** Supabase's own error code, where it gave one. */
+  code: string | null;
 }
 
 const SessionContext = createContext<SessionState | null>(null);
@@ -213,7 +228,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
    * `normalisePhone` returns and what the edge functions store.
    */
   const signIn = useCallback(async (identifier: string, password: string) => {
-    if (!supabase) return { error: "Supabase is not configured." };
+    if (!supabase) return { error: "Supabase is not configured.", code: "not_configured" };
 
     if (looksLikePhone(identifier)) {
       const phone = normalisePhone(identifier);
@@ -223,17 +238,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return {
           error:
             "That does not look like a complete mobile number. Include the country code, or use the email address instead.",
+          code: "incomplete_phone",
         };
       }
       const { error } = await supabase.auth.signInWithPassword({ phone, password });
-      return { error: error ? error.message : null };
+      return { error: error ? error.message : null, code: error?.code ?? null };
     }
 
     const { error } = await supabase.auth.signInWithPassword({
       email: identifier.trim().toLowerCase(),
       password,
     });
-    return { error: error ? error.message : null };
+    return { error: error ? error.message : null, code: error?.code ?? null };
   }, []);
 
   const signOut = useCallback(async () => {

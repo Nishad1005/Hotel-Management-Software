@@ -8,6 +8,37 @@ import { space, usePalette } from "../theme";
 /** Both inputs declare themselves described by this one message. */
 const SIGN_IN_ERROR_ID = "sign-in-error";
 
+/**
+ * Turn a rejection into a sentence, and never invent one.
+ *
+ * The previous version mapped a single known string and sent everything else to "Could not
+ * reach PARGOLAI. Check the internet connection." That was wrong in the one case that
+ * mattered: Supabase answered `phone_provider_disabled` — "Phone logins are disabled" — a
+ * precise, actionable fact, and the screen replaced it with a guess about the network. The
+ * person then checked their connection, found it fine, and had nowhere left to look.
+ *
+ * So: recognised codes get copy written for a storekeeper. Anything unrecognised shows what
+ * the server actually said. An unfamiliar sentence a person can read out to whoever
+ * administers the system beats a familiar one that is not true.
+ */
+function explain({ error, code }: { error: string | null; code: string | null }): string {
+  if (code === "invalid_credentials") {
+    return "Those details and that password do not match. Check both — and if the account is new, ask whoever set it up to finish activating it.";
+  }
+  if (code === "phone_provider_disabled") {
+    return "Signing in with a mobile number is not switched on for this system yet. Use the email address on the account, or ask your administrator to enable phone sign-in.";
+  }
+  if (code === "email_provider_disabled") {
+    return "Signing in with an email address is not switched on for this system. Use the mobile number on the account instead.";
+  }
+  if (code === "incomplete_phone" || code === "not_configured") return error ?? "";
+  // Genuinely the network: supabase-js surfaces a thrown fetch as this, with no code.
+  if (!code && /fetch|network|timeout/i.test(error ?? "")) {
+    return "Could not reach PARGOLAI. Check the internet connection and try again.";
+  }
+  return (error ?? "Sign-in failed.") + " — show this to whoever administers the system.";
+}
+
 export default function SignIn() {
   const p = usePalette();
   const { signIn, configured } = useSession();
@@ -63,26 +94,7 @@ export default function SignIn() {
     setBusy(true);
     const result = await signIn(email, password);
     setBusy(false);
-    if (result.error) {
-      /*
-        Written for a storekeeper, not for whoever wrote the auth library.
-
-        Supabase returns one string, "Invalid login credentials", for a wrong password AND
-        for an account nobody has activated yet — so the honest message has to cover both
-        without pretending to know which. The previous wording said "the account has not
-        been confirmed yet", which is the library's vocabulary: nobody at a property calls
-        it confirming an account, and it gives them nothing to do.
-
-        This says what to try and who to ask. Any other error is the network or the server,
-        and "check your connection" is more use than the raw string, which is usually
-        something like "Failed to fetch".
-      */
-      setError(
-        result.error === "Invalid login credentials"
-          ? "Those details and that password do not match. Check both — and if the account is new, ask whoever set it up to finish activating it."
-          : "Could not reach PARGOLAI. Check the internet connection and try again.",
-      );
-    }
+    if (result.error) setError(explain(result));
   }
 
   /**
