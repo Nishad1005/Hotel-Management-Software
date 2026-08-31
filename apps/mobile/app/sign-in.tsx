@@ -79,7 +79,7 @@ export default function SignIn() {
       */
       setError(
         result.error === "Invalid login credentials"
-          ? "That email and password do not match. Check both — and if the account is new, ask whoever set it up to finish activating it."
+          ? "Those details and that password do not match. Check both — and if the account is new, ask whoever set it up to finish activating it."
           : "Could not reach PARGOLAI. Check the internet connection and try again.",
       );
     }
@@ -103,19 +103,27 @@ export default function SignIn() {
       }
     >
       <Card>
+        {/*
+          One field for both, because an account may have been created with either and the
+          person signing in should not have to know which. `looksLikePhone` decides in
+          `signIn`; the label just has to stop insisting on an email.
+
+          `keyboardType` stays default rather than `email-address`: a numeric-leaning
+          keypad would be wrong for half the users and the @-key wrong for the other half,
+          and the plain keyboard has both.
+        */}
         <Field
-          label="Email"
+          label="Email or mobile number"
           value={email}
           onChangeText={setEmail}
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          autoComplete="email"
+          placeholder="you@example.com  ·  +91…"
+          textContentType="username"
+          autoComplete="username"
           returnKeyType="next"
           invalid={rejected}
           {...(rejected ? { describedBy: SIGN_IN_ERROR_ID } : {})}
           {...(attempted && missingEmail
-            ? { error: "Enter the email address you use to sign in." }
+            ? { error: "Enter the email address or mobile number you sign in with." }
             : {})}
         />
         <Field
