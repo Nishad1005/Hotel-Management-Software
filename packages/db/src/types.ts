@@ -1222,6 +1222,24 @@ export type Database = {
           last_activity: string | null;
         }[];
       };
+      /**
+       * Issues a device a block of document numbers to spend offline (ADR 0005).
+       * Blocks are carved from number_sequence, so leases and server-side allocation
+       * cannot overlap.
+       */
+      lease_document_numbers: {
+        Args: {
+          p_property_id: string;
+          p_doc_type: string;
+          p_device_id: string;
+          p_count: number;
+        };
+        Returns: {
+          range_start: number;
+          range_end: number;
+          property_code: string;
+        }[];
+      };
       /** Creates a customer, a property and its first owner. Idempotent. */
       provision_tenant: {
         Args: {

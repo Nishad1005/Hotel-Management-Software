@@ -117,6 +117,26 @@ Deno.serve(async (req) => {
     if (!cleanEmail && !cleanPhone) {
       return json({ error: "The owner needs an email address or a mobile number" }, 400);
     }
+    /*
+      Email is required — for now — because the Supabase Phone provider is DISABLED on
+      this project. Verified directly: the password grant with a phone returns
+      422 phone_provider_disabled. Creating a phone-only owner in that state mints an
+      account nobody can sign in to, and the failure surfaces days later to a customer
+      holding a temporary password that reads as "wrong password".
+
+      A phone may still be supplied alongside the email; it lands on the auth user and
+      becomes a working login the moment the provider is switched on. When that happens,
+      delete this check — the either/or rule above is the intended end state.
+    */
+    if (!cleanEmail) {
+      return json(
+        {
+          error:
+            "The owner needs an email address. Phone-only sign-in is not enabled on this system yet — a mobile number can be added alongside the email.",
+        },
+        400,
+      );
+    }
 
     const admin = createClient(url, serviceKey);
 
