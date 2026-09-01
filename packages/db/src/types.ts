@@ -487,6 +487,24 @@ export type ReturnableItemRow = {
   created_at: string;
 };
 
+export type TemperatureReadingRow = {
+  id: string;
+  property_id: string;
+  location_id: string;
+  temperature_c: number;
+  recorded_by: string | null;
+  /** Server-authoritative. The device's own claim is `taken_at_device`. */
+  recorded_at: string;
+  /** What the capturing device believed the time was. Never authoritative. */
+  taken_at_device: string | null;
+  /**
+   * Set by the capture screen, unique per property. An outbox retry lands on the
+   * `temperature_reading_idempotent` constraint and is recognised as its own.
+   */
+  idempotency_key: string;
+  created_at: string;
+};
+
 export type StockMovementRow = {
   id: string;
   property_id: string;
@@ -887,6 +905,14 @@ export type Database = {
         // A maintained projection. Written only by the ledger trigger.
         Insert: StockLotRow;
         Update: Partial<StockLotRow>;
+        Relationships: [];
+      };
+      temperature_reading: {
+        Row: TemperatureReadingRow;
+        // Inserted directly by the capture screen through the outbox — the same
+        // plain-append path as gate_entry. No UPDATE is granted at any level.
+        Insert: InsertOf<TemperatureReadingRow, "recorded_by" | "recorded_at" | "taken_at_device">;
+        Update: Partial<TemperatureReadingRow>;
         Relationships: [];
       };
     };
