@@ -62,7 +62,15 @@ alter table public.number_lease enable row level security;
 
 -- Members may read their property's leases — that is what makes gaps explainable from
 -- inside the tenant. Nobody writes them from the client; the RPC below is the only
--- writer, and it is SECURITY DEFINER.
+-- writer, and it is SECURITY DEFINER and so needs no client grant for its inserts.
+--
+-- The GRANT and the policy are BOTH required and do different jobs — CLAUDE.md rule
+-- 4b's split, demonstrated the expensive way: this migration first shipped with the
+-- policy alone, and pgTAP failed with "permission denied for table number_lease".
+-- Privileges gate the table; only the policy can tell one tenant's rows from
+-- another's. SELECT only — writes stay definer-only.
+grant select on public.number_lease to authenticated;
+
 create policy number_lease_select on public.number_lease
   for select to authenticated
   using (property_id in (select app.accessible_properties()));
