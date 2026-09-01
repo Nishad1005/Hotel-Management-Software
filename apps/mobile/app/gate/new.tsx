@@ -1,5 +1,4 @@
 import {
-  formatDocumentNumber,
   validateGateEntryDraft,
   type BillState,
   type GateEntryError,
@@ -21,6 +20,7 @@ import {
   Text as UIText,
 } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
+import { primeGateEntryNumbers, takeGateEntryNumber } from "../../lib/numbers";
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { drainOnce } from "../../lib/sync";
@@ -33,8 +33,8 @@ import { radius, space, touch, type, usePalette } from "../../theme";
  * and completed at Terminal 1, because a guard holding up a vehicle in the rain will
  * either skip an over-long form or invent answers for it.
  *
- * Not yet wired: the camera, and number leasing. The number is generated locally so the
- * flow can be walked and timed end to end; leasing lands with ADR 0005.
+ * Not yet wired: the camera. The gate entry number IS leased now (ADR 0005) — spent
+ * from a device-exclusive block, instant and offline-safe, never minted from the clock.
  *
  * The vendor list IS wired now. It was placeholder data captured as an unregistered name,
  * because picking one would have written a fabricated UUID into a column with no foreign
@@ -75,9 +75,18 @@ export default function NewGateEntry() {
   const [vehicleNumber, setVehicleNumber] = useState("");
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [numberError, setNumberError] = useState<string | null>(null);
   const [unregisteredName, setUnregisteredName] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [parties, setParties] = useState<Party[]>([]);
+
+  // Refill the number pool while the guard is still walking to the vehicle, so the
+  // capture itself never waits on a round trip. Failure is silent here: if the pool
+  // still holds numbers the screen works offline as designed, and if it is empty the
+  // record button says so loudly.
+  useEffect(() => {
+    if (activeProperty) void primeGateEntryNumbers(activeProperty.propertyId);
+  }, [activeProperty]);
 
   // Failure is silent on purpose. A guard with a vehicle at the barrier must be able to
   // capture the arrival whether or not the vendor list loaded; the unregistered-name path
@@ -113,11 +122,29 @@ export default function NewGateEntry() {
   async function record() {
     setSubmitted(true);
     if (!validateGateEntryDraft(draft).ok) return;
+    if (!activeProperty) {
+      setNumberError("No property is selected, so a gate entry number cannot be issued.");
+      return;
+    }
+    setNumberError(null);
 
-    // Placeholder until number leasing lands (ADR 0005). Sequence is local and
-    // meaningless; it exists so the confirmation screen can be walked.
-    const sequence = Math.floor((Date.now() / 1000) % 999999) + 1;
-    const gateEntryNumber = formatDocumentNumber("SB", "GE", sequence);
+    /*
+      Spent from the device's leased block (ADR 0005), never minted. The clock-based
+      placeholder this replaces could collide across devices, and the property code was
+      hardcoded to "SB" — both ended the moment a second property onboarded. If the pool
+      is empty AND the server unreachable, the honest outcome is a refusal the guard can
+      read, because a number invented outside a lease is a collision waiting for the
+      auditor, and the vendor's challan would carry it forever.
+    */
+    let gateEntryNumber: string;
+    try {
+      gateEntryNumber = await takeGateEntryNumber(activeProperty.propertyId);
+    } catch {
+      setNumberError(
+        "Could not get a gate entry number: the device's pool is empty and the server could not be reached. Nothing was recorded — check the connection and try again.",
+      );
+      return;
+    }
 
     // The capture is queued before the guard sees the number. If this throws, the
     // number must not be shown: an officer writing a number onto a challan for an
@@ -134,7 +161,7 @@ export default function NewGateEntry() {
         // The capture carries its own property rather than resolving one at sync time.
         // A storekeeper covering two hotels can switch properties between capturing and
         // syncing, and the arrival belongs to where it happened.
-        propertyId: activeProperty?.propertyId,
+        propertyId: activeProperty.propertyId,
         capturedBy: session?.user.id,
       },
     });
@@ -244,6 +271,8 @@ export default function NewGateEntry() {
           </View>
         ) : null}
       </Section>
+      {numberError ? <FieldError message={numberError} /> : null}
+
       <VendorPicker
         open={pickerOpen}
         parties={parties}

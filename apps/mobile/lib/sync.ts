@@ -39,18 +39,19 @@ export function routeCapture(record: OutboxRecord): SyncTarget | null {
 
   return {
     table: "gate_entry",
-    // No `idempotentOn`, deliberately. A gate entry's only unique constraint is on the
-    // NUMBER, and until leasing lands that number is minted from the device clock — so
-    // two guards capturing in the same second produce the same one. A unique violation
-    // here is therefore ambiguous: it might be this device retrying after a lost
-    // acknowledgement, or it might be a different vehicle entirely.
-    //
-    // Unable to tell, we park rather than guess. A parked record needs somebody to look
-    // at it; a record deleted on a guess has lost an arrival, and nothing anywhere
-    // would say so.
-    //
-    // Once numbers are leased the number becomes genuinely unique per property, and
-    // `gate_entry_no_unique_per_property` can be named here.
+    /*
+      Named, at last. Gate entry numbers are spent from device-exclusive leased blocks
+      (ADR 0005, `lease_document_numbers`), so a violation on this constraint can only
+      be one thing: this device retrying a send it never heard the answer to. Treating
+      that as success is what lets a device on a flapping connection resend without
+      parking its own arrival for a human.
+
+      This line was deliberately absent while numbers came from the device clock — two
+      devices could mint the same number in the same second, making a violation
+      ambiguous between "my retry" and "someone else's vehicle", and the only safe
+      answer to ambiguity was to park. Leasing is what ended the ambiguity.
+    */
+    idempotentOn: "gate_entry_no_unique_per_property",
     row: {
       property_id: p.propertyId,
       gate_entry_no: p.gateEntryNumber,
