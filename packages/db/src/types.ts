@@ -1265,6 +1265,42 @@ export type Database = {
           property_code: string;
         }[];
       };
+      /**
+       * The returnable register: everything out on a promise to come back, aged
+       * against that promise. SECURITY INVOKER — reads only what RLS shows the caller.
+       */
+      list_returnables: {
+        Args: { p_property_id: string };
+        Returns: {
+          returnable_id: string;
+          dispatch_id: string;
+          dispatch_no: string;
+          dispatch_type: DispatchType;
+          recipient_name: string | null;
+          qty_out: number;
+          qty_returned: number;
+          outstanding: number;
+          expected_return_date: string | null;
+          days_overdue: number | null;
+          staged_at: string;
+          returned_at: string | null;
+          condition_on_return: string | null;
+        }[];
+      };
+      /** Receives a returnable back — partially or fully, with condition. */
+      record_return: {
+        Args: {
+          p_property_id: string;
+          p_returnable_id: string;
+          p_qty: number;
+          p_condition: string | null;
+        };
+        Returns: {
+          qty_out: number;
+          qty_returned: number;
+          outstanding: number;
+        }[];
+      };
       /** Creates a customer, a property and its first owner. Idempotent. */
       provision_tenant: {
         Args: {
