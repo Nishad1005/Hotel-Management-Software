@@ -13,6 +13,7 @@ import {
 } from "react";
 import { amIPlatformAdmin } from "./platform";
 import { isConfigured, supabase } from "./supabase";
+import { setTelemetryTags } from "./telemetry";
 
 /**
  * Session, memberships, and which property the user is currently working in.
@@ -25,6 +26,7 @@ import { isConfigured, supabase } from "./supabase";
 
 export interface PropertyAccess {
   propertyId: string;
+  orgId: string;
   propertyCode: string;
   propertyName: string;
   organisationName: string;
@@ -133,7 +135,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from("membership")
         .select(
-          "role, property_id, property:property_id(id, code, name, organisation:org_id(name))",
+          "role, org_id, property_id, property:property_id(id, code, name, organisation:org_id(name))",
         )
         .not("property_id", "is", null);
 
@@ -156,6 +158,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         else
           byProperty.set(p.id, {
             propertyId: p.id,
+            orgId: row.org_id,
             propertyCode: p.code,
             propertyName: p.name,
             organisationName: p.organisation?.name ?? "",
@@ -262,6 +265,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [properties, activeId],
   );
 
+  // Every Sentry event from here on says which tenant it happened at. During a
+  // multi-tenant pilot that is the difference between a fix tonight and a support
+  // call tomorrow morning.
+  useEffect(() => {
+    setTelemetryTags({
+      orgId: activeProperty?.orgId ?? null,
+      propertyId: activeProperty?.propertyId ?? null,
+      propertyCode: activeProperty?.propertyCode ?? null,
+    });
+  }, [activeProperty]);
+
   const value: SessionState = {
     loading,
     configured: isConfigured,
@@ -286,6 +300,7 @@ export function useSession(): SessionState {
 
 interface MembershipJoin {
   role: MembershipRole;
+  org_id: string;
   property: {
     id: string;
     code: string;

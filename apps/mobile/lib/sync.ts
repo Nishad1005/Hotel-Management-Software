@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { notifyOutboxChanged, outbox } from "./outbox";
 import { requireSupabase } from "./supabase";
+import { captureError } from "./telemetry";
 
 /**
  * The other half of the offline queue.
@@ -100,7 +101,26 @@ export async function drainOnce(): Promise<void> {
   inFlight = (async () => {
     try {
       const client = requireSupabase();
-      await outbox.drain(createSender({ client, route: routeCapture }));
+      const send = createSender({ client, route: routeCapture });
+      /*
+        A parked record is the sync-failure telemetry for the pilot. Parking is the
+        system working — nothing is lost — but every park means a capture waiting on a
+        human who does not yet know about it. Reported here, at the app layer, so the
+        db package stays ignorant of Sentry. The reason string is the database's own
+        account; the payload is deliberately NOT attached, because it can carry vendor
+        names and personal data has no business in an error tracker.
+      */
+      await outbox.drain(async (record) => {
+        const result = await send(record);
+        if (!result.ok && !result.retryable) {
+          captureError(new Error("Outbox record parked: " + (result.reason ?? "unknown")), {
+            captureType: record.type,
+            recordId: record.id,
+            attempts: record.attempts,
+          });
+        }
+        return result;
+      });
     } catch {
       // Supabase not configured, or the store could not be opened. Both are conditions
       // a later attempt may resolve, and neither is worth surfacing over the capture
