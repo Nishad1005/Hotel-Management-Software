@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
     "@golai/db": "workspace:*",
     "@golai/domain": "workspace:*",
@@ -33,7 +34,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.2",
     "react-native-web": "^0.21.2",
-    "@expo-google-fonts/inter": "^0.4.2"
+    "@sentry/browser": "^10.20.0"
   },
   "devDependencies": {
     "@golai/tsconfig": "workspace:*",

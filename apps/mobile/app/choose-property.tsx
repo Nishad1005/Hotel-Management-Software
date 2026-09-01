@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card, Notice, PrimaryButton, Row, Text } from "../components/ui";
@@ -16,7 +17,8 @@ import { space, usePalette } from "../theme";
 export default function ChooseProperty() {
   const p = usePalette();
   const insets = useSafeAreaInsets();
-  const { properties, setActiveProperty, signOut } = useSession();
+  const { properties, setActiveProperty, signOut, isPlatformAdmin } = useSession();
+  const router = useRouter();
 
   if (properties.length === 0) {
     return (
@@ -31,8 +33,26 @@ export default function ChooseProperty() {
             "select system.grant_property_role('your@email', 'SB', 'STOREKEEPER');"
           }
         />
-        <View style={{ padding: space.lg }}>
-          <PrimaryButton label="Sign out" icon="log-out-outline" onPress={() => void signOut()} />
+        <View style={{ padding: space.lg, gap: space.md }}>
+          {/*
+            Vendor staff hold no membership by design, so for them "no property
+            assigned" is not a fault — it is the expected state, and their screen is
+            the console. Without this button a membership-less platform admin was
+            locked out of the whole app by the guard, with only Sign out for company.
+          */}
+          {isPlatformAdmin ? (
+            <PrimaryButton
+              label="Vendor console"
+              icon="briefcase-outline"
+              onPress={() => router.replace("/platform")}
+            />
+          ) : null}
+          <PrimaryButton
+            label="Sign out"
+            icon="log-out-outline"
+            {...(isPlatformAdmin ? { tone: "neutral" as const } : {})}
+            onPress={() => void signOut()}
+          />
         </View>
       </View>
     );
