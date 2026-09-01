@@ -451,6 +451,23 @@ export type PartyRow = {
  * Read-only from the client. The counter moves only through
  * app.next_document_number, which is what makes "sequential and immutable" true.
  */
+/**
+ * A block of document numbers issued to a device (ADR 0005). Read-only from the
+ * client — the only writer is the lease_document_numbers SECURITY DEFINER RPC —
+ * and retained forever, so every gap in a series resolves to a device and a shift.
+ */
+export type NumberLeaseRow = {
+  id: string;
+  property_id: string;
+  doc_type: DocumentNumberType;
+  device_id: string;
+  range_start: number;
+  range_end: number;
+  issued_at: string;
+  expires_at: string | null;
+  consumed_upto: number | null;
+};
+
 export type NumberSequenceRow = {
   property_id: string;
   doc_type: DocumentNumberType;
@@ -801,6 +818,14 @@ export type Database = {
           | "is_active"
         >;
         Update: Partial<PartyRow>;
+        Relationships: [];
+      };
+      number_lease: {
+        Row: NumberLeaseRow;
+        // Declared for completeness; the grant is SELECT only, and the single writer
+        // is the SECURITY DEFINER lease RPC.
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       number_sequence: {
