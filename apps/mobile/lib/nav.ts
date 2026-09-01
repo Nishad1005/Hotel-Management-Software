@@ -120,6 +120,12 @@ const GROUPS: NavGroup[] = [
         label: "Goods receipts",
         icon: "documents-outline",
       },
+      {
+        href: "/returnables",
+        segment: "returnables",
+        label: "Returnables",
+        icon: "repeat-outline",
+      },
     ],
   },
   {
