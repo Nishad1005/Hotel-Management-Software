@@ -323,8 +323,13 @@ function NewTenantForm({
       "A code starts with a letter, then two to eight letters or digits, with no spaces or dashes.",
     );
   if (!ownerName.trim()) problems.push("The owner needs a name.");
-  if (!ownerEmail.trim() && !ownerPhone.trim())
-    problems.push("The owner needs an email address or a mobile number to sign in with.");
+  // Mirrors the edge function: email is required while the Supabase Phone provider is
+  // disabled, because a phone-only owner would be an account nobody can sign in to.
+  // The phone field stays — a number given now becomes a login when the provider is on.
+  if (!ownerEmail.trim())
+    problems.push(
+      "The owner needs an email address. A mobile number can be added alongside it, but phone-only sign-in is not enabled yet.",
+    );
 
   async function create() {
     if (problems.length > 0) return;
