@@ -71,6 +71,17 @@ describe("the specialist roles", () => {
     expect(can(["PURCHASE"], "parties.edit")).toBe(true);
   });
 
+  it("puts the temperature round with the people who walk it", () => {
+    // The storekeeper as part of the day's work, the FSO because temperature is theirs
+    // to escalate. Mirrors the insert policy on temperature_reading — a role granted
+    // here but refused there would be offered a screen that refuses them at the end.
+    expect(can(["STOREKEEPER"], "temperature.record")).toBe(true);
+    expect(can(["FSO"], "temperature.record")).toBe(true);
+    for (const role of ["SECURITY", "CHEF", "BANQUET", "PURCHASE", "GM", "AUDITOR"] as const) {
+      expect(can([role], "temperature.record")).toBe(false);
+    }
+  });
+
   it("lets a chef sign off perishable quality without operating the store", () => {
     expect(can(["CHEF"], "quality.signoff")).toBe(true);
     expect(can(["CHEF"], "receiving")).toBe(false);

@@ -31,6 +31,7 @@ const DRAIN_INTERVAL_MS = 60_000;
  * would lose a real arrival.
  */
 export function routeCapture(record: OutboxRecord): SyncTarget | null {
+  if (record.type === "TEMPERATURE_READING") return routeTemperatureReading(record);
   if (record.type !== "GATE_ENTRY") return null;
 
   const p = record.payload as GateEntryPayload;
@@ -70,6 +71,40 @@ export function routeCapture(record: OutboxRecord): SyncTarget | null {
       captured_at_device: p.capturedAt ? new Date(p.capturedAt).toISOString() : null,
     },
   };
+}
+
+/**
+ * The outbox's second capture type, and the proof the queue was never a gate-entry
+ * pipe with a general name. A reading is a plain append: the idempotency key the
+ * screen minted travels as a column, and the named constraint makes a resend of an
+ * unanswered send recognisably this device's own.
+ */
+function routeTemperatureReading(record: OutboxRecord): SyncTarget {
+  const p = record.payload as TemperatureReadingPayload;
+
+  return {
+    table: "temperature_reading",
+    idempotentOn: "temperature_reading_idempotent",
+    row: {
+      property_id: p.propertyId,
+      location_id: p.locationId,
+      temperature_c: p.temperatureC,
+      recorded_by: p.recordedBy ?? null,
+      // recorded_at is left to the server's own clock (CLAUDE.md 19). This is the
+      // device's claim, kept beside it so a round walked offline at 07:00 and synced
+      // at 13:00 still reads as the morning round.
+      taken_at_device: p.takenAt ? new Date(p.takenAt).toISOString() : null,
+      idempotency_key: record.idempotencyKey,
+    },
+  };
+}
+
+interface TemperatureReadingPayload {
+  propertyId?: string;
+  locationId?: string;
+  temperatureC?: number;
+  recordedBy?: string;
+  takenAt?: number;
 }
 
 interface GateEntryPayload {

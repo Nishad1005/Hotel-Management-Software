@@ -53,6 +53,7 @@ export const CAPABILITIES = [
   "terminal.clear", // Gate 11 — terminal clearance
   "quality.signoff", // Gate 3 — perishable quality
   "quality.hold", // Place a batch on BLOCKED
+  "temperature.record", // The twice-daily cold room and freezer round (PRD section 7.3)
   "variance.approve", // Gate 2/4 — quantity variance against the challan
   "stock.view",
   "reports.view",
@@ -102,6 +103,9 @@ const ROLE_CAPABILITIES: Record<GolaiRole, readonly Capability[]> = {
     "issue",
     "dispatch",
     "terminal.clear",
+    // The morning and evening round past the cold room is part of the day's work,
+    // not a separate compliance job — that is the product's whole argument.
+    "temperature.record",
     ...READ_ONLY,
   ],
 
@@ -110,7 +114,7 @@ const ROLE_CAPABILITIES: Record<GolaiRole, readonly Capability[]> = {
   CHEF: ["quality.signoff", ...READ_ONLY],
 
   // Temperature and hygiene escalation, and the only role that can stop a batch.
-  FSO: ["quality.signoff", "quality.hold", "dispatch", ...READ_ONLY],
+  FSO: ["quality.signoff", "quality.hold", "temperature.record", "dispatch", ...READ_ONLY],
 
   // Variance approval and supplier returns. Holds the vendor master because Purchase
   // owns the relationship that the party record describes.

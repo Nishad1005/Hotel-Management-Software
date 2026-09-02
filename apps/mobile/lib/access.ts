@@ -43,6 +43,7 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   "stock/opening": "stock.view",
   registers: "reports.view",
   "registers/trace/[batch]": "reports.view",
+  temperature: "temperature.record",
   "gate/new": "gate.capture",
   "gate/recorded": "gate.capture",
   receive: "receiving",
