@@ -33,8 +33,11 @@ select
   (select id from public.property where code = 'TS')                                  as other,
   (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'TR' and l.code = 'TR-CHILL')                                     as chill,
+  -- Not `freeze`: FREEZE is a keyword Postgres accepts as an alias after AS but
+  -- refuses as a bare column reference, and the reference lives inside a dollar-quoted
+  -- string that no parse of this file ever checks. CI's EXECUTE is what finds it.
   (select l.id from public.location l join public.property p on p.id = l.property_id
-     where p.code = 'TR' and l.code = 'TR-FREEZE')                                    as freeze,
+     where p.code = 'TR' and l.code = 'TR-FREEZE')                                    as freezer,
   (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'TS' and l.code = 'TS-CHILL')                                     as other_chill;
 
@@ -60,7 +63,7 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000f903","r
 select lives_ok(
   $q$ insert into public.temperature_reading
         (property_id, location_id, temperature_c, recorded_by, idempotency_key)
-      select prop, freeze, -18.5, '00000000-0000-0000-0000-00000000f903', 'tr-round-2'
+      select prop, freezer, -18.5, '00000000-0000-0000-0000-00000000f903', 'tr-round-2'
       from ctx $q$,
   'and the FSO the freezer — temperature is theirs to escalate'
 );

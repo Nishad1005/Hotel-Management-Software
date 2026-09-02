@@ -132,6 +132,12 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
 - **Every test fixture seeds two organisations with two properties each.** No test runs in a single-tenant world; cross-tenant bugs then surface by themselves.
 - **Test writes as `authenticated`, not as `postgres`.** pgTAP runs as the superuser by default, which holds every grant — so a test can prove the logic and say nothing about whether a real user is permitted to do it. Anything a user is meant to do gets a `set local role authenticated` test. This is not hypothetical: the `stock_lot` trigger passed every test and then failed for the first real storekeeper.
 - Domain rules get unit tests before implementation. State transitions, check digits and shelf-life maths are the highest-value tests in the repo.
+- **A parse of a pgTAP file does not parse its dollar-quoted contents.** The SQL inside
+  `$q$…$q$` is a string literal until `lives_ok`/`throws_ok` EXECUTEs it in CI — so a
+  syntax error there passes every local check. It has happened: a ctx column named
+  `freeze` was legal after `AS` but not as a bare column reference, and only CI's
+  EXECUTE found it. Before pushing a new test, parse each embedded body on its own
+  (pglast over the extracted `$q$` blocks), not just the file.
 - Tables and columns `snake_case`; TypeScript `camelCase`; the boundary is `packages/db`.
 - **Relative imports are extensionless.** Never write `./thing.js`. Everything here is bundled — Metro, Turbopack, Vite — and Metro does not rewrite `.js` to `.ts` the way `tsc` under NodeNext does, so such an import typechecks, passes tests, and then fails to bundle. `moduleResolution` is `bundler` repo-wide for this reason.
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
