@@ -451,6 +451,23 @@ export type PartyRow = {
  * Read-only from the client. The counter moves only through
  * app.next_document_number, which is what makes "sequential and immutable" true.
  */
+/**
+ * A block of document numbers issued to a device (ADR 0005). Read-only from the
+ * client — the only writer is the lease_document_numbers SECURITY DEFINER RPC —
+ * and retained forever, so every gap in a series resolves to a device and a shift.
+ */
+export type NumberLeaseRow = {
+  id: string;
+  property_id: string;
+  doc_type: DocumentNumberType;
+  device_id: string;
+  range_start: number;
+  range_end: number;
+  issued_at: string;
+  expires_at: string | null;
+  consumed_upto: number | null;
+};
+
 export type NumberSequenceRow = {
   property_id: string;
   doc_type: DocumentNumberType;
@@ -467,6 +484,24 @@ export type ReturnableItemRow = {
   condition_on_return: string | null;
   returned_at: string | null;
   responsible_dept: string | null;
+  created_at: string;
+};
+
+export type TemperatureReadingRow = {
+  id: string;
+  property_id: string;
+  location_id: string;
+  temperature_c: number;
+  recorded_by: string | null;
+  /** Server-authoritative. The device's own claim is `taken_at_device`. */
+  recorded_at: string;
+  /** What the capturing device believed the time was. Never authoritative. */
+  taken_at_device: string | null;
+  /**
+   * Set by the capture screen, unique per property. An outbox retry lands on the
+   * `temperature_reading_idempotent` constraint and is recognised as its own.
+   */
+  idempotency_key: string;
   created_at: string;
 };
 
@@ -803,6 +838,14 @@ export type Database = {
         Update: Partial<PartyRow>;
         Relationships: [];
       };
+      number_lease: {
+        Row: NumberLeaseRow;
+        // Declared for completeness; the grant is SELECT only, and the single writer
+        // is the SECURITY DEFINER lease RPC.
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       number_sequence: {
         Row: NumberSequenceRow;
         Insert: InsertOf<NumberSequenceRow, "next_value">;
@@ -862,6 +905,14 @@ export type Database = {
         // A maintained projection. Written only by the ledger trigger.
         Insert: StockLotRow;
         Update: Partial<StockLotRow>;
+        Relationships: [];
+      };
+      temperature_reading: {
+        Row: TemperatureReadingRow;
+        // Inserted directly by the capture screen through the outbox — the same
+        // plain-append path as gate_entry. No UPDATE is granted at any level.
+        Insert: InsertOf<TemperatureReadingRow, "recorded_by" | "recorded_at" | "taken_at_device">;
+        Update: Partial<TemperatureReadingRow>;
         Relationships: [];
       };
     };
@@ -1238,6 +1289,42 @@ export type Database = {
           range_start: number;
           range_end: number;
           property_code: string;
+        }[];
+      };
+      /**
+       * The returnable register: everything out on a promise to come back, aged
+       * against that promise. SECURITY INVOKER — reads only what RLS shows the caller.
+       */
+      list_returnables: {
+        Args: { p_property_id: string };
+        Returns: {
+          returnable_id: string;
+          dispatch_id: string;
+          dispatch_no: string;
+          dispatch_type: DispatchType;
+          recipient_name: string | null;
+          qty_out: number;
+          qty_returned: number;
+          outstanding: number;
+          expected_return_date: string | null;
+          days_overdue: number | null;
+          staged_at: string;
+          returned_at: string | null;
+          condition_on_return: string | null;
+        }[];
+      };
+      /** Receives a returnable back — partially or fully, with condition. */
+      record_return: {
+        Args: {
+          p_property_id: string;
+          p_returnable_id: string;
+          p_qty: number;
+          p_condition: string | null;
+        };
+        Returns: {
+          qty_out: number;
+          qty_returned: number;
+          outstanding: number;
         }[];
       };
       /** Creates a customer, a property and its first owner. Idempotent. */

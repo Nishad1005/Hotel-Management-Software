@@ -108,6 +108,14 @@ const GROUPS: NavGroup[] = [
   {
     title: "Compliance",
     items: [
+      // First in the group because it is the group's one task — everything below it
+      // is reading back what the flow already wrote.
+      {
+        href: "/temperature",
+        segment: "temperature",
+        label: "Temperature round",
+        icon: "thermometer-outline",
+      },
       {
         href: "/registers",
         segment: "registers",
@@ -119,6 +127,12 @@ const GROUPS: NavGroup[] = [
         segment: "receipts",
         label: "Goods receipts",
         icon: "documents-outline",
+      },
+      {
+        href: "/returnables",
+        segment: "returnables",
+        label: "Returnables",
+        icon: "repeat-outline",
       },
     ],
   },

@@ -43,11 +43,17 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   "stock/opening": "stock.view",
   registers: "reports.view",
   "registers/trace/[batch]": "reports.view",
+  temperature: "temperature.record",
   "gate/new": "gate.capture",
   "gate/recorded": "gate.capture",
   receive: "receiving",
   receipts: "reports.view",
   "receipts/[grn]": "reports.view",
+  // The register is readable on report access; recording a return is gated inside the
+  // screen on `dispatch`, mirroring the server's role set. The server also lets
+  // SECURITY record — returns arrive at the gate — but the guard's screen is deferred
+  // until the guard joins the pilot, so no route grant reflects that yet.
+  returnables: "reports.view",
   "receive/[entry]": "receiving",
   putaway: "putaway",
   issue: "issue",

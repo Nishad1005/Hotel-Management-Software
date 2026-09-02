@@ -21,6 +21,7 @@ import {
   type WasteRow,
 } from "../../lib/registers";
 import { useSession } from "../../lib/session";
+import { listStorageReadings, type StorageReading } from "../../lib/temperature";
 import { radius, space, usePalette } from "../../theme";
 
 /**
@@ -38,11 +39,12 @@ import { radius, space, usePalette } from "../../theme";
  * are tabs over one query rather than three screens that could drift apart.
  */
 
-type Tab = "INWARD" | "TEMPERATURE" | "NONCONFORMING" | "WASTE";
+type Tab = "INWARD" | "TEMPERATURE" | "STORAGE" | "NONCONFORMING" | "WASTE";
 
 const TABS: { id: Tab; label: string; hint: string }[] = [
   { id: "INWARD", label: "Inward material", hint: "Everything received" },
   { id: "TEMPERATURE", label: "Receipt temperature", hint: "Cold-chain probe readings" },
+  { id: "STORAGE", label: "Storage temperature", hint: "Cold room and freezer rounds" },
   { id: "NONCONFORMING", label: "Non-conforming", hint: "What was turned away" },
   { id: "WASTE", label: "Waste disposal", hint: "Food waste, UCO, condemned" },
 ];
@@ -62,6 +64,8 @@ export default function Registers() {
   const [from] = useState(defaultFrom);
   const [inward, setInward] = useState<InwardRow[]>([]);
   const [waste, setWaste] = useState<WasteRow[]>([]);
+  const [storage, setStorage] = useState<StorageReading[]>([]);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +87,16 @@ export default function Registers() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
+    }
+
+    // Failing alone, deliberately. This tab's table is the newest thing on the screen,
+    // and a build that reaches a database without it must degrade to one broken tab
+    // with an honest message — not take the flow-derived registers down with it.
+    try {
+      setStorage(await listStorageReadings(propertyId, from));
+      setStorageError(null);
+    } catch (e) {
+      setStorageError(e instanceof Error ? e.message : String(e));
     }
   }, [propertyId, from]);
 
@@ -175,7 +189,28 @@ export default function Registers() {
 
           <View style={{ height: space.lg }} />
 
-          {tab === "WASTE" ? (
+          {tab === "STORAGE" ? (
+            storageError ? (
+              <Notice
+                icon="cloud-offline-outline"
+                title="Could not load the rounds"
+                body={storageError}
+                tone="bad"
+              />
+            ) : storage.length === 0 ? (
+              <Notice
+                icon="thermometer-outline"
+                title="No rounds walked yet"
+                body="The cold room and freezer are read twice a day under Temperature round, and every reading lands here as it was written — this register wants what the thermometer said, not what the rule wished it said."
+              />
+            ) : (
+              <Card padded={false}>
+                {storage.map((r, i) => (
+                  <StorageRowView key={r.id} row={r} divider={i < storage.length - 1} />
+                ))}
+              </Card>
+            )
+          ) : tab === "WASTE" ? (
             waste.length === 0 ? (
               <Notice
                 icon="trash-outline"
@@ -268,6 +303,42 @@ function TabChip({
         {label}
       </Text>
     </Pressable>
+  );
+}
+
+function StorageRowView({ row, divider }: { row: StorageReading; divider: boolean }) {
+  const p = usePalette();
+  const when = new Date(row.recordedAt);
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: space.lg,
+        paddingVertical: space.md,
+        borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
+        borderBottomColor: p.border,
+      }}
+    >
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text lines={1} weight="semibold">
+          {row.locationName}
+        </Text>
+        <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
+          {row.locationCode} · {row.regime === "FROZEN" ? "Frozen" : "Chilled"} ·{" "}
+          {when.toLocaleDateString()}{" "}
+          {when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </Text>
+      </View>
+      <Text weight="bold" numeric>
+        {row.temperatureC}
+        <Text role="caption" tone="muted">
+          {" "}
+          °C
+        </Text>
+      </Text>
+    </View>
   );
 }
 
