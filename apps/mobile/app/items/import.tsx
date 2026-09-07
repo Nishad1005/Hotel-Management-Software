@@ -26,7 +26,7 @@ import {
 } from "../../lib/item-import";
 import { listCategories, listUoms, type CategoryOption, type UomOption } from "../../lib/masters";
 import { useSession } from "../../lib/session";
-import { radius, space, tabular, type, usePalette } from "../../theme";
+import { font, radius, space, tabular, type, usePalette } from "../../theme";
 
 /**
  * Importing a property's item list.
@@ -182,6 +182,15 @@ export default function ImportItems() {
               one, everything imports as non-perishable and has to be marked by hand.
             </Text>
 
+            {/*
+              The one raw TextInput left in the app, and deliberately so: `Field` is a
+              single-line labelled control sized for a gloved thumb, and this is an
+              eight-row paste area for a spreadsheet on a desk. Giving `Field` a
+              multiline mode would mean giving it a second, contradictory set of height
+              and touch rules for exactly one caller. It still takes its colour, radius,
+              spacing and font family from the tokens, so it is off the component, not
+              off the design system.
+            */}
             <TextInput
               value={text}
               onChangeText={(v) => {
@@ -205,6 +214,7 @@ export default function ImportItems() {
                   backgroundColor: p.surfaceSunken,
                   padding: space.md,
                   fontSize: type.caption,
+                  ...font("regular"),
                   color: p.text,
                   textAlignVertical: "top",
                   outlineStyle: "none",

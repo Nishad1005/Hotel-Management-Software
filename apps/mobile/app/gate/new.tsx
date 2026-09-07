@@ -7,10 +7,11 @@ import {
 } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { View } from "react-native";
 import {
   ChoiceTile,
   Dialog,
+  Field,
   FieldError,
   FieldLayout,
   PrimaryButton,
@@ -27,7 +28,7 @@ import { primeGateEntryNumbers, takeGateEntryNumber } from "../../lib/numbers";
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { drainOnce } from "../../lib/sync";
-import { radius, space, touch, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * Gate 0 — Security capture. PRD section 4.
@@ -339,21 +340,13 @@ export default function NewGateEntry() {
           </View>
           {vehicleMode && vehicleMode !== "HAND_CART" ? (
             <View style={{ marginTop: space.sm }}>
-              <UIText role="label" weight="semibold" style={{ marginBottom: space.xs }}>
-                Vehicle number
-              </UIText>
-              <TextInput
+              <Field
+                label="Vehicle number"
                 value={vehicleNumber}
                 onChangeText={(t) => setVehicleNumber(t.toUpperCase())}
                 placeholder="AS 06 AB 1234"
-                placeholderTextColor={p.textMuted}
                 autoCapitalize="characters"
-                autoCorrect={false}
-                accessibilityLabel="Vehicle number"
-                style={[
-                  styles.input,
-                  { backgroundColor: p.surface, borderColor: p.border, color: p.text },
-                ]}
+                density="field"
               />
             </View>
           ) : null}
@@ -391,8 +384,6 @@ function VendorPicker({
   onClose: () => void;
   onPick: (ref: VendorRef, label: string) => void;
 }) {
-  const p = usePalette();
-
   return (
     <Dialog visible={open} title="Choose vendor" onClose={onClose}>
       {parties.length === 0 ? (
@@ -423,15 +414,14 @@ function VendorPicker({
       <UIText tone="muted" style={{ marginBottom: space.sm }}>
         An unregistered vendor can still be received. Registration is chased later.
       </UIText>
-      <TextInput
+      <Field
+        label="Vendor name"
         value={name}
         onChangeText={onChangeName}
-        placeholder="Vendor name"
-        placeholderTextColor={p.textMuted}
-        accessibilityLabel="Unregistered vendor name"
-        style={[styles.input, { backgroundColor: p.surface, borderColor: p.border, color: p.text }]}
+        placeholder="Bhaskar Fish Supply"
+        autoCapitalize="words"
+        density="field"
       />
-      <View style={{ height: space.sm }} />
       <PrimaryButton
         label="Use this name"
         onPress={() => onPick({ kind: "UNREGISTERED", name: name.trim() }, name.trim())}
@@ -440,22 +430,3 @@ function VendorPicker({
     </Dialog>
   );
 }
-
-const styles = StyleSheet.create({
-  input: {
-    minHeight: touch.field,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: space.md,
-    fontSize: type.body,
-  },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderTopWidth: 1,
-    paddingHorizontal: space.md,
-    paddingTop: space.md,
-  },
-});

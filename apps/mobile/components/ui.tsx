@@ -1242,6 +1242,7 @@ export function Field({
   returnKeyType,
   textContentType,
   autoComplete,
+  density = "desk",
 }: {
   label: string;
   value: string;
@@ -1280,6 +1281,13 @@ export function Field({
    */
   textContentType?: "emailAddress" | "telephoneNumber" | "username" | "password";
   autoComplete?: "email" | "tel" | "username" | "current-password";
+  /**
+   * Interactive height. `desk` is the platform minimum and right for a list or an
+   * admin form; `field` is the 60pt target the gate and dock screens are built to,
+   * and it is why those screens were using a raw `TextInput` with a local style —
+   * the primitive could not express the size they are required to hit.
+   */
+  density?: Density;
 }) {
   const p = usePalette();
   const [focused, setFocused] = useState(false);
@@ -1347,7 +1355,7 @@ export function Field({
           style={
             {
               flex: 1,
-              minHeight: touch.desk,
+              minHeight: heightFor(density),
               paddingHorizontal: space.md,
               fontSize: type.body,
               // A TextInput takes no `role`, so it is one of the few places the family
