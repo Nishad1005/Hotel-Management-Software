@@ -1,5 +1,18 @@
 {
   "extends": "@golai/tsconfig/base.json",
-  "compilerOptions": { "noEmit": true },
+  "compilerOptions": {
+    "noEmit": true,
+
+    // The base library is ES2023 only, which is right for `domain` — it has zero I/O and
+    // must not be able to name a platform API. This package is the opposite: talking to
+    // PostgREST over fetch is its entire job, and the clock-skew retry has to name
+    // `fetch`, `Response` and `RequestInit` to wrap them. DOM is here for those types,
+    // not as licence to use `document` or `localStorage`; both would break the native
+    // build, and the session storage port above exists precisely so this package never
+    // reaches for them.
+    "lib": ["ES2023", "DOM"],
+
+    "types": ["vitest/globals"]
+  },
   "include": ["src/**/*"]
 }
