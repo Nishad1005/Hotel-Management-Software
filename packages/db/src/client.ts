@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { withClockSkewRetry } from "./clock-skew";
 import type { Database } from "./types";
 
 export type GolaiClient = SupabaseClient<Database>;
@@ -18,6 +19,8 @@ export interface ClientOptions {
   url: string;
   anonKey: string;
   storage?: SessionStorage;
+  /** Overridable so a test can drive the transport. Defaults to the platform's fetch. */
+  fetch?: typeof fetch;
 }
 
 /**
@@ -39,6 +42,8 @@ export function createGolaiClient(options: ClientOptions): GolaiClient {
     );
   }
 
+  const baseFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+
   return createClient<Database>(options.url, options.anonKey, {
     auth: {
       ...(options.storage ? { storage: options.storage } : {}),
@@ -46,6 +51,17 @@ export function createGolaiClient(options: ClientOptions): GolaiClient {
       autoRefreshToken: true,
       // There is no browser redirect flow here; sessions come from password sign-in.
       detectSessionInUrl: false,
+    },
+    global: {
+      /*
+        Every request goes through the clock-skew retry.
+
+        It has to sit here rather than around individual calls, because the call it was
+        found breaking is the membership bootstrap — the one that decides whether the
+        app has a property at all. Wrapping callers one at a time would mean
+        remembering to wrap the next one. See clock-skew.ts for why replaying is safe.
+      */
+      fetch: withClockSkewRetry(baseFetch),
     },
   });
 }
