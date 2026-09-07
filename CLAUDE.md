@@ -159,6 +159,16 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
   hard case: moving a screen onto an existing component adds almost no new text, so the
   discriminator has to come from the few strings it genuinely changes, not from the
   ones it carried across.
+- **A rule about future objects cannot be tested by sweeping present ones.** The sharpest
+  instance so far, because the test looked right and passed for a month:
+  `20260906023229` revoked surplus privileges from `anon` on every existing table AND
+  set a default privilege meant to keep new tables bare. The default-privilege clause
+  omitted `in schema public`, so Postgres — which keys those by (grantor, schema) —
+  wrote a row nothing consults. The clause was dead on arrival, and the assertion
+  "`anon` holds nothing" passed anyway, because the sweep of existing tables was
+  carrying it. The first three tables added afterwards were born with grants. **Test the
+  mechanism, not its current effect**: `030` now creates a real table inside the
+  transaction and asks what `anon` got, which is a question the sweep can never answer.
 - **Verify a deploy twice before believing it.** The Cloudflare edge serves inconsistently
   during a rollout, so a single poll can report the new bundle and the next request still
   get the old one — or the reverse. A watcher that exits on one match will lie to you.
