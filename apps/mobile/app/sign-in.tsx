@@ -116,6 +116,23 @@ export default function SignIn() {
     >
       <Card>
         {/*
+          The card says what it is.
+
+          The reference titles this panel and ours did not — two unlabelled inputs and a
+          button, which is legible but says nothing. "Sign in" rather than the reference's
+          "Enterprise Access": the button already says Sign in, and a heading that
+          disagrees with the action beneath it is decoration.
+        */}
+        <View style={{ marginBottom: space.lg }}>
+          <Text role="overline" style={{ color: p.brass }}>
+            Secure access
+          </Text>
+          <Text role="title" style={{ marginTop: space.xxs }}>
+            Sign in
+          </Text>
+        </View>
+
+        {/*
           One field for both, because an account may have been created with either and the
           person signing in should not have to know which. `looksLikePhone` decides in
           `signIn`; the label just has to stop insisting on an email.

@@ -69,7 +69,17 @@ export interface NavGroup {
  */
 const GROUPS: NavGroup[] = [
   {
-    title: "",
+    /*
+      Titled, where it used to be blank.
+
+      The old reasoning — "one row does not need a heading announcing it" — is sound in
+      isolation and wrong in a rail where every other group has one: the eye reads the
+      unlabelled row as belonging to whatever is above it, and at the top of the list
+      that is the wordmark. The design system's estate discipline is the whole point of
+      the section flags, and discipline applied to four groups out of five is just
+      inconsistency.
+    */
+    title: "Main",
     items: [{ href: "/", segment: "", label: "Home", icon: "home-outline" }],
   },
   {
@@ -143,8 +153,7 @@ const GROUPS: NavGroup[] = [
     ],
   },
   {
-    // Untitled: one row does not need a heading announcing it.
-    title: "",
+    title: "System",
     items: [
       {
         href: "/setup",

@@ -40,7 +40,7 @@ Colors — add these as the new palette (names may be adapted to the repo's exis
 
 - Surfaces: `linen50 #FAF9F5` (page bg), `linen100 #F5F2EB` (recessed panels / input bg), `linen200 #EDE8DC`, `champagne #E8E3D7` (hairline borders), `white #FFFFFF` (cards).
 - Structure/primary: `forest950 #061510`, `forest900 #081C15` (sidebar bg), `forest800 #0D2818` (primary buttons), `forest700 #143628` (pressed), `forest600 #1D4736`.
-- Accent: `brass300 #DCB879`, `brass400 #D4AF37`, `brass500 #C5A059` (active nav / key icons), `brass600 #B8860B`, `brass700 #9A7B38`, `brass100 #F5EEDC` (brass chip bg).
+- Accent: `brass300 #DCB879`, `brass400 #D4AF37`, `brass500 #C5A059` (active nav / key icons), `brass600 #B8860B`, `brass700 #9A7B38`, `brass100 #F5EEDC` (brass chip bg). **→ superseded by Amendment A (§8): brass ships as three tokens and is never text at these values.**
 - Status: sage `#F2F6F3 / #43654E / #2D4735` (ok/verified/compliant), saffron `#FEF7ED / #C87D28 / #9C5914` (expiring/urgent/warning), error `#ba1a1a` on `#ffdad6` (rejected/blocked).
 - Text: `ink #191C1B` (on-surface), `inkMuted #555E58` (on-surface-variant), `outline #A39E93`.
 
@@ -49,8 +49,8 @@ Colour stays scarce: sage/saffron/error only where state genuinely differs. Resi
 Typography:
 
 - Add fonts via `@expo-google-fonts/playfair-display` (600, and 700 if needed) and `@expo-google-fonts/plus-jakarta-sans` (400/500/600/700). Load in `app/_layout.tsx` alongside/replacing the current Inter loading. Remove `@expo-google-fonts/inter` only after nothing references it.
-- Family mapping onto existing roles: `display` and `title` → Playfair Display 600; `heading` → Playfair Display 600 (or Jakarta 700 if serif at 17px renders poorly on Android — check on device and pick one, consistently); `body`, `label`, `caption` → Plus Jakarta Sans.
-- Add ONE new role only: `labelCaps` — Jakarta 600, 11px equivalent, `letterSpacing` ~1.2, uppercase, used for section flags and technical badges. (11px, not the Stitch 10.5 — RN + field readability.)
+- Family mapping onto existing roles: `display` and `title` → Playfair Display 600; `heading` → Playfair Display 600 (or Jakarta 700 if serif at 17px renders poorly on Android — check on device and pick one, consistently); `body`, `label`, `caption` → Plus Jakarta Sans. **→ settled by Amendment B (§8): `heading` is sans; the serif stops at `title`.**
+- Add ONE new role only: `labelCaps` — Jakarta 600, 11px equivalent, `letterSpacing` ~1.2, uppercase, used for section flags and technical badges. (11px, not the Stitch 10.5 — RN + field readability.) **→ superseded by Amendment C (§8): this is `overline`, retuned. Do not add a second role.**
 
 Radii: existing `radius` object already fits (cards `radius.lg` 16 or `radius.md` 12, nested panels `radius.md`, pills `radius.pill`). Pills (`radius.pill`) are reserved for buttons, search inputs, and status chips — exactly as DESIGN.md prescribes.
 
@@ -107,3 +107,25 @@ Create `apps/mobile/assets/illustrations/`.
 - No `localStorage`/DOM APIs — everything must run in native builds, not just web.
 - Respect existing architecture (outbox, offline, capabilities in `packages/domain`) — this brief authorizes visual changes only.
 - Each phase = its own commit(s); do not batch phases.
+
+## 8. Amendments
+
+Three instructions in §4 were changed during Phase 1 and did not survive contact with the code. **The shipped `theme.ts` is authoritative; where §4 and this section disagree, this section wins.** Recorded here because later phases read this brief fresh and would otherwise re-introduce what Phase 1 deliberately removed.
+
+**A. Brass is three tokens, not one — and it is never text at its brand values.**
+§4 lists brass as a single accent ramp. Measured against the surfaces it actually lands on, `brass500 #C5A059` is 2.46:1 on white and `brass300 #DCB879` is 1.88:1 — so a brass label, a brass button or a brass-on-linen icon is illegible, and "active nav / key icons" only works on the dark rail. The palette therefore carries:
+
+| Token          | Value     | Job                                                             |
+| -------------- | --------- | --------------------------------------------------------------- |
+| `brass`        | `#7A5F22` | Brass that carries a word. 5.2:1 on its own tint, AA everywhere |
+| `brassLine`    | `#9A7B38` | Hairlines, focus rings, indicators. 3:1 class, never text       |
+| `brassSurface` | `#F5EEDC` | The brass chip ground (the brief's `brass100`)                  |
+| `brassOnBrand` | `#C5A059` | Brass on the forest rail, where the bright value is legible     |
+
+Consequence for Phase 2: the rail's active indicator and icon tint use **`brassOnBrand`**; anything brass on a light screen uses `brass` (text) or `brassLine` (line). Primary action stays forest with a brass _edge_ — never a brass fill.
+
+**B. The serif ceiling is `title`. `heading` is sans.**
+§4 offers Playfair for `heading` "or Jakarta 700 if serif at 17px renders poorly on Android". Jakarta was chosen, for a second reason the brief did not anticipate: `heading` sets the figure at the end of a list row, and **Playfair has no tabular figures**, so every quantity would jog sideways as its digits changed. Serif is confined to `display` and `title` — always large, never dense, never numeric-in-column.
+
+**C. `overline` IS the label-caps role. There is no `labelCaps` token.**
+§4 says add one new role. Doing so would have produced two uppercase 11px sans roles separated by 0.4 of tracking and one weight step — the exact near-duplicate the ramp was collapsed from eight sizes to five to eliminate, with no way for a later author to choose between them. `overline` was retuned instead (11px / 1.3 tracking / semibold / uppercase). **Where this brief says `labelCaps` — including Phase 2's nav section headers and Phase 3's stage headers and metric-card headers — write `role="overline"`.**

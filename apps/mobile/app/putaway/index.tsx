@@ -9,11 +9,15 @@ import {
   Card,
   Field,
   FieldError,
+  FieldLayout,
   Notice,
   PrimaryButton,
   Screen,
   SkeletonList,
+  Stage,
   StatusPill,
+  SummaryPanel,
+  SummaryRow,
   Text,
 } from "../../components/ui";
 import { listAwaitingPutaway, putAway, type AwaitingPutaway } from "../../lib/putaway";
@@ -85,6 +89,9 @@ export default function PutAway() {
               }`
       }
       onBack={() => router.back()}
+      // Room for the summary rail once a line is selected. The waiting list underneath
+      // is a single column either way, so the wider measure costs it nothing.
+      wide
     >
       {done ? (
         <Banner icon="checkmark-circle" tone="good">
@@ -263,39 +270,75 @@ function DestinationPanel({
     }
   }
 
+  // Named apart from the `amount` inside `send()`, which is the value actually posted.
+  // This one only decides which stage looks active.
+  const typedQty = Number(qty);
+  const amountReady = Number.isFinite(typedQty) && typedQty > 0 && typedQty <= line.qty;
+
   return (
-    <>
-      <Card>
-        <Text role="title">{line.itemName}</Text>
-        <Text role="caption" tone="muted" style={{ marginTop: 2 }}>
-          Batch {line.batchNo} · {line.qty} {line.uomCode} at {line.locationCode}
-        </Text>
+    <FieldLayout
+      summary={
+        <>
+          {/*
+            What is being moved, held beside the two questions rather than above them.
+            The regime is the one fact here that can refuse a destination — put-away into
+            a mismatched bin is blocked at the server — so it sits in the rail where it
+            stays visible while the bin is being scanned.
+          */}
+          <SummaryPanel title="Moving" tone="brand">
+            <Text role="display" tone="onBrand" numeric>
+              {line.qty}
+              <Text role="title" tone="onBrandMuted">
+                {" "}
+                {line.uomCode}
+              </Text>
+            </Text>
+            <View style={{ height: space.sm }} />
+            <SummaryRow tone="brand" label="Item" value={line.itemName} />
+            <SummaryRow tone="brand" label="Batch" value={line.batchNo} />
+            <SummaryRow tone="brand" label="From" value={line.locationCode} />
+          </SummaryPanel>
 
-        {line.storageRegime !== "AMBIENT" ? (
-          <View style={{ marginTop: space.md }}>
-            <StatusPill
-              icon="snow-outline"
-              label={`${line.storageRegime === "FROZEN" ? "Frozen" : "Chilled"} — the bin has to match`}
-              tone="warn"
-            />
-          </View>
-        ) : null}
+          {line.storageRegime !== "AMBIENT" ? (
+            <View style={{ marginBottom: space.lg }}>
+              <StatusPill
+                icon="snow-outline"
+                label={`${line.storageRegime === "FROZEN" ? "Frozen" : "Chilled"} — the bin has to match`}
+                tone="warn"
+              />
+            </View>
+          ) : null}
 
-        <View style={{ height: space.xl }} />
+          {error ? <FieldError message={error} /> : null}
 
+          <PrimaryButton label="Choose something else" tone="neutral" onPress={onCancel} />
+        </>
+      }
+    >
+      <Stage
+        index={1}
+        title="How much goes"
+        state={amountReady ? "done" : "active"}
+        hint={`Up to ${line.qty} ${line.uomCode}. Less is fine — the rest stays at Terminal 1 for another bin.`}
+      >
         <Field
           label="How much"
           value={qty}
           onChangeText={setQty}
           keyboardType="decimal-pad"
           suffix={line.uomCode}
-          hint={`Up to ${line.qty} ${line.uomCode}. Less is fine — the rest stays at Terminal 1 for another bin.`}
         />
+      </Stage>
 
+      <Stage
+        index={2}
+        title="Which bin"
+        state={amountReady ? "active" : "todo"}
+        hint="Read the code off the bin itself. Typing works while labels are being printed, and every typed put-away is counted."
+      >
         <ScanField
           label="Bin"
           placeholder="Scan the bin label"
-          hint="Read the code off the bin itself. Typing works while labels are being printed, and every typed put-away is counted."
           onScan={(code, method) => void send(code, method)}
         />
 
@@ -307,13 +350,7 @@ function DestinationPanel({
             </Text>
           </View>
         ) : null}
-
-        {error ? <FieldError message={error} /> : null}
-      </Card>
-
-      <View style={{ marginTop: space.lg }}>
-        <PrimaryButton label="Choose something else" tone="neutral" onPress={onCancel} />
-      </View>
-    </>
+      </Stage>
+    </FieldLayout>
   );
 }

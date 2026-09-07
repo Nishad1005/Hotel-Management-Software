@@ -7,16 +7,20 @@ import {
 } from "@golai/domain";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { View } from "react-native";
 import {
   ChoiceTile,
   Dialog,
+  Field,
   FieldError,
+  FieldLayout,
   PrimaryButton,
   Row,
   Screen,
-  Section,
+  Stage,
   Stepper,
+  SummaryPanel,
+  SummaryRow,
   Text as UIText,
 } from "../../components/ui";
 import { outbox } from "../../lib/outbox";
@@ -24,7 +28,7 @@ import { primeGateEntryNumbers, takeGateEntryNumber } from "../../lib/numbers";
 import { listParties, type Party } from "../../lib/parties";
 import { useSession } from "../../lib/session";
 import { drainOnce } from "../../lib/sync";
-import { radius, space, touch, type, usePalette } from "../../theme";
+import { space, usePalette } from "../../theme";
 
 /**
  * Gate 0 — Security capture. PRD section 4.
@@ -179,6 +183,8 @@ export default function NewGateEntry() {
       title="New arrival"
       subtitle="Record what arrived before anything is unloaded."
       onBack={() => router.back()}
+      // The 720px reading measure has no room for a summary rail beside the stages.
+      wide
       footer={
         <PrimaryButton
           label="Record arrival"
@@ -188,22 +194,92 @@ export default function NewGateEntry() {
         />
       }
     >
-      <Section title="Vendor">
-        <Row
-          icon={vendor ? "business" : "qr-code-outline"}
-          label={vendor ? vendorLabel : "Scan card or choose vendor"}
-          {...(vendor
-            ? { value: vendor.kind === "REGISTERED" ? "Registered" : "Not registered" }
-            : {})}
-          selected={!!vendor}
-          onPress={() => setPickerOpen(true)}
-        />
-        {has("VENDOR_REQUIRED") ? <FieldError message={ERROR_TEXT.VENDOR_REQUIRED} /> : null}
-      </Section>
+      <FieldLayout
+        summary={
+          <>
+            {/*
+              The rail's hero is the number, because the number is the point of this
+              screen: it goes onto the vendor's challan by hand and every downstream
+              record hangs off it. The reference puts a bay assignment here; we have no
+              bays, and inventing one would be exactly the fictional telemetry guardrail
+              6 rules out.
 
-      <Section title="Bill" hint="A missing bill is normal. Say so rather than leaving it blank.">
-        <View style={{ flexDirection: "row", gap: space.sm }}>
-          {/*
+              It is shown as "issued on recording" rather than displayed early on
+              purpose — the number is spent from the lease at submit, and printing one
+              before the arrival is queued is how a challan ends up carrying a number
+              for a record that was never made.
+            */}
+            <SummaryPanel title="Gate entry number" tone="brand">
+              <UIText role="display" tone="onBrand" numeric>
+                {activeProperty ? `${activeProperty.propertyCode}-GE-` : "—"}
+                <UIText role="display" style={{ color: p.brassOnBrand }}>
+                  ······
+                </UIText>
+              </UIText>
+              <UIText role="caption" tone="onBrandMuted" style={{ marginTop: space.xs }}>
+                Issued the moment this is recorded, from the block already on this device. Write it
+                on the challan.
+              </UIText>
+            </SummaryPanel>
+
+            <SummaryPanel title="This arrival">
+              <SummaryRow label="Vendor" value={vendor ? vendorLabel : "Not chosen"} />
+              <SummaryRow
+                label="Bill"
+                value={
+                  bill.kind === "NONE"
+                    ? "No bill"
+                    : bill.kind === "PHOTOGRAPHED"
+                      ? "Photographed"
+                      : "Not answered"
+                }
+              />
+              <SummaryRow
+                label="Packages"
+                value={`${packageCount} ${packageCount === 1 ? "package" : "packages"}`}
+              />
+              <SummaryRow
+                label="Vehicle"
+                value={
+                  vehicleMode
+                    ? `${VEHICLE_OPTIONS.find((v) => v.mode === vehicleMode)?.label ?? vehicleMode}${
+                        vehicleNumber.trim() ? ` · ${vehicleNumber.trim()}` : ""
+                      }`
+                    : "Not recorded"
+                }
+              />
+            </SummaryPanel>
+
+            {numberError ? <FieldError message={numberError} /> : null}
+          </>
+        }
+      >
+        <Stage
+          index={1}
+          title="Who is delivering"
+          state={vendor ? "done" : "active"}
+          hint="A vendor on hold shows here before anything comes off the vehicle."
+        >
+          <Row
+            icon={vendor ? "business" : "qr-code-outline"}
+            label={vendor ? vendorLabel : "Scan card or choose vendor"}
+            {...(vendor
+              ? { value: vendor.kind === "REGISTERED" ? "Registered" : "Not registered" }
+              : {})}
+            selected={!!vendor}
+            onPress={() => setPickerOpen(true)}
+          />
+          {has("VENDOR_REQUIRED") ? <FieldError message={ERROR_TEXT.VENDOR_REQUIRED} /> : null}
+        </Stage>
+
+        <Stage
+          index={2}
+          title="Is there a bill"
+          state={bill.kind === "UNANSWERED" ? (vendor ? "active" : "todo") : "done"}
+          hint="A missing bill is normal. Say so rather than leaving it blank."
+        >
+          <View style={{ flexDirection: "row", gap: space.sm }}>
+            {/*
               Disabled until the camera is wired, rather than standing in for it.
               It previously wrote the literal string "placeholder://bill.jpg", which
               satisfies gate_entry_photo_matches_bill_state — so every synced record
@@ -211,67 +287,71 @@ export default function NewGateEntry() {
               a record carrying a false assertion is worse than an honest gap, and a
               compliance record is exactly where that matters.
             */}
-          <ChoiceTile
-            icon="camera"
-            label="Photograph bill"
-            disabled
-            hint="Coming soon"
-            selected={bill.kind === "PHOTOGRAPHED"}
-            onPress={() => {}}
-          />
-          <ChoiceTile
-            icon="document-outline"
-            label="No bill"
-            selected={bill.kind === "NONE"}
-            onPress={() => setBill({ kind: "NONE" })}
-          />
-        </View>
-        {has("BILL_UNANSWERED") ? <FieldError message={ERROR_TEXT.BILL_UNANSWERED} /> : null}
-        {has("BILL_PHOTO_MISSING") ? <FieldError message={ERROR_TEXT.BILL_PHOTO_MISSING} /> : null}
-      </Section>
-
-      <Section title="Packages" hint="Count packages only. Weight is Terminal 1's job.">
-        <Stepper value={packageCount} onChange={setPackageCount} min={0} max={999} />
-        {has("PACKAGE_COUNT_REQUIRED") ? (
-          <FieldError message={ERROR_TEXT.PACKAGE_COUNT_REQUIRED} />
-        ) : null}
-      </Section>
-
-      <Section title="Vehicle" hint="Optional. A hand-cart has no number.">
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
-          {VEHICLE_OPTIONS.map((v) => (
-            <View key={v.mode} style={{ width: "48%" }}>
-              <ChoiceTile
-                icon={v.icon}
-                label={v.label}
-                selected={vehicleMode === v.mode}
-                onPress={() => setVehicleMode(vehicleMode === v.mode ? undefined : v.mode)}
-              />
-            </View>
-          ))}
-        </View>
-        {vehicleMode && vehicleMode !== "HAND_CART" ? (
-          <View style={{ marginTop: space.sm }}>
-            <UIText role="label" weight="semibold" style={{ marginBottom: space.xs }}>
-              Vehicle number
-            </UIText>
-            <TextInput
-              value={vehicleNumber}
-              onChangeText={(t) => setVehicleNumber(t.toUpperCase())}
-              placeholder="AS 06 AB 1234"
-              placeholderTextColor={p.textMuted}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              accessibilityLabel="Vehicle number"
-              style={[
-                styles.input,
-                { backgroundColor: p.surface, borderColor: p.border, color: p.text },
-              ]}
+            <ChoiceTile
+              icon="camera"
+              label="Photograph bill"
+              disabled
+              hint="Coming soon"
+              selected={bill.kind === "PHOTOGRAPHED"}
+              onPress={() => {}}
+            />
+            <ChoiceTile
+              icon="document-outline"
+              label="No bill"
+              selected={bill.kind === "NONE"}
+              onPress={() => setBill({ kind: "NONE" })}
             />
           </View>
-        ) : null}
-      </Section>
-      {numberError ? <FieldError message={numberError} /> : null}
+          {has("BILL_UNANSWERED") ? <FieldError message={ERROR_TEXT.BILL_UNANSWERED} /> : null}
+          {has("BILL_PHOTO_MISSING") ? (
+            <FieldError message={ERROR_TEXT.BILL_PHOTO_MISSING} />
+          ) : null}
+        </Stage>
+
+        <Stage
+          index={3}
+          title="How many packages"
+          state={packageCount > 0 ? "done" : "active"}
+          hint="Count packages only. Weight is Terminal 1's job."
+        >
+          <Stepper value={packageCount} onChange={setPackageCount} min={0} max={999} />
+          {has("PACKAGE_COUNT_REQUIRED") ? (
+            <FieldError message={ERROR_TEXT.PACKAGE_COUNT_REQUIRED} />
+          ) : null}
+        </Stage>
+
+        <Stage
+          index={4}
+          title="What it arrived in"
+          state={vehicleMode ? "done" : "todo"}
+          hint="Optional. A hand-cart has no number."
+        >
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.sm }}>
+            {VEHICLE_OPTIONS.map((v) => (
+              <View key={v.mode} style={{ width: "48%" }}>
+                <ChoiceTile
+                  icon={v.icon}
+                  label={v.label}
+                  selected={vehicleMode === v.mode}
+                  onPress={() => setVehicleMode(vehicleMode === v.mode ? undefined : v.mode)}
+                />
+              </View>
+            ))}
+          </View>
+          {vehicleMode && vehicleMode !== "HAND_CART" ? (
+            <View style={{ marginTop: space.sm }}>
+              <Field
+                label="Vehicle number"
+                value={vehicleNumber}
+                onChangeText={(t) => setVehicleNumber(t.toUpperCase())}
+                placeholder="AS 06 AB 1234"
+                autoCapitalize="characters"
+                density="field"
+              />
+            </View>
+          ) : null}
+        </Stage>
+      </FieldLayout>
 
       <VendorPicker
         open={pickerOpen}
@@ -304,8 +384,6 @@ function VendorPicker({
   onClose: () => void;
   onPick: (ref: VendorRef, label: string) => void;
 }) {
-  const p = usePalette();
-
   return (
     <Dialog visible={open} title="Choose vendor" onClose={onClose}>
       {parties.length === 0 ? (
@@ -336,15 +414,14 @@ function VendorPicker({
       <UIText tone="muted" style={{ marginBottom: space.sm }}>
         An unregistered vendor can still be received. Registration is chased later.
       </UIText>
-      <TextInput
+      <Field
+        label="Vendor name"
         value={name}
         onChangeText={onChangeName}
-        placeholder="Vendor name"
-        placeholderTextColor={p.textMuted}
-        accessibilityLabel="Unregistered vendor name"
-        style={[styles.input, { backgroundColor: p.surface, borderColor: p.border, color: p.text }]}
+        placeholder="Bhaskar Fish Supply"
+        autoCapitalize="words"
+        density="field"
       />
-      <View style={{ height: space.sm }} />
       <PrimaryButton
         label="Use this name"
         onPress={() => onPick({ kind: "UNREGISTERED", name: name.trim() }, name.trim())}
@@ -353,22 +430,3 @@ function VendorPicker({
     </Dialog>
   );
 }
-
-const styles = StyleSheet.create({
-  input: {
-    minHeight: touch.field,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: space.md,
-    fontSize: type.body,
-  },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderTopWidth: 1,
-    paddingHorizontal: space.md,
-    paddingTop: space.md,
-  },
-});

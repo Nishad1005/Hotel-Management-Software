@@ -78,8 +78,11 @@ export async function listUoms(): Promise<UomOption[]> {
 export async function listItems(search: string, categoryId: string | null): Promise<ItemListRow[]> {
   let query = requireSupabase()
     .from("item")
+    // Embeds name the target table, not the foreign-key column — the composite tenant
+    // keys added in `20260812102424` left no single-column foreign key for PostgREST to
+    // resolve `category_id` or `base_uom_id` against. See the note in `lib/stock.ts`.
     .select(
-      "id, code, name, is_perishable, is_cold_chain, shelf_life_days, storage_regime, is_active, base_uom_id, temp_min_c, temp_max_c, min_shelf_life_pct_at_receipt, category:category_id(name, default_min_shelf_life_pct), uom:base_uom_id(code)",
+      "id, code, name, is_perishable, is_cold_chain, shelf_life_days, storage_regime, is_active, base_uom_id, temp_min_c, temp_max_c, min_shelf_life_pct_at_receipt, category:item_category(name, default_min_shelf_life_pct), uom:uom(code)",
     )
     .order("name")
     .limit(200);
