@@ -593,6 +593,224 @@ export function Section({
   );
 }
 
+/**
+ * One numbered step of a field task.
+ *
+ * The gate, dock and put-away screens are each a sequence — identify the vendor, answer
+ * the bill, count the packages — and the reference design gives each step a numbered
+ * card so somebody halfway through a task can see where they are without reading it.
+ * `Section` was carrying that job with nothing but a label, which is fine on an admin
+ * list and thin at a barrier in the rain.
+ *
+ * The title is `heading` (sans) rather than the serif: `Screen`'s own title is already
+ * `title` at 22, and a serif stage header would compete with it while adding a second
+ * editorial voice to a screen that is being read in gloves. The serif stays on the page.
+ */
+export function Stage({
+  index,
+  title,
+  hint,
+  children,
+  state = "todo",
+}: {
+  index: number;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+  /** `done` ticks the badge; `active` gives the card its brass edge. */
+  state?: "todo" | "active" | "done";
+}) {
+  const p = usePalette();
+  const done = state === "done";
+  const edge = state === "active" ? p.brassLine : done ? p.success : p.border;
+
+  return (
+    <View style={{ marginBottom: space.xl, flexDirection: "row" }}>
+      {/*
+        The status pillar the design system puts on queue cards: 3px, full height, and
+        the only part of a stage that carries colour. It is what lets a glance down the
+        column say which step you are on.
+      */}
+      <View
+        style={{
+          width: 3,
+          borderTopLeftRadius: radius.lg,
+          borderBottomLeftRadius: radius.lg,
+          backgroundColor: edge,
+        }}
+      />
+      <View
+        style={[
+          {
+            flex: 1,
+            minWidth: 0,
+            backgroundColor: p.surfaceRaised,
+            borderTopRightRadius: radius.lg,
+            borderBottomRightRadius: radius.lg,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderLeftWidth: 0,
+            borderColor: p.border,
+            padding: space.lg,
+          },
+          elevation(1, p),
+        ]}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: space.md }}>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: radius.pill,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: done ? p.successSurface : p.brassSurface,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: done ? p.success : p.brassLine,
+            }}
+          >
+            {done ? (
+              <Ionicons name="checkmark" size={18} color={p.success} />
+            ) : (
+              <Text role="label" weight="bold" numeric style={{ color: p.brass }}>
+                {index}
+              </Text>
+            )}
+          </View>
+          <View style={{ marginLeft: space.md, flex: 1, minWidth: 0 }}>
+            <Text role="overline" style={{ color: p.brass }}>
+              {`Stage ${String(index).padStart(2, "0")}`}
+            </Text>
+            <Text role="heading" lines={2}>
+              {title}
+            </Text>
+          </View>
+        </View>
+
+        {hint ? (
+          <Text role="caption" tone="muted" style={{ marginBottom: space.md }}>
+            {hint}
+          </Text>
+        ) : null}
+
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * A staged task beside what it adds up to.
+ *
+ * Wide screens get the reference's two columns — the stages on the left, a summary rail
+ * on the right. Narrow screens stack, with the summary last, because on a phone the
+ * thing you came to do goes first and the tally is what you check before committing.
+ *
+ * The rail deliberately holds no commit button. `Screen`'s `footer` already pins one
+ * within thumb reach at every width, and a second button in the rail would mean two
+ * controls doing the same job, one of which moves depending on the window.
+ */
+export function FieldLayout({ children, summary }: { children: ReactNode; summary: ReactNode }) {
+  const expanded = useIsExpanded();
+
+  if (!expanded) {
+    return (
+      <>
+        {children}
+        {summary}
+      </>
+    );
+  }
+
+  return (
+    <View style={{ flexDirection: "row", gap: space.xl, alignItems: "flex-start" }}>
+      <View style={{ flex: 7, minWidth: 0 }}>{children}</View>
+      <View style={{ flex: 4, minWidth: 0 }}>{summary}</View>
+    </View>
+  );
+}
+
+/**
+ * The rail's own block: a heading and a set of facts.
+ *
+ * `tone="brand"` is the dark forest card the design system reserves for the one panel
+ * that should read as instrument rather than paper — the leased number at the gate, the
+ * destination at put-away.
+ */
+export function SummaryPanel({
+  title,
+  tone = "paper",
+  children,
+}: {
+  title: string;
+  tone?: "paper" | "brand";
+  children: ReactNode;
+}) {
+  const p = usePalette();
+  const brand = tone === "brand";
+
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: brand ? p.brand : p.surfaceRaised,
+          borderRadius: radius.lg,
+          borderWidth: brand ? 0 : StyleSheet.hairlineWidth,
+          borderColor: p.border,
+          padding: space.lg,
+          marginBottom: space.lg,
+        },
+        brand ? {} : elevation(1, p),
+      ]}
+    >
+      <Text
+        role="overline"
+        style={{ color: brand ? p.brassOnBrand : p.brass, marginBottom: space.sm }}
+      >
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+/** One labelled fact in a `SummaryPanel`. */
+export function SummaryRow({
+  label,
+  value,
+  tone = "paper",
+}: {
+  label: string;
+  value: string;
+  tone?: "paper" | "brand";
+}) {
+  const p = usePalette();
+  const brand = tone === "brand";
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: space.md,
+        paddingVertical: space.xs,
+      }}
+    >
+      <Text role="label" style={{ color: brand ? p.onBrandMuted : p.textMuted, flexShrink: 1 }}>
+        {label}
+      </Text>
+      <Text
+        role="label"
+        weight="semibold"
+        align="right"
+        style={{ color: brand ? p.onBrand : p.text, flex: 1 }}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 /** A raised container. Groups rows into one object rather than scattered cards. */
 export function Card({ children, padded = true }: { children: ReactNode; padded?: boolean }) {
   const p = usePalette();

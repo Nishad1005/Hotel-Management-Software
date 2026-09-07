@@ -250,6 +250,14 @@ function CameraSheet({
   }, [visible, mount, onCode]);
 
   return (
+    /*
+      Literal black and white, and the only place in the app that uses either.
+
+      This surface is a live camera feed, not a palette surface: the ground behind a
+      viewfinder is black because that is what an unlit sensor shows, and linen here
+      would read as a rendering fault the moment the camera opened. Tokens describe
+      the product's paper; this is a hole cut through it.
+    */
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent={false}>
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         <View

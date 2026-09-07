@@ -76,6 +76,10 @@ const NAV_INACTIVE = "rgba(250, 249, 245, 0.6)";
  * be receiving.
  */
 const RAIL_SHADOW = {
+  // `p.shadow` would be the token, and this constant lives outside any component so
+  // it cannot reach the palette. The rail's shadow is its own colour rather than the
+  // page's: it is cast BY the forest slab, so it is forest, where `p.shadow` is the
+  // green-tinted grey a white card drops onto linen.
   shadowColor: "#081C15",
   shadowOffset: { width: 2, height: 0 },
   shadowOpacity: 0.35,

@@ -9,13 +9,17 @@ import {
   ChoiceTile,
   Field,
   FieldError,
+  FieldLayout,
   Loading,
   Notice,
   PrimaryButton,
   Result,
   Screen,
   SelectRow,
+  Stage,
   StatusPill,
+  SummaryPanel,
+  SummaryRow,
   Text,
 } from "../../components/ui";
 import { listItems, type ItemListRow } from "../../lib/masters";
@@ -161,10 +165,18 @@ export default function ReceiveArrival() {
         arrival.packageCount === 1 ? "" : "s"
       }${arrival.vehicleNumber ? ` · ${arrival.vehicleNumber}` : ""}`}
       onBack={() => router.back()}
+      // Room for the summary rail beside the stages.
+      wide
       {...(lines.length > 0
         ? {
             footer: (
               <>
+                {/*
+                  Kept even though the rail says the same thing: the rail is beside the
+                  form on a laptop and BELOW it on a phone, and the tally has to be
+                  readable at the moment of committing at either width. It stays a live
+                  region so a screen reader hears the count change.
+                */}
                 <Text
                   role="caption"
                   tone="muted"
@@ -195,10 +207,76 @@ export default function ReceiveArrival() {
           action={<PrimaryButton label="Go to items" onPress={() => router.push("/items")} />}
         />
       ) : (
-        <>
-          {lines.length > 0 ? (
-            <View style={{ marginBottom: space.xl }}>
-              <SectionLabel>On this receipt</SectionLabel>
+        <FieldLayout
+          summary={
+            <>
+              {/*
+                What the guard already recorded at the gate. The dock is checking a
+                delivery against a claim made outside, and the claim belongs on screen
+                next to the counting rather than in a subtitle above it — a package
+                count of twelve matters most while you are looking at eleven.
+              */}
+              <SummaryPanel title="At the gate" tone="brand">
+                <Text role="display" tone="onBrand" numeric>
+                  {arrival.gateEntryNo}
+                </Text>
+                <View style={{ height: space.sm }} />
+                <SummaryRow tone="brand" label="Vendor" value={arrival.partyName ?? "Not named"} />
+                <SummaryRow tone="brand" label="Packages" value={`${arrival.packageCount}`} />
+                {arrival.vehicleNumber ? (
+                  <SummaryRow tone="brand" label="Vehicle" value={arrival.vehicleNumber} />
+                ) : null}
+              </SummaryPanel>
+
+              <SummaryPanel title="This receipt">
+                <SummaryRow
+                  label="Lines"
+                  value={lines.length === 0 ? "None yet" : String(lines.length)}
+                />
+                <SummaryRow label="Accepted" value={fmt(totals.accepted)} />
+                <SummaryRow label="Rejected" value={fmt(totals.rejected)} />
+              </SummaryPanel>
+
+              {postError ? <FieldError message={postError} /> : null}
+            </>
+          }
+        >
+          {/*
+            The editor leads and the list follows it, which reverses the old order. A
+            receipt is built one line at a time and the list only grows, so putting the
+            editor last meant scrolling past everything already entered to enter the
+            next one — worst exactly when a delivery is large.
+          */}
+          <Stage
+            index={1}
+            title={lines.length === 0 ? "Check the first line" : "Check the next line"}
+            state="active"
+            hint="Quantity, then quality. Nothing is created here — the item has to exist already."
+          >
+            <LineEditor
+              items={items}
+              onAdd={(line) => {
+                setLines((prev) => [...prev, line]);
+                setPostError(null);
+              }}
+            />
+          </Stage>
+
+          <Stage
+            index={2}
+            title="On this receipt"
+            state={lines.length > 0 ? "done" : "todo"}
+            {...(lines.length === 0
+              ? {
+                  hint: "Lines appear here as they are checked in. Nothing is posted until you post it.",
+                }
+              : {})}
+          >
+            {lines.length === 0 ? (
+              <Text role="caption" tone="muted">
+                Nothing yet.
+              </Text>
+            ) : (
               <Card padded={false}>
                 {lines.map((l, i) => (
                   <LineRow
@@ -209,24 +287,9 @@ export default function ReceiveArrival() {
                   />
                 ))}
               </Card>
-            </View>
-          ) : null}
-
-          <SectionLabel>{lines.length === 0 ? "First line" : "Add another line"}</SectionLabel>
-          <LineEditor
-            items={items}
-            onAdd={(line) => {
-              setLines((prev) => [...prev, line]);
-              setPostError(null);
-            }}
-          />
-
-          {postError ? (
-            <View style={{ marginTop: space.lg }}>
-              <FieldError message={postError} />
-            </View>
-          ) : null}
-        </>
+            )}
+          </Stage>
+        </FieldLayout>
       )}
     </Screen>
   );
@@ -750,18 +813,8 @@ function RecordedNotice({ text }: { text: string }) {
   );
 }
 
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <Text
-      accessibilityRole="header"
-      role="overline"
-      tone="muted"
-      style={{ marginBottom: space.sm }}
-    >
-      {children}
-    </Text>
-  );
-}
+// `SectionLabel` lived here to head the two halves of this screen. `Stage` heads them
+// now — numbered, with its own status pillar — so the local helper has no callers.
 
 /** Quantities read as 12 and 12.5, never 12.0000 — trailing zeros are noise on a dock. */
 function fmt(n: number): string {
