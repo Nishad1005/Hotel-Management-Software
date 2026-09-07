@@ -1,4 +1,10 @@
-import type { GrnLineDecision, PostGrnLine, RejectReason } from "@golai/db";
+import {
+  serverAnswered,
+  type GrnLineDecision,
+  type PostGrnLine,
+  type RejectReason,
+} from "@golai/db";
+import { notifyOutboxChanged, outbox } from "./outbox";
 import { requireSupabase } from "./supabase";
 
 /**
@@ -92,10 +98,18 @@ export const REJECT_REASONS: { id: RejectReason; label: string }[] = [
   { id: "OTHER", label: "Something else" },
 ];
 
-export interface PostedReceipt {
-  grnId: string;
-  grnNo: string;
-}
+/**
+ * What became of a receipt.
+ *
+ * Two outcomes rather than one, because at the dock they are genuinely different
+ * things to tell somebody. `POSTED` means the server has it and here is its number.
+ * `QUEUED` means the dock had no network, the receipt is on the device, and its number
+ * will exist when it syncs — which is the honest thing to say, and the alternative to
+ * today's behaviour of failing outright and losing the count.
+ */
+export type PostedReceipt =
+  | { status: "POSTED"; grnId: string; grnNo: string }
+  | { status: "QUEUED" };
 
 export async function postReceipt(params: {
   propertyId: string;
@@ -123,22 +137,59 @@ export async function postReceipt(params: {
     reject_reason: l.rejectReason,
   }));
 
-  const { data, error } = await requireSupabase().rpc("post_grn", {
-    p_property_id: params.propertyId,
-    p_gate_entry_id: params.gateEntryId,
-    p_party_id: params.partyId,
-    p_idempotency_key: params.submissionId,
-    p_lines: payload,
-  });
+  const queue = async (): Promise<PostedReceipt> => {
+    await outbox.enqueue({
+      type: "GRN_POST",
+      idempotencyKey: params.submissionId,
+      payload: {
+        propertyId: params.propertyId,
+        gateEntryId: params.gateEntryId,
+        partyId: params.partyId,
+        lines: payload,
+      },
+    });
+    notifyOutboxChanged();
+    return { status: "QUEUED" };
+  };
 
-  if (error) throw new Error(friendly(error.code, error.message));
+  let data;
+  let error;
+  try {
+    ({ data, error } = await requireSupabase().rpc("post_grn", {
+      p_property_id: params.propertyId,
+      p_gate_entry_id: params.gateEntryId,
+      p_party_id: params.partyId,
+      p_idempotency_key: params.submissionId,
+      p_lines: payload,
+    }));
+  } catch {
+    /*
+      The request never left, or nothing came back at all. There is no server verdict
+      to respect, so the receipt goes onto the device rather than being lost — which is
+      the whole point of taking the dock offline.
+    */
+    return queue();
+  }
+
+  /*
+    A server that answered is obeyed, even when the answer is no.
+
+    Queueing a refusal would be worse than failing outright: it would tell a storekeeper
+    their receipt is safely waiting when the server has already rejected it, and the
+    truth would surface hours later with the delivery long gone. `serverAnswered` is
+    shared with the sender so the rule for "did anyone answer" exists in one place.
+  */
+  if (error) {
+    if (serverAnswered(error)) throw new Error(friendly(error.code, error.message));
+    return queue();
+  }
 
   const row = (data ?? [])[0];
   // The function always returns a row or raises, so an empty result is not a receipt
   // that quietly did nothing — it means the call did not reach the function it named.
   if (!row) throw new Error("The receipt did not post. Nothing was recorded; try again.");
 
-  return { grnId: row.grn_id, grnNo: row.grn_no };
+  return { status: "POSTED", grnId: row.grn_id, grnNo: row.grn_no };
 }
 
 /**

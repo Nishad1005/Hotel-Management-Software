@@ -32,6 +32,7 @@ const DRAIN_INTERVAL_MS = 60_000;
  */
 export function routeCapture(record: OutboxRecord): SyncTarget | null {
   if (record.type === "TEMPERATURE_READING") return routeTemperatureReading(record);
+  if (record.type === "GRN_POST") return routeGrnPost(record);
   if (record.type !== "GATE_ENTRY") return null;
 
   const p = record.payload as GateEntryPayload;
@@ -97,6 +98,47 @@ function routeTemperatureReading(record: OutboxRecord): SyncTarget {
       idempotency_key: record.idempotencyKey,
     },
   };
+}
+
+/**
+ * A receipt captured at the dock with no network.
+ *
+ * The first capture that is a transaction rather than a row. `post_grn` writes the
+ * receipt, its lines, a batch and lot per line and the movements behind them, and takes
+ * its own document number — so there is nothing here to map onto columns, only the same
+ * arguments the online path sends.
+ *
+ * The submission key is the screen's, minted once when it opened rather than per
+ * attempt. That is what makes a replay return the first attempt's receipt instead of
+ * counting one delivery twice, and it is why this needs no `idempotentOn`: the replay
+ * succeeds outright rather than colliding with a constraint.
+ *
+ * The GRN number is deliberately absent. Unlike a gate entry number — leased to the
+ * device so the guard can write it on the challan before anything syncs (ADR 0005) —
+ * a GRN number is taken inside the transaction. Offline, the receipt genuinely does not
+ * have one yet, and the screen says so rather than showing a number that might not
+ * survive.
+ */
+function routeGrnPost(record: OutboxRecord): SyncTarget {
+  const p = record.payload as GrnPostPayload;
+
+  return {
+    fn: "post_grn",
+    args: {
+      p_property_id: p.propertyId,
+      p_gate_entry_id: p.gateEntryId,
+      p_party_id: p.partyId ?? null,
+      p_idempotency_key: record.idempotencyKey,
+      p_lines: p.lines,
+    },
+  };
+}
+
+interface GrnPostPayload {
+  propertyId?: string;
+  gateEntryId?: string;
+  partyId?: string | null;
+  lines?: unknown[];
 }
 
 interface TemperatureReadingPayload {
