@@ -1,13 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
-import { GOLAI_ROLES, looksLikePhone } from "@golai/domain";
+import { GOLAI_ROLES, looksLikePhone, moduleLabel } from "@golai/domain";
 import type { MembershipRole } from "@golai/db";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Card,
+  Dialog,
   Field,
   FieldError,
+  Loading,
   Notice,
   PrimaryButton,
   Screen,
@@ -16,7 +18,9 @@ import {
   SkeletonList,
   StatusPill,
   Text,
+  Toggle,
 } from "../../components/ui";
+import { listMemberModules, setMemberModule, type MemberModule } from "../../lib/modules";
 import { useSession } from "../../lib/session";
 import { createUser, listTeam, type CreatedUser, type TeamMember } from "../../lib/users";
 import { radius, space, usePalette } from "../../theme";
@@ -43,6 +47,7 @@ export default function Users() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<CreatedUser | null>(null);
+  const [editingAccess, setEditingAccess] = useState<TeamMember | null>(null);
 
   const [fullName, setFullName] = useState("");
   const [identifier, setIdentifier] = useState("");
@@ -213,51 +218,213 @@ export default function Users() {
         ) : (
           <Card padded={false}>
             {team.map((member, index) => (
-              <View
+              <MemberRow
                 key={member.userId}
-                style={{
-                  paddingHorizontal: space.lg,
-                  paddingVertical: space.md,
-                  borderBottomWidth: index < team.length - 1 ? StyleSheet.hairlineWidth : 0,
-                  borderBottomColor: p.border,
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text lines={1} weight="semibold" style={{ flex: 1 }}>
-                    {member.fullName}
-                    {member.isSelf ? (
-                      <Text role="caption" tone="muted">
-                        {" "}
-                        · you
-                      </Text>
-                    ) : null}
-                  </Text>
-                </View>
-                <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
-                  {member.phone ?? member.email ?? "No sign-in identifier"}
-                </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    gap: space.xs,
-                    marginTop: space.sm,
-                  }}
-                >
-                  {member.roles.map((r) => (
-                    <StatusPill
-                      key={r}
-                      label={ROLE_LABEL[r]}
-                      tone={r === "SECURITY" ? "warn" : "neutral"}
-                    />
-                  ))}
-                </View>
-              </View>
+                member={member}
+                divider={index < team.length - 1}
+                onPress={
+                  canEditMasters && !member.isSelf ? () => setEditingAccess(member) : undefined
+                }
+              />
             ))}
           </Card>
         )}
       </Section>
+
+      <AccessDialog
+        member={editingAccess}
+        propertyId={activeProperty?.propertyId ?? null}
+        onClose={() => setEditingAccess(null)}
+      />
     </Screen>
+  );
+}
+
+function MemberRow({
+  member,
+  divider,
+  onPress,
+}: {
+  member: TeamMember;
+  divider: boolean;
+  onPress?: (() => void) | undefined;
+}) {
+  const p = usePalette();
+
+  const body = (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Text lines={1} weight="semibold" style={{ flex: 1 }}>
+          {member.fullName}
+          {member.isSelf ? (
+            <Text role="caption" tone="muted">
+              {" "}
+              · you
+            </Text>
+          ) : null}
+        </Text>
+        {onPress ? <Ionicons name="chevron-forward" size={18} color={p.textFaint} /> : null}
+      </View>
+      <Text lines={1} role="caption" tone="muted" style={{ marginTop: 1 }}>
+        {member.phone ?? member.email ?? "No sign-in identifier"}
+      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: space.xs,
+          marginTop: space.sm,
+        }}
+      >
+        {member.roles.map((r) => (
+          <StatusPill key={r} label={ROLE_LABEL[r]} tone={r === "SECURITY" ? "warn" : "neutral"} />
+        ))}
+      </View>
+    </>
+  );
+
+  const base: ViewStyle = {
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
+    borderBottomColor: p.border,
+  };
+
+  if (!onPress) return <View style={base}>{body}</View>;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Change what ${member.fullName} can reach`}
+      style={({ pressed, hovered }) =>
+        ({
+          ...base,
+          backgroundColor: pressed ? p.border : hovered ? p.surfaceSunken : "transparent",
+          cursor: "pointer",
+        }) as ViewStyle
+      }
+    >
+      {body}
+    </Pressable>
+  );
+}
+
+/**
+ * What one person may reach.
+ *
+ * Narrowing only, and the dialog says so. A switch that is off takes a module away; a
+ * switch that is on means "not restricted", which is not the same as granted — their
+ * role still has to carry the job, and the server checks that separately. Offering a
+ * toggle that appeared to grant something it could not is how golaiv1 ended up showing
+ * people screens that then refused them.
+ *
+ * A module the property does not hold is shown off and cannot be switched on here: it
+ * is not this administrator's to give.
+ */
+function AccessDialog({
+  member,
+  propertyId,
+  onClose,
+}: {
+  member: TeamMember | null;
+  propertyId: string | null;
+  onClose: () => void;
+}) {
+  const [rows, setRows] = useState<MemberModule[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!propertyId || !member) return;
+    setLoading(true);
+    try {
+      const all = await listMemberModules(propertyId);
+      setRows(all.filter((r) => r.userId === member.userId));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [propertyId, member]);
+
+  // Keyed on the subject rather than run in an effect: the dialog stays mounted, so an
+  // effect would refetch on every render while the administrator is still deciding.
+  if (member !== null && member.userId !== loadedFor) {
+    setLoadedFor(member.userId);
+    setRows([]);
+    setError(null);
+    void load();
+  }
+
+  async function change(row: MemberModule, next: boolean) {
+    if (!propertyId || !member) return;
+    setBusyKey(row.moduleKey);
+    setError(null);
+    try {
+      // Switching back on clears the exception rather than writing `true`: their role
+      // decides from then on, which is what "not restricted" actually means.
+      await setMemberModule(propertyId, member.userId, row.moduleKey, next ? null : false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
+  const restricted = rows.filter((r) => r.isOverride && !r.allowed).length;
+
+  return (
+    <Dialog
+      visible={member !== null}
+      title={member ? `What ${member.fullName} can reach` : ""}
+      onClose={onClose}
+      footer={<PrimaryButton label="Done" icon="checkmark" onPress={onClose} />}
+    >
+      {member ? (
+        <>
+          <Text tone="muted" style={{ marginBottom: space.md }}>
+            Switching one off takes it away from {member.fullName} alone. Switching it back on
+            returns them to what their role carries — it does not grant anything extra.
+          </Text>
+
+          {loading ? (
+            <Loading label="Reading their access" />
+          ) : (
+            <Card>
+              {rows.map((row) => (
+                <View key={row.moduleKey} style={{ opacity: busyKey === row.moduleKey ? 0.5 : 1 }}>
+                  <Toggle
+                    label={moduleLabel(row.moduleKey)}
+                    hint={
+                      row.isOverride && !row.allowed
+                        ? "Switched off for them"
+                        : row.allowed
+                          ? "On, from their role"
+                          : "Their role does not carry this, or the property does not hold it"
+                    }
+                    value={row.allowed}
+                    onValueChange={(next) => void change(row, next)}
+                  />
+                </View>
+              ))}
+            </Card>
+          )}
+
+          {restricted > 0 ? (
+            <Text role="caption" tone="muted" style={{ marginTop: space.sm }}>
+              {restricted} switched off for them specifically.
+            </Text>
+          ) : null}
+
+          {error ? <FieldError message={error} /> : null}
+        </>
+      ) : null}
+    </Dialog>
   );
 }
 

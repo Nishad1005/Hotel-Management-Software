@@ -12,7 +12,7 @@
 -- the two-orgs fixture is every other file's job.
 
 begin;
-select plan(18);
+select plan(23);
 
 -- ---------------------------------------------------------------------------
 -- anon holds nothing
@@ -78,6 +78,21 @@ select ok(not has_table_privilege('authenticated', 'public.number_lease', 'INSER
   'leases are written only by lease_document_numbers');
 select ok(not has_table_privilege('authenticated', 'public.rule_config', 'UPDATE'),
   'no client can ratchet an enforcement mode — PRD section 8, no UI to change it');
+
+-- Module access is decided by the platform and by a property's own administrator,
+-- through guarded functions. A client that could write these tables could sell itself
+-- an add-on, or quietly widen its own access — the two failures the whole feature
+-- exists to prevent.
+select ok(not has_table_privilege('authenticated', 'public.module', 'INSERT'),
+  'no client can invent a module');
+select ok(not has_table_privilege('authenticated', 'public.property_module', 'INSERT'),
+  'nor grant its own property one');
+select ok(not has_table_privilege('authenticated', 'public.property_module', 'UPDATE'),
+  'nor switch one back on');
+select ok(not has_table_privilege('authenticated', 'public.member_module', 'INSERT'),
+  'nor write a personal exception directly, bypassing the self-edit refusal');
+select ok(not has_table_privilege('authenticated', 'public.member_module', 'DELETE'),
+  'nor delete one');
 
 select * from finish();
 rollback;

@@ -1,6 +1,7 @@
 import type { Ionicons } from "@expo/vector-icons";
 import type { MembershipRole } from "@golai/db";
-import { capabilitiesForMembership, ROUTE_CAPABILITY } from "./access";
+import type { ModuleAccessMap } from "@golai/domain";
+import { routeAllowed } from "./access";
 
 /**
  * What is in the navigation, and who sees it.
@@ -18,9 +19,14 @@ import { capabilitiesForMembership, ROUTE_CAPABILITY } from "./access";
  * capability table, which is the reason to route through it rather than list the items
  * per role.
  *
- * This is still ergonomics, not security — it runs on the device. The boundary is RLS and
- * the role check inside every write function. What it buys is that nobody is offered a
- * screen that will refuse them at the end of it.
+ * A second filter now sits beside the first: the modules this property holds and this
+ * person has not been narrowed out of. The two are different questions — one is what
+ * the job is, the other is what the customer is paying for — and `routeAllowed` in
+ * `lib/access.ts` is where they meet, so neither is asked twice.
+ *
+ * This is still ergonomics, not security — it runs on the device. The boundary is RLS,
+ * the role check inside every write function, and `app.has_module_access` beside it.
+ * What it buys is that nobody is offered a screen that will refuse them at the end of it.
  */
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -167,19 +173,16 @@ const PLATFORM: NavGroup = {
 export function navigationFor(
   roles: readonly MembershipRole[],
   isPlatformAdmin: boolean,
+  modules: ModuleAccessMap,
 ): NavGroup[] {
-  const granted = capabilitiesForMembership(roles);
-
   const groups = GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => {
+    items: group.items.filter((item) =>
       // A hub is worth showing when any one of the screens behind it is.
-      if (item.covers) return item.covers.some((seg) => granted.has(ROUTE_CAPABILITY[seg]!));
-      const needed = ROUTE_CAPABILITY[item.segment];
-      // No entry means the route is open to anyone signed in — the home screen. Absence
-      // is deliberate rather than an oversight, so it is treated as such.
-      return needed === undefined || granted.has(needed);
-    }),
+      item.covers
+        ? item.covers.some((seg) => routeAllowed(seg, roles, modules))
+        : routeAllowed(item.segment, roles, modules),
+    ),
   })).filter((group) => group.items.length > 0);
 
   return isPlatformAdmin ? [...groups, PLATFORM] : groups;

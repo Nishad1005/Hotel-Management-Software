@@ -5,8 +5,10 @@ import { useCallback, useMemo, useState } from "react";
 import { View } from "react-native";
 import {
   Card,
+  CloseButton,
   Field,
   FieldError,
+  Loading,
   Notice,
   PrimaryButton,
   Screen,
@@ -15,7 +17,14 @@ import {
   StatTile,
   StatusPill,
   Text,
+  Toggle,
 } from "../../components/ui";
+import {
+  listPropertyModules,
+  resetPropertyModule,
+  setPropertyModule,
+  type PropertyModule,
+} from "../../lib/modules";
 import {
   listTenants,
   provisionTenant,
@@ -291,7 +300,129 @@ function TenantCard({
             was created.
           </Text>
         ) : null}
+
+        <View style={{ marginTop: space.md }}>
+          <ModulePanel propertyId={tenant.propertyId} propertyName={tenant.propertyName} />
+        </View>
       </Card>
+    </View>
+  );
+}
+
+/**
+ * What this customer holds.
+ *
+ * Collapsed by default: the console's job is onboarding, and eleven switches opened on
+ * every card would bury it. Loaded only when opened, so a page of twenty customers is
+ * still one query.
+ */
+function ModulePanel({ propertyId, propertyName }: { propertyId: string; propertyName: string }) {
+  const [open, setOpen] = useState(false);
+  const [modules, setModules] = useState<PropertyModule[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setModules(await listPropertyModules(propertyId));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [propertyId]);
+
+  async function change(m: PropertyModule, next: boolean) {
+    setBusy(m.moduleKey);
+    setError(null);
+    try {
+      // Switching a module back to what it would be anyway removes the explicit row
+      // rather than writing the same answer twice — so "set" on the card always means
+      // somebody decided this, and the note beside it is theirs.
+      const isDefault = next === !m.requiresLicence;
+      if (isDefault && m.isExplicit) await resetPropertyModule(propertyId, m.moduleKey);
+      else await setPropertyModule(propertyId, m.moduleKey, next, null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!open) {
+    return (
+      <PrimaryButton
+        label="What they hold"
+        icon="cube-outline"
+        tone="neutral"
+        onPress={() => {
+          setOpen(true);
+          void load();
+        }}
+      />
+    );
+  }
+
+  const off = modules.filter((m) => !m.enabled).length;
+
+  return (
+    <View>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: space.xs,
+        }}
+      >
+        <Text role="overline" tone="muted">
+          What they hold
+        </Text>
+        <CloseButton onPress={() => setOpen(false)} />
+      </View>
+
+      <Text role="caption" tone="muted" style={{ marginBottom: space.sm }}>
+        Turning one off removes it for everyone at {propertyName} — their own administrator cannot
+        switch it back on.
+      </Text>
+
+      {loading ? (
+        <Loading label="Reading what they hold" />
+      ) : (
+        <>
+          {modules.map((m) => (
+            <View key={m.moduleKey} style={{ opacity: busy === m.moduleKey ? 0.5 : 1 }}>
+              <Toggle
+                label={m.label}
+                hint={
+                  m.requiresLicence
+                    ? m.isExplicit
+                      ? `Add-on · ${m.note ?? "sold to them"}`
+                      : "Add-on — off until it is sold"
+                    : m.isExplicit
+                      ? `Set by us${m.note ? ` · ${m.note}` : ""}`
+                      : "On, as it is for everyone"
+                }
+                value={m.enabled}
+                onValueChange={(next) => void change(m, next)}
+              />
+            </View>
+          ))}
+
+          {off > 0 ? (
+            <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
+              {off} switched off. Their staff will not see those screens, and the server refuses the
+              work behind them.
+            </Text>
+          ) : null}
+        </>
+      )}
+
+      {error ? <FieldError message={error} /> : null}
     </View>
   );
 }
