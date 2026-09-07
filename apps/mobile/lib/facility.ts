@@ -37,15 +37,18 @@ export interface FacilityPin {
 }
 
 export const FACILITY_PINS: FacilityPin[] = [
-  { key: "SEC", label: "Security gate", x: 29.8, y: 19.8 },
-  { key: "T1_RCV", label: "Receiving bay", x: 39.9, y: 30.2 },
-  { key: "CHILL", label: "Cold room", x: 57.2, y: 30.6, locationSuffix: "CHILL" },
-  { key: "FREEZE", label: "Freezer", x: 46.9, y: 43.5, locationSuffix: "FREEZE" },
-  { key: "T2_DSP", label: "Dispatch", x: 69.2, y: 74.2 },
+  { key: "SEC", label: "Security gate", x: 26.6, y: 32.0 },
+  { key: "T1_RCV", label: "Receiving bay", x: 43.3, y: 41.3 },
+  { key: "CHILL", label: "Cold room", x: 62.1, y: 48.7, locationSuffix: "CHILL" },
+  { key: "FREEZE", label: "Freezer", x: 51.4, y: 58.3, locationSuffix: "FREEZE" },
+  { key: "T2_DSP", label: "Dispatch", x: 63.6, y: 71.0 },
 ];
 
 /**
- * The drawing's aspect, so the board reserves the right height before the image loads.
+ * The drawing's aspect. **Must match the asset**, and is not merely cosmetic: the board
+ * sizes its container by this and the pins are placed as percentages of that container,
+ * so an aspect that disagrees with the image puts every pin beside the zone it names.
+ * Swapping the schematic means updating this line as well as the anchors above.
  *
  * Wide and shallow on purpose: at 16:9 the block stood 840px tall on a laptop and
  * pushed every metric tile below the fold, which inverted the page — the schematic

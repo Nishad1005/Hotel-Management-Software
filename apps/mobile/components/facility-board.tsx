@@ -114,10 +114,24 @@ export function FacilityBoard({
         not jump down the page when it arrives.
       */}
       <View style={{ width: "100%", aspectRatio: FACILITY_ASPECT }}>
+        {/*
+          Explicitly sized, and `contain` rather than `cover`, for two separate reasons.
+
+          `StyleSheet.absoluteFill` alone left the <img> at its natural 1800px on web —
+          it kept its intrinsic width, overflowed the card, and the card's `overflow:
+          hidden` cropped the dry store and dispatch off the right-hand edge.
+
+          `contain` because the pins are positioned as percentages of THIS container, so
+          the artwork has to occupy exactly the container box or every pin drifts off the
+          zone it names. With the container's aspect tied to the asset (FACILITY_ASPECT)
+          contain fits precisely; if a swapped-in drawing has a different aspect it
+          letterboxes, which is visible and fixable, where cover would silently crop
+          zones out from under their own pins.
+        */}
         <Image
           source={SCHEMATIC}
-          resizeMode="cover"
-          style={StyleSheet.absoluteFill as never}
+          resizeMode="contain"
+          style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
           accessibilityLabel="Plan of the property: security gate, receiving bay, cold room, freezer, dry store and dispatch"
         />
 
@@ -132,8 +146,8 @@ export function FacilityBoard({
                 top: `${pin.y}%`,
                 // Pulls the pin's own centre onto the anchor rather than its top-left,
                 // so a re-drawn schematic's anchors mean the middle of a zone.
-                transform: [{ translateX: -62 }, { translateY: -22 }],
-                width: 124,
+                transform: [{ translateX: -54 }, { translateY: -22 }],
+                width: 108,
                 alignItems: "center",
               }}
             >
@@ -146,7 +160,7 @@ export function FacilityBoard({
                   paddingHorizontal: space.sm,
                   paddingVertical: space.xs,
                   alignItems: "center",
-                  minWidth: 96,
+                  minWidth: 88,
                 }}
               >
                 <Text role="overline" style={{ color: p.brass }} lines={1}>
