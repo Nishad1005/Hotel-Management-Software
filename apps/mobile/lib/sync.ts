@@ -33,6 +33,7 @@ const DRAIN_INTERVAL_MS = 60_000;
 export function routeCapture(record: OutboxRecord): SyncTarget | null {
   if (record.type === "TEMPERATURE_READING") return routeTemperatureReading(record);
   if (record.type === "GRN_POST") return routeGrnPost(record);
+  if (record.type === "ISSUE_STOCK") return routeIssueStock(record);
   if (record.type !== "GATE_ENTRY") return null;
 
   const p = record.payload as GateEntryPayload;
@@ -138,6 +139,44 @@ interface GrnPostPayload {
   propertyId?: string;
   gateEntryId?: string;
   partyId?: string | null;
+  lines?: unknown[];
+}
+
+/**
+ * Stock going out to a department, captured with no network.
+ *
+ * The one capture here that can legitimately be refused when it finally reaches the
+ * server. A receipt is an append and lands whatever else happened; an issue takes stock
+ * that another device may have taken first, and `issue_stock` will say so — "Only 4
+ * available on TEST-RICE" — as a `23514`, which the sender parks for a human rather
+ * than retrying against a store that is not going to refill.
+ *
+ * That is the correct outcome and the reason the screen says "confirmed when it syncs"
+ * instead of claiming the stock has gone. Two storekeepers issuing the same lot during
+ * the same outage is a real event on a property with one cold room and two shifts, and
+ * the system's job is to notice it, not to pretend the ledger can absorb it.
+ */
+function routeIssueStock(record: OutboxRecord): SyncTarget {
+  const p = record.payload as IssueStockPayload;
+
+  return {
+    fn: "issue_stock",
+    args: {
+      p_property_id: p.propertyId,
+      p_department_id: p.departmentId,
+      p_receiver_name: p.receiverName,
+      p_purpose: p.purpose ?? null,
+      p_idempotency_key: record.idempotencyKey,
+      p_lines: p.lines,
+    },
+  };
+}
+
+interface IssueStockPayload {
+  propertyId?: string;
+  departmentId?: string;
+  receiverName?: string;
+  purpose?: string | null;
   lines?: unknown[];
 }
 
