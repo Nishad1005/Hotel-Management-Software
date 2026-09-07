@@ -12,7 +12,7 @@
 -- the two-orgs fixture is every other file's job.
 
 begin;
-select plan(23);
+select plan(24);
 
 -- ---------------------------------------------------------------------------
 -- anon holds nothing
@@ -24,6 +24,25 @@ select is(
   0,
   'anon holds not a single privilege on a public table — RLS is the wall, not the only wall'
 );
+
+-- The assertion above passed for a month while the mechanism meant to keep it true did
+-- nothing: 20260906023229's `alter default privileges` had no `IN SCHEMA`, so it wrote a
+-- row Postgres never consults, and the first three tables added afterwards were born
+-- with grants for anon. Sweeping existing tables had masked it.
+--
+-- So this asks the question the other way round, of a table that does not exist yet.
+-- A real one, created and dropped inside this transaction, because the catalogue can be
+-- read wrongly and behaviour cannot.
+create table public.privilege_default_probe (id integer);
+
+select is(
+  (select count(*)::int from information_schema.role_table_grants
+    where grantee = 'anon' and table_name = 'privilege_default_probe'),
+  0,
+  'and a brand-new table hands anon nothing — the property the sweep alone could never prove'
+);
+
+drop table public.privilege_default_probe;
 
 -- ---------------------------------------------------------------------------
 -- Append-only means no verb exists, not just no policy
