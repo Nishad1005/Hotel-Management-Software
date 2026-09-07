@@ -10,13 +10,17 @@ import {
   SkeletonTiles,
   StatGrid,
   StatTile,
+  Text,
 } from "../components/ui";
 import type { Capability } from "@golai/domain";
 import { memberCan } from "../lib/access";
+import { FacilityBoard } from "../components/facility-board";
 import { onOutboxChange, outbox } from "../lib/outbox";
 import { loadOverview, type PropertyOverview } from "../lib/overview";
+import { useIsExpanded } from "../lib/responsive";
 import { useSession } from "../lib/session";
-import { space } from "../theme";
+import { listStorageReadings, type StorageReading } from "../lib/temperature";
+import { radius, space, usePalette } from "../theme";
 
 interface StartAction {
   capability: Capability;
@@ -56,7 +60,9 @@ export default function Home() {
   const [pending, setPending] = useState(0);
   const [blocked, setBlocked] = useState(0);
   const [overview, setOverview] = useState<PropertyOverview | null>(null);
+  const [readings, setReadings] = useState<StorageReading[]>([]);
   const [loading, setLoading] = useState(true);
+  const expanded = useIsExpanded();
 
   const propertyId = activeProperty?.propertyId ?? null;
 
@@ -83,6 +89,29 @@ export default function Home() {
           if (alive) setOverview(null);
         } finally {
           if (alive) setLoading(false);
+        }
+      })();
+
+      /*
+        The cold-chain pins, fetched apart from the overview so one failing does not
+        blank the other. A property with no rounds walked yet returns nothing, and the
+        pins say "No reading yet" rather than showing a number nobody recorded.
+
+        Seven days, not the thirty-six hours this started at. A short window looked
+        tidier and quietly turned "nobody has walked the round since Friday" into "no
+        reading yet" — which reads as a system that has never been used rather than a
+        round that has been missed, and those are opposite facts to a manager. The
+        reading is shown however old it is, dated (see `when`), and staleness becomes
+        something the reader can see instead of something the query hides.
+      */
+      void (async () => {
+        if (!propertyId) return;
+        try {
+          const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const rows = await listStorageReadings(propertyId, since);
+          if (alive) setReadings(rows);
+        } catch {
+          if (alive) setReadings([]);
         }
       })();
 
@@ -175,6 +204,24 @@ export default function Home() {
         </>
       ) : (
         <>
+          {/*
+            The property, drawn, with what is happening on it.
+
+            Placed above the tiles because it answers a different question: the tiles say
+            how many, this says where. Only on wide viewports — at 430px the plates are
+            too small to read and the pins would overlap into nonsense, and a phone opens
+            this app to do a job rather than to survey one.
+          */}
+          {expanded ? (
+            <View style={{ marginBottom: space.xl }}>
+              <FacilityBoard
+                overview={overview}
+                readings={readings}
+                propertyCode={activeProperty?.propertyCode ?? ""}
+              />
+            </View>
+          ) : null}
+
           {/*
             Two sections, and the split is the point.
 
@@ -296,8 +343,83 @@ export default function Home() {
               />
             </StatGrid>
           </Section>
+
+          {/*
+            The cold chain, on the dark card the design system reserves for it.
+
+            Only when a round has actually been walked. An empty panel headed "Cold
+            chain" invites the reading that the rooms are fine, when what it means is
+            that nobody has looked — and that is the one misreading this register exists
+            to prevent. Silence here sends people to the Temperature round screen, which
+            has its own empty state saying what to do.
+          */}
+          {readings.length > 0 ? (
+            <ColdChainPanel readings={readings} onPress={() => router.push("/registers")} />
+          ) : null}
         </>
       )}
     </Screen>
+  );
+}
+
+/**
+ * Latest reading per cold unit, newest first.
+ *
+ * No thresholds and no verdict: `temperature_reading` records what the thermometer said
+ * and the enforcement mode for cold-chain rules ships at RECORD_ONLY (PRD section 8), so
+ * a panel that coloured −12° red would be asserting a rule the system does not hold.
+ * Witness before you enforce.
+ */
+function ColdChainPanel({
+  readings,
+  onPress,
+}: {
+  readings: StorageReading[];
+  onPress: () => void;
+}) {
+  const p = usePalette();
+
+  const latest = new Map<string, StorageReading>();
+  for (const r of readings) if (!latest.has(r.locationId)) latest.set(r.locationId, r);
+  const rows = [...latest.values()];
+
+  return (
+    <View
+      style={{
+        backgroundColor: p.brand,
+        borderRadius: radius.lg,
+        padding: space.lg,
+        marginBottom: space.xl,
+      }}
+    >
+      <Text role="overline" style={{ color: p.brassOnBrand, marginBottom: space.md }}>
+        Cold chain · last round
+      </Text>
+
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xl }}>
+        {rows.map((r) => (
+          <View key={r.locationId} style={{ minWidth: 140 }}>
+            <Text role="display" tone="onBrand" numeric>
+              {r.temperatureC}°
+            </Text>
+            <Text role="label" tone="onBrand" lines={1} style={{ marginTop: space.xxs }}>
+              {r.locationName}
+            </Text>
+            <Text role="caption" tone="onBrandMuted" lines={1}>
+              {new Date(r.recordedAt).toLocaleString([], {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={{ marginTop: space.lg, alignSelf: "flex-start" }}>
+        <PrimaryButton label="Open the register" tone="neutral" onPress={onPress} />
+      </View>
+    </View>
   );
 }
