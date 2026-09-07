@@ -31,11 +31,23 @@ export interface StockLine {
 export async function listStockOnHand(): Promise<StockLine[]> {
   const { data, error } = await requireSupabase()
     .from("stock_lot")
+    /*
+      Embeds name the TARGET TABLE, not the foreign-key column.
+
+      `location:location_id(...)` had been failing in production with PGRST200 since
+      `20260812102424_fix_composite_tenant_keys` — that migration dropped every
+      single-column foreign key and replaced it with a composite
+      `(property_id, <col>)`, and PostgREST resolves a column-name embed by looking for
+      a foreign key on that one column. There is no longer one, so this whole screen
+      returned an error instead of stock. It is typed, it compiles, and it had been
+      broken for a month: the shape of a PostgREST select is a string the compiler
+      cannot check.
+    */
     .select(
       `qty, state, location_id,
-       location:location_id(code),
-       batch:batch_id(id, batch_no, is_system_generated, best_before, shelf_life_total_days,
-                      item:item_id(id, name, code, base_uom_id, uom:base_uom_id(id, code)))`,
+       location:location(code),
+       batch:batch(id, batch_no, is_system_generated, best_before, shelf_life_total_days,
+                   item:item(id, name, code, base_uom_id, uom:uom(id, code)))`,
     )
     .gt("qty", 0)
     .limit(500);
