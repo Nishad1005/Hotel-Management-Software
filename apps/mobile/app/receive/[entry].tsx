@@ -706,10 +706,20 @@ function PostedPanel({
   lineCount: number;
   onDone: () => void;
 }) {
+  /*
+    A queued receipt has no number yet, and the panel says so rather than inventing one.
+
+    A gate entry can show its number offline because the device holds a leased block of
+    them (ADR 0005). A GRN number is taken inside the transaction that posts it, so
+    until this reaches the server the number genuinely does not exist. Printing a
+    placeholder that looked like a number is how one ends up written on a challan.
+  */
+  const queued = receipt.status === "QUEUED";
+
   return (
     <Result
-      eyebrow="Goods receipt posted"
-      value={receipt.grnNo}
+      eyebrow={queued ? "Receipt saved on this device" : "Goods receipt posted"}
+      value={queued ? "Waiting for a signal" : receipt.grnNo}
       actions={
         <>
           <PrimaryButton
@@ -719,8 +729,9 @@ function PostedPanel({
             onPress={onDone}
           />
           <Text role="caption" tone="muted" align="center" style={{ marginTop: space.lg }}>
-            This receipt cannot be edited. A correction is a fresh receipt that supersedes it,
-            carrying a reason and the name of whoever authorised it.
+            {queued
+              ? "The count is recorded and nothing is lost. It posts itself when the network returns, and takes its receipt number then."
+              : "This receipt cannot be edited. A correction is a fresh receipt that supersedes it, carrying a reason and the name of whoever authorised it."}
           </Text>
         </>
       }
