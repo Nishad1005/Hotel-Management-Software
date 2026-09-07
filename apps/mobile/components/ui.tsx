@@ -1430,6 +1430,22 @@ export function Toggle({
         disabled={disabled ?? false}
         accessibilityLabel={label}
         trackColor={{ true: p.accent, false: p.borderStrong }}
+        /*
+          The thumb has to be named too, and twice.
+
+          Left unset, react-native-web falls back to its own Material default — a bright
+          teal belonging to no palette in this app, sitting on a forest track. Nothing in
+          our source ever contained that colour, which is why a grep for stray hexes
+          swept clean while the screen was still wrong; it only appears on screen.
+
+          `thumbColor` covers the off state. The on state is a separate RNW-only prop,
+          `activeThumbColor`, which is not in React Native's types and is what actually
+          carries the teal — setting only `thumbColor` changed nothing visible. Spread
+          through a cast for the same reason the ARIA props above are.
+        */
+        thumbColor={p.surface}
+        ios_backgroundColor={p.borderStrong}
+        {...({ activeThumbColor: p.surface } as object)}
       />
     </View>
   );
