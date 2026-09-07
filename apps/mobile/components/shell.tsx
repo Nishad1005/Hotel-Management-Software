@@ -45,6 +45,8 @@ import { IconButton, SCRIM, Text } from "./ui";
 const SIDEBAR_WIDTH = 264;
 const DRAWER_WIDTH = 288;
 const TOPBAR_HEIGHT = 56;
+/** The brass bar beside the active row. Thin enough to read as an edge, not a block. */
+const INDICATOR_WIDTH = 3;
 
 /**
  * Overlays on the brand band, not palette entries.
@@ -56,6 +58,31 @@ const TOPBAR_HEIGHT = 56;
  */
 const NAV_HOVER = "rgba(255, 255, 255, 0.08)";
 const NAV_DIVIDER = "rgba(255, 255, 255, 0.12)";
+/** The active row's fill. Decoration — see `NavRow` for what actually carries the state. */
+const NAV_ACTIVE = "rgba(255, 255, 255, 0.10)";
+/**
+ * An inactive label: linen at 60%, which lands at 6.68:1 on the rail — quieter than the
+ * active row's 16.79:1 and still comfortably above AA. Written as an overlay rather than
+ * as row-level `opacity` so that fading the label never also fades the focus ring.
+ */
+const NAV_INACTIVE = "rgba(250, 249, 245, 0.6)";
+
+/**
+ * The rail's edge.
+ *
+ * The design system asks for `2px 0 30px rgba(8, 28, 21, 0.35)` — a deep lateral drop that
+ * separates navigation from the data beside it. `zIndex` is what makes it visible at all:
+ * without it the content pane, later in the tree, paints over the shadow it is supposed to
+ * be receiving.
+ */
+const RAIL_SHADOW = {
+  shadowColor: "#081C15",
+  shadowOffset: { width: 2, height: 0 },
+  shadowOpacity: 0.35,
+  shadowRadius: 30,
+  elevation: 16,
+  zIndex: 1,
+} as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { activeProperty, isPlatformAdmin } = useSession();
@@ -85,7 +112,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (expanded) {
     return (
       <View style={{ flex: 1, flexDirection: "row", backgroundColor: p.brand }}>
-        <View style={{ width: SIDEBAR_WIDTH, paddingTop: insets.top }}>
+        <View
+          style={{
+            width: SIDEBAR_WIDTH,
+            paddingTop: insets.top,
+            backgroundColor: p.brand,
+            ...RAIL_SHADOW,
+          }}
+        >
           <SidebarBody groups={groups} current={current} />
         </View>
         {/*
@@ -260,7 +294,7 @@ function SidebarBody({
         }}
       >
         <View style={{ flex: 1 }}>
-          <Wordmark />
+          <Wordmark line />
         </View>
         {/*
           Escape and a tap on the scrim both close this, and neither is discoverable with a
@@ -318,10 +352,17 @@ function SidebarBody({
             style={{ marginTop: index === 0 ? 0 : space.lg }}
           >
             {group.title ? (
+              // Brass, at 7.2:1 on the rail. The design system puts its section flags in
+              // "brass or muted forest tones to impart structured estate discipline", and
+              // brass is what distinguishes a heading from the muted rows beneath it —
+              // muted-on-muted would have made the flag look like another destination.
               <Text
                 role="overline"
-                tone="onBrandMuted"
-                style={{ paddingHorizontal: space.md, paddingBottom: space.xs }}
+                style={{
+                  color: p.brassOnBrand,
+                  paddingHorizontal: space.md,
+                  paddingBottom: space.xs,
+                }}
               >
                 {group.title}
               </Text>
@@ -394,11 +435,30 @@ function SidebarBody({
   );
 }
 
-function Wordmark() {
+/**
+ * The wordmark, set in the serif.
+ *
+ * `title` rather than `heading`, because `heading` is sans — the serif stops at `title`
+ * (brief §8, amendment B), and this is the one place in the chrome that should carry the
+ * editorial voice.
+ *
+ * The product line is opt-in rather than always drawn: this component also sits in the
+ * 56px phone top bar, where a second line has nowhere to go. It says what the product
+ * does rather than inventing a tagline — the Stitch export's own strapline is fictional
+ * (guardrail 6), and "Material flow control" is what the PRD has called this all along.
+ */
+function Wordmark({ line = false }: { line?: boolean }) {
   return (
-    <Text role="heading" tone="onBrand" weight="heavy" style={{ letterSpacing: 1.2 }}>
-      PARGOLAI
-    </Text>
+    <View>
+      <Text role="title" tone="onBrand" style={{ letterSpacing: 1.5 }}>
+        PARGOLAI
+      </Text>
+      {line ? (
+        <Text role="overline" style={{ color: NAV_INACTIVE, marginTop: 2 }}>
+          Material flow control
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -566,27 +626,58 @@ function NavRow({
         ({
           minHeight: touch.desk,
           marginHorizontal: space.sm,
-          paddingHorizontal: space.sm,
+          // Room for the indicator, so the label does not shift by 3px when a row
+          // becomes active — the bar is drawn inside this padding, not added to the row.
+          paddingLeft: space.sm + INDICATOR_WIDTH,
+          paddingRight: space.sm,
           borderRadius: radius.md,
           flexDirection: "row",
           alignItems: "center",
           gap: space.sm,
-          backgroundColor: active ? p.accent : pressed || hovered ? NAV_HOVER : "transparent",
+          /*
+            A fill cannot carry "active" here, and this is the one place Phase 1's palette
+            genuinely broke something. The old accent was terracotta, which blazed against
+            the dark rail; the new one is forest-800, which measures **1.12:1** against the
+            forest-900 it would sit on — the active row simply disappeared. Nor is there a
+            darker or lighter fill that would work: 12% white reaches 1.41:1.
+
+            So the state is carried by the brass bar, the brass icon and the full-strength
+            label, all of which are 7:1 or better. This fill is only texture.
+          */
+          backgroundColor: active ? NAV_ACTIVE : pressed || hovered ? NAV_HOVER : "transparent",
           borderWidth: focused ? 2 : 0,
-          // Cream, not `p.focus`: the rows stand on the brand band, where the dark ring
-          // measures 2.88:1 and this measures 14.42:1.
+          // Cream, not `p.focus`: the rows stand on the brand band, where the brass ring
+          // measures 1.7:1 against forest and this measures 16.79:1. The one control in
+          // the app whose focus ring is not brass, for the same reason the palette gives
+          // brass three values — the ground decides.
           borderColor: p.onBrand,
           cursor: "pointer",
         }) as ViewStyle
       }
     >
-      <Ionicons name={item.icon} size={20} color={active ? p.onAccent : p.onBrandMuted} />
+      {/*
+        The indicator, absolutely positioned so it occupies no layout width and cannot
+        push the icon or label sideways as rows light and unlight.
+      */}
+      {active ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            top: space.sm,
+            bottom: space.sm,
+            width: INDICATOR_WIDTH,
+            borderRadius: INDICATOR_WIDTH,
+            backgroundColor: p.brassOnBrand,
+          }}
+        />
+      ) : null}
+      <Ionicons name={item.icon} size={20} color={active ? p.brassOnBrand : NAV_INACTIVE} />
       <Text
         role="body"
-        tone={active ? "onAccent" : "onBrand"}
         weight={active ? "semibold" : "regular"}
         lines={1}
-        style={{ flex: 1 }}
+        style={{ flex: 1, color: active ? p.onBrand : NAV_INACTIVE }}
       >
         {item.label}
       </Text>
