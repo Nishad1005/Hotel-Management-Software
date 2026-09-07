@@ -1,10 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
-import { ScrollView, View } from "react-native";
+import { ImageBackground, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIsExpanded } from "../lib/responsive";
 import { radius, space, usePalette } from "../theme";
 import { Text } from "./ui";
+
+/**
+ * The hero backdrop.
+ *
+ * One file, replaced by dropping a photograph of the property at the same path — the
+ * swappability contract in brief §6. `require` rather than a URI because the brief also
+ * forbids remote images: the Stitch export's own hero URLs are Google-hosted and expire.
+ */
+const HERO = require("../assets/illustrations/login-hero.png");
 
 /**
  * The frame for the screens you see before you are anybody: sign-in, and the property
@@ -57,20 +66,28 @@ export function AuthLayout({
   if (expanded) {
     return (
       <View style={{ flex: 1, flexDirection: "row", backgroundColor: p.background }}>
-        <View
+        <ImageBackground
+          source={HERO}
+          resizeMode="cover"
+          // The panel's own colour behind the image, so a slow decode or a failed load
+          // shows the brand rather than a white flash against the linen page.
           style={{
             // Not a half-and-half split. The brand panel is a backdrop and the form is the
             // thing you came to use, so the form gets the larger share; 5:7 keeps the
             // panel substantial without it competing.
             flex: 5,
             backgroundColor: p.brand,
-            alignItems: "center",
             justifyContent: "center",
             padding: space.xxxl,
+            // Load-bearing on web. `ImageBackground` renders a real <img> inside its
+            // container, and at `cover` that element keeps its own intrinsic width — so
+            // without this the 1200px source spills across the form column and paints
+            // the panel over two thirds of the page instead of five twelfths.
+            overflow: "hidden",
           }}
         >
           <Brand size="full" />
-        </View>
+        </ImageBackground>
 
         {/* `minWidth: 0` so a long validation message cannot push the panel off screen. */}
         <View
@@ -129,13 +146,21 @@ function Brand({ size }: { size: "full" | "compact" }) {
   const tile = full ? 72 : 52;
 
   return (
-    <View style={{ alignItems: "center" }}>
+    // Left-aligned on the hero, centred on a phone. The reference composition ranges its
+    // hero text from the left edge — centring it over a vignetted backdrop puts the
+    // wordmark in the middle of the arcs and both fight for the same spot.
+    <View style={{ alignItems: full ? "flex-start" : "center", maxWidth: 460 }}>
       <View
         style={{
           width: tile,
           height: tile,
           borderRadius: radius.lg,
           backgroundColor: p.accent,
+          // A brass hairline, per DESIGN.md's icon badges. On the hero the tile is
+          // forest-800 on a forest-900 backdrop — 1.1:1, an invisible square — and the
+          // frame is the whole reason it reads as an object at all.
+          borderWidth: full ? 1 : 0,
+          borderColor: p.brassOnBrand,
           alignItems: "center",
           justifyContent: "center",
         }}
@@ -150,7 +175,7 @@ function Brand({ size }: { size: "full" | "compact" }) {
       <Text
         role="display"
         tone={full ? "onBrand" : "default"}
-        align="center"
+        align={full ? "left" : "center"}
         style={{ marginTop: space.lg, letterSpacing: 1.5 }}
       >
         PARGOLAI
@@ -159,11 +184,35 @@ function Brand({ size }: { size: "full" | "compact" }) {
         role="label"
         tone={full ? "onBrandMuted" : "muted"}
         weight="medium"
-        align="center"
+        align={full ? "left" : "center"}
         style={{ marginTop: space.xs, maxWidth: 260 }}
       >
         Quantity. Movement. Accountability.
       </Text>
+
+      {/*
+        The hero's one claim, and it is the product's actual thesis rather than copy
+        invented for a login screen — CLAUDE.md states it in almost these words, and
+        guardrail 6 rules out the reference's fictional marketing prose. Only on the wide
+        panel: on a phone this space belongs to the keyboard.
+      */}
+      {full ? (
+        <>
+          <View
+            style={{
+              height: StyleSheet.hairlineWidth,
+              width: 88,
+              backgroundColor: p.brassOnBrand,
+              marginTop: space.xxl,
+              marginBottom: space.lg,
+              opacity: 0.7,
+            }}
+          />
+          <Text role="title" tone="onBrand" style={{ lineHeight: 32 }}>
+            The compliance register is a by-product of the work, not a second job.
+          </Text>
+        </>
+      ) : null}
     </View>
   );
 }
