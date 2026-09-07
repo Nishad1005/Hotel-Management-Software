@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"outline-variant":"#c2c8c1","on-tertiary-fixed":"#00210f","sage-700":"#2D4735","forest-900":"#081C15","surface-container-highest":"#e3e2df","on-error":"#ffffff","surface-container-lowest":"#FFFFFF","on-surface-variant":"#424843","on-error-container":"#93000a","on-surface":"#191C1B","brass-300":"#DCB879","champagne":"#E8E3D7","on-secondary-container":"#785a1a","on-secondary-fixed":"#261900","error-container":"#ffdad6","linen-50":"#FAF9F5","on-tertiary-fixed-variant":"#2c4e38","saffron-50":"#FEF7ED","on-primary-fixed":"#052011","on-secondary-fixed-variant":"#5d4201","tertiary":"#001106","on-secondary":"#ffffff","on-primary-container":"#74917b","inverse-surface":"#2f312e","surface":"#FAF9F5","forest-800":"#0D2818","saffron-500":"#C87D28","surface-container":"#F5F2EB","linen-200":"#EDE8DC","brass-600":"#B8860B","on-primary":"#ffffff","forest-600":"#1D4736","brass-400":"#D4AF37","on-tertiary-container":"#6f9379","on-tertiary":"#ffffff","outline":"#A39E93","inverse-primary":"#afceb6","secondary-fixed":"#ffdea5","forest-700":"#143628","surface-tint":"#496551","brass-700":"#9A7B38","sage-500":"#43654E","surface-container-high":"#e9e8e4","secondary-fixed-dim":"#e9c176","on-primary-fixed-variant":"#324d3a","saffron-700":"#9C5914","surface-dim":"#dbdad6","tertiary-fixed-dim":"#aad0b3","linen-100":"#F5F2EB","error":"#ba1a1a","surface-container-low":"#f4f4f0","background":"#faf9f5","on-background":"#1b1c1a","sage-50":"#F2F6F3","primary-container":"#0d2818","secondary-container":"#fed488","tertiary-fixed":"#c5ecce","brass-500":"#C5A059","forest-950":"#061510","primary":"#001106","secondary":"#775a19","surface-variant":"#e3e2df","tertiary-container":"#062916","brass-100":"#F5EEDC","surface-bright":"#faf9f5","primary-fixed":"#cbead1","primary-fixed-dim":"#afceb6","inverse-on-surface":"#f2f1ed"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"pad-xs":"0.5rem","gutter":"1rem","pad-lg":"1.5rem","content-max-w":"1380px","pad-sm":"0.75rem","pad-xl":"2rem","sidebar-w":"264px","sidebar-w-collapsed":"72px","pad-md":"1rem","pad-2xl":"3rem","pad-2xs":"0.25rem"},"fontFamily":{"title-metric":["Playfair Display"],"headline-lg-mobile":["Playfair Display"],"label-caps":["Plus Jakarta Sans"],"display-hero":["Playfair Display"],"headline-lg":["Playfair Display"],"label-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"headline-sm":["Playfair Display"],"body-lg":["Plus Jakarta Sans"],"headline-md":["Playfair Display"],"body-md":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"]},"fontSize":{"title-metric":["42px",{"lineHeight":"46px","letterSpacing":"-0.03em","fontWeight":"600"}],"headline-lg-mobile":["26px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"label-caps":["10.5px",{"lineHeight":"15px","letterSpacing":"0.12em","fontWeight":"600"}],"display-hero":["42px",{"lineHeight":"48px","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-lg":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"15px","fontWeight":"500"}],"label-md":["13px",{"lineHeight":"18px","fontWeight":"600"}],"headline-sm":["19px",{"lineHeight":"24px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-md":["24px",{"lineHeight":"30px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"body-sm":["13px",{"lineHeight":"18px","fontWeight":"400"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-screen w-sidebar-w bg-forest-950 text-linen-50 z-50 flex flex-col justify-between shadow-[2px_0_30px_rgba(8,28,21,0.35)]"><div class="flex flex-col h-full overflow-y-auto"><div class="p-pad-lg flex items-center gap-3"><img alt="Brand logo. - Primary color: #bd4313
+- Font: playfairDisplay
+- Mode: light
+- Roundness: rounded-md
+" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Uf2-1LAwzcgD8mih3JkI9CCkMf0PXQ03mq2f9GzxeTAdi5Y_4JzhKTM84-M__ROrASzaONhtOvg6LB7rda_MDQiP1nHFYe3IXE3Hn87ub__xhghBU7ChoxvzUHX2R5yJEtAQZLq_oHz3W5IQ_W3vKqULHSQpMcE-xwTCS4SYZQY6XXj-_xFN0juKa4purwSx4P-fsiAqkqcZgvKpL-qaXv-FdMqzR3noTu3jF6OSeJwXDcRZdmLkLPxHqN"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-linen-50 tracking-tight leading-none">PARGOLAI</span><span class="font-label-caps text-label-caps uppercase text-brass-400 tracking-widest mt-1">Resort Operating System</span></div></div><div class="px-pad-md mb-4"><div class="flex items-center gap-2 px-3 py-2 bg-forest-900 rounded-full text-linen-50/70 hover:text-linen-50 transition-colors"><span class="material-symbols-outlined text-brass-400 text-sm">search</span><span class="font-body-sm text-body-sm text-linen-50/60">Search flows or manifests...</span></div></div><nav class="flex-1 px-pad-sm space-y-4" data-active-classes="bg-forest-800 text-brass-400 font-semibold rounded-lg"><div class="space-y-1"><div class="px-3 py-1 font-label-caps text-label-caps uppercase tracking-widest text-brass-500/70">MAIN</div><a aria-current="page" class="flex items-center gap-3 px-3 py-2 transition-all bg-forest-800 text-brass-400 font-semibold rounded-lg" data-path="dashboard" href="#"><span class="material-symbols-outlined text-lg text-brass-400">cottage</span><span class="font-label-md text-label-md">Dashboard</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-caps text-label-caps uppercase tracking-widest text-brass-500/70">THE FLOW</div><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="gate-log" href="#"><span class="material-symbols-outlined text-lg text-brass-400">meeting_room</span><span class="font-label-md text-label-md">Gate Log Arrivals</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="dock-intake" href="#"><span class="material-symbols-outlined text-lg text-brass-400">anchor</span><span class="font-label-md text-label-md">Dock Receiving</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="put-away-staging" href="#"><span class="material-symbols-outlined text-lg text-brass-400">warehouse</span><span class="font-label-md text-label-md">Put-Away Staging</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="requisitions" href="#"><span class="material-symbols-outlined text-lg text-brass-400">order_approve</span><span class="font-label-md text-label-md">Issue Requests</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="transfers" href="#"><span class="material-symbols-outlined text-lg text-brass-400">local_shipping</span><span class="font-label-md text-label-md">Send-Out Transfers</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="gate-pass" href="#"><span class="material-symbols-outlined text-lg text-brass-400">passkey</span><span class="font-label-md text-label-md">Gate Out Pass</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-caps text-label-caps uppercase tracking-widest text-brass-500/70">STOCK</div><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="inventory-catalog" href="#"><span class="material-symbols-outlined text-lg text-brass-400">inventory_2</span><span class="font-label-md text-label-md">In The Store</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="expiration-watch" href="#"><span class="material-symbols-outlined text-lg text-brass-400">hourglass_top</span><span class="font-label-md text-label-md">Expiring Watch</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="opening-stock" href="#"><span class="material-symbols-outlined text-lg text-brass-400">history_edu</span><span class="font-label-md text-label-md">Opening Stock</span></a></div><div class="space-y-1"><div class="px-3 py-1 font-label-caps text-label-caps uppercase tracking-widest text-brass-500/70">COMPLIANCE</div><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="temperature-haccp" href="#"><span class="material-symbols-outlined text-lg text-brass-400">thermostat</span><span class="font-label-md text-label-md">Temperature HACCP</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="compliance-registers" href="#"><span class="material-symbols-outlined text-lg text-brass-400">verified</span><span class="font-label-md text-label-md">FSSAI &amp; Audits</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="goods-receipts" href="#"><span class="material-symbols-outlined text-lg text-brass-400">receipt_long</span><span class="font-label-md text-label-md">Goods Receipts</span></a><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="returnables" href="#"><span class="material-symbols-outlined text-lg text-brass-400">repeat</span><span class="font-label-md text-label-md">Returnable Kegs &amp; Crates</span></a></div><div class="space-y-1 pb-4"><div class="px-3 py-1 font-label-caps text-label-caps uppercase tracking-widest text-brass-500/70">SYSTEM</div><a class="flex items-center gap-3 px-3 py-2 rounded-lg text-linen-50/75 hover:bg-forest-800 hover:text-linen-50 transition-all" data-path="system-settings" href="#"><span class="material-symbols-outlined text-lg text-brass-400">settings_ethernet</span><span class="font-label-md text-label-md">Setup &amp; Integrations</span></a></div></nav><div class="p-pad-md bg-forest-900 mx-pad-sm mb-4 rounded-xl flex items-center justify-between"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-sage-500 text-sm">lock</span><div class="flex flex-col"><span class="font-label-caps text-label-caps uppercase text-linen-50/90">Direct Line</span><span class="font-label-sm text-label-sm text-sage-500">Encrypted • Active</span></div></div><div class="w-2 h-2 rounded-full bg-sage-500"></div></div></div></aside><div class="pl-sidebar-w"><header class="fixed top-0 left-sidebar-w right-0 h-20 bg-linen-50/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 px-pad-xl flex items-center justify-between"><div class="flex items-center gap-6"><div class="flex items-center gap-2 px-3.5 py-1.5 bg-surface-container rounded-full"><span class="material-symbols-outlined text-brass-600 text-sm">location_on</span><span class="font-label-md text-label-md text-forest-900">The Royal Palm Villa &amp; Spa</span><span class="font-body-sm text-body-sm text-on-surface-variant">•</span><span class="font-body-sm text-body-sm text-on-surface-variant">Bali • T1 Main Dock</span><span class="material-symbols-outlined text-on-surface-variant text-sm ml-1">expand_more</span></div><div class="hidden xl:flex items-center gap-2 px-3 py-1 bg-sage-50 rounded-full"><span class="w-2 h-2 rounded-full bg-sage-500 animate-pulse"></span><span class="font-label-caps text-label-caps text-sage-700 uppercase">DOCK STATUS: 3 ACTIVE BERTHS</span></div><div class="hidden 2xl:flex items-center gap-2 text-on-surface-variant"><span class="material-symbols-outlined text-sm text-brass-500">wb_sunny</span><span class="font-body-sm text-body-sm font-medium">09:42 AM • 28°C Sunny</span></div></div><div class="flex items-center gap-3.5"><button class="flex items-center gap-1.5 px-4 py-2 bg-linen-100 text-forest-900 hover:bg-surface-container-lowest transition-all rounded-full font-label-md text-label-md shadow-[0_1px_4px_rgba(20,54,40,0.04)]" type="button"><span class="material-symbols-outlined text-base text-brass-600">assignment_add</span><span>Record Arrival</span></button><button class="flex items-center gap-1.5 px-4 py-2 bg-forest-900 text-linen-50 hover:bg-forest-800 transition-all rounded-full font-label-md text-label-md shadow-[0_2px_8px_rgba(20,54,40,0.12)]" type="button"><span class="material-symbols-outlined text-base text-brass-400">add</span><span>New Consignment</span></button><div class="relative flex items-center justify-center w-10 h-10 rounded-full bg-linen-100 hover:bg-surface-container-lowest cursor-pointer transition-colors"><span class="material-symbols-outlined text-forest-900 text-xl">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-saffron-500 ring-2 ring-linen-50"></span></div><div class="flex items-center gap-3 pl-3 ml-1"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1VM8LOizLYfQDQcKPwzG5RlaTvvBrx_6xs_XDUfiaMCZMlJq2-ERywfG6SuBi-zj32TNU7tT23drvD047kF5LTgHtqqL4pcyQLiMsmmc7TbqQiJoMh2zQyn7AAgttf6-OH1niX0qE26AdVwJ2StLfJ7BprISMzPGX8Qm4mtLk0peWxjBlRncOtwCBX-WmDRE9fhyg9CKJOmtEWYIZPHqCyMQkBW726wn8HSPd6KEGD_mk6jsDXKjkPUxco"/><div class="flex flex-col text-left"><span class="font-label-md text-label-md text-forest-900 leading-tight">Elena Vance</span><span class="font-label-caps text-label-caps uppercase text-brass-700">General Manager</span></div></div></div></header><main class="relative pt-20 w-full min-h-screen bg-surface px-pad-xl pb-pad-2xl"><div class="max-w-content-max-w mx-auto"><div class="flex flex-col w-full space-y-8">
+<!-- Top Command & Executive Header -->
+<section class="flex flex-col xl:flex-row xl:items-end justify-between gap-6 pb-2">
+<div class="space-y-3">
+<div class="flex flex-wrap items-center gap-2.5">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-forest-900 text-brass-300 font-label-caps text-label-caps uppercase tracking-widest shadow-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-brass-400 animate-pulse"></span>
+          Live Telemetry • 4 Active Bays • All HACCP Safe
+        </span>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-brass-600 text-sm">nest_clock_farsight_analog</span>
+          Shift Window: 06:00 – 14:30 WITA
+        </span>
+</div>
+<div>
+<h1 class="font-headline-lg text-headline-lg text-forest-900 tracking-tight">
+          The Royal Palm Villa &amp; Spa
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">
+          Executive Operations Hub &amp; Purveyor Flow • Morning Logistics Shift • 
+          <span class="text-forest-900 font-medium">Elena Vance</span> (Director of Hospitality Supply)
+        </p>
+</div>
+</div>
+<!-- Quick Action Bar -->
+<div class="flex flex-wrap items-center gap-2.5">
+<button class="group flex items-center gap-2 px-4 py-2.5 bg-forest-900 text-linen-50 hover:bg-forest-800 transition-all rounded-full font-label-md text-label-md shadow-md" type="button">
+<span class="material-symbols-outlined text-brass-400 text-base group-hover:rotate-90 transition-transform">add_circle</span>
+<span>Record Gate Arrival</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-surface-container hover:bg-surface-container-lowest text-forest-900 transition-all rounded-full font-label-md text-label-md shadow-sm" type="button">
+<span class="material-symbols-outlined text-brass-600 text-base">anchor</span>
+<span>Receive Goods (Dock)</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2.5 bg-surface-container hover:bg-surface-container-lowest text-forest-900 transition-all rounded-full font-label-md text-label-md shadow-sm" type="button">
+<span class="material-symbols-outlined text-brass-600 text-base">outbox</span>
+<span>Issue to F&amp;B / Housekeeping</span>
+</button>
+<button class="flex items-center justify-center w-10 h-10 bg-surface-container hover:bg-surface-container-lowest text-forest-900 transition-all rounded-full shadow-sm" title="Export Certified Audit Log" type="button">
+<span class="material-symbols-outlined text-brass-700 text-base">ios_share</span>
+</button>
+</div>
+</section>
+<!-- Architectural Cutaway & Spatial Telemetry Canvas -->
+<section class="bg-surface-container-lowest rounded-xl shadow-sm p-pad-lg lg:p-pad-xl relative overflow-hidden">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-brass-700">Terminal 1 Spatial Infrastructure</span>
+<span class="w-1 h-1 rounded-full bg-outline"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Real-time Node Mesh</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-forest-900">
+          Interactive Terminal 1 Logistics Facility Schematic
+        </h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl">
+          Back-of-house automated sensor network: Cold Storage, Fine Wine Vault, Receiving Bays &amp; Security Gatehouse monitored via high-precision LoRaWAN arrays.
+        </p>
+</div>
+<div class="flex items-center gap-2 self-start lg:self-center">
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container rounded-full text-forest-900 font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-sage-500 animate-ping"></span>
+<span class="font-medium">14 Scanners Synced</span>
+</div>
+<button class="px-3 py-1.5 bg-linen-100 hover:bg-surface-container-high rounded-full font-label-sm text-label-sm text-forest-900 transition-colors" id="togglePillBtn" type="button">
+          Toggle Overlays
+        </button>
+</div>
+</div>
+<!-- Schematic Visual Stage with Overlaid Tactical Chips -->
+<div class="relative w-full rounded-xl overflow-hidden bg-forest-950 shadow-md">
+<img alt="Cutaway 3D architectural diagram of Terminal 1 Logistics Facility" class="w-full h-auto max-h-[520px] object-cover object-center opacity-95 hover:opacity-100 transition-opacity duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4A4irEdT1-V0hG5oK306ay9lKZbtPnd_Y6yUJvoavCgNRLd9i1lIHV5Ik2yfx8xv0zbOSObVod9QkmrLiAGNzxwS4nVFvyTXYpccSHexvnnbNkhgBH3_5wx1TOzOlO3MovhEOTJo_W5OG2KIXm5k0gSivvk9YrtbrpDJjBQ_IRu9_ys076ViTbq9MtfSAbP0GllP-E_lmAvc0tYWQsQ7IOIq0bedSVf7Y_MlCcmu534w_UV6MfKAzzA"/>
+<!-- Gradient Atmosphere Scrims -->
+<div class="absolute inset-0 bg-gradient-to-t from-forest-950/80 via-transparent to-forest-950/20 pointer-events-none"></div>
+<!-- Live Spatial Pins -->
+<div class="transition-opacity duration-300" id="schematicPills">
+<!-- Pin: Bays 1 & 2 -->
+<div class="absolute top-[32%] left-[16%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<span class="absolute w-6 h-6 rounded-full bg-brass-400/40 animate-ping"></span>
+<span class="w-4 h-4 rounded-full bg-brass-400 shadow-lg flex items-center justify-center text-forest-950 text-[9px] font-bold">1</span>
+</div>
+<div class="px-3 py-1.5 rounded-full bg-forest-950/90 text-linen-50 backdrop-blur-md shadow-xl flex items-center gap-2 group-hover:scale-105 transition-transform">
+<span class="w-2 h-2 rounded-full bg-brass-400"></span>
+<span class="font-label-sm text-label-sm text-linen-50">Bay 1–2: Active Offload</span>
+<span class="font-label-caps text-label-caps text-brass-300">Reefer 1.2°C</span>
+</div>
+</div>
+<!-- Pin: Cold Vault -->
+<div class="absolute top-[48%] left-[48%] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2 group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-sage-500 shadow-lg flex items-center justify-center text-linen-50 text-[9px] font-bold">2</span>
+</div>
+<div class="px-3 py-1.5 rounded-full bg-forest-950/90 text-linen-50 backdrop-blur-md shadow-xl flex items-center gap-2 group-hover:scale-105 transition-transform">
+<span class="w-2 h-2 rounded-full bg-sage-500"></span>
+<span class="font-label-sm text-label-sm text-linen-50">Cold Vault: -2.1°C</span>
+<span class="font-label-caps text-label-caps text-sage-500">Optimal</span>
+</div>
+</div>
+<!-- Pin: Sommelier Wine Cellar -->
+<div class="absolute top-[36%] right-[22%] -translate-y-1/2 flex items-center gap-2 group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-brass-400 shadow-lg flex items-center justify-center text-forest-950 text-[9px] font-bold">3</span>
+</div>
+<div class="px-3 py-1.5 rounded-full bg-forest-950/90 text-linen-50 backdrop-blur-md shadow-xl flex items-center gap-2 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-brass-300 text-xs">wine_bar</span>
+<span class="font-label-sm text-label-sm text-linen-50">Sommelier Cellar</span>
+<span class="font-label-caps text-label-caps text-brass-300">+13.2°C • 64% RH</span>
+</div>
+</div>
+<!-- Pin: Gatehouse Security -->
+<div class="absolute bottom-[18%] left-[28%] -translate-x-1/2 flex items-center gap-2 group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<span class="w-4 h-4 rounded-full bg-linen-50 text-forest-950 shadow-lg flex items-center justify-center text-[9px] font-bold">4</span>
+</div>
+<div class="px-3 py-1.5 rounded-full bg-forest-950/90 text-linen-50 backdrop-blur-md shadow-xl flex items-center gap-2 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sage-500 text-xs">verified_user</span>
+<span class="font-label-sm text-label-sm text-linen-50">Security Gate: Clear</span>
+<span class="font-label-caps text-label-caps text-linen-50/70">Transit DK-8821</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Real-Time Metric Telemetry Bar docked underneath -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+<div class="bg-surface-container rounded-lg p-pad-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps uppercase text-brass-700">Total Inward Weight</span>
+<span class="material-symbols-outlined text-sm text-forest-700">scale</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-900">1,480</span>
+<span class="font-label-md text-label-md text-forest-900">kg</span>
+</div>
+<div class="mt-1 flex items-center gap-1.5 font-label-sm text-label-sm text-sage-700">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+<span>+18% vs yesterday</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-pad-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps uppercase text-brass-700">Dwell Time Avg</span>
+<span class="material-symbols-outlined text-sm text-forest-700">timer</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-900">18</span>
+<span class="font-label-md text-label-md text-forest-900">min</span>
+</div>
+<div class="mt-1 flex items-center gap-1.5 font-label-sm text-label-sm text-sage-700">
+<span class="material-symbols-outlined text-xs">speed</span>
+<span>Target &lt; 25m achieved</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-pad-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps uppercase text-brass-700">Scanner Network</span>
+<span class="material-symbols-outlined text-sm text-forest-700">qr_code_scanner</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-900">14</span>
+<span class="font-label-md text-label-md text-forest-900">Active</span>
+</div>
+<div class="mt-1 flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>
+<span>100% Terminal Coverage</span>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-pad-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps uppercase text-brass-700">Shift Intake Target</span>
+<span class="material-symbols-outlined text-sm text-forest-700">donut_large</span>
+</div>
+<div class="mt-2 flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-900">82</span>
+<span class="font-label-md text-label-md text-forest-900">%</span>
+</div>
+<div class="mt-2 w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+<div class="bg-brass-600 h-1.5 rounded-full" style="width: 82%;"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Priority Action Queues & Bottlenecks (3 High-Impact Cards) -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-brass-500"></span>
+<h3 class="font-headline-sm text-headline-sm text-forest-900">Live Logistics Bottlenecks &amp; Gate Flow</h3>
+</div>
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Continuous Sync with Guard Gatehouse &amp; Docks</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Card 1: TO RECEIVE -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col justify-between relative group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-brass-400"></div>
+<div class="p-pad-lg pl-pad-xl space-y-4">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-brass-700">STATION 01</span>
+<h4 class="font-headline-sm text-headline-sm text-forest-900 mt-0.5">To Receive</h4>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-brass-100 text-brass-800 font-label-caps text-label-caps font-semibold">
+              03 Vehicles
+            </span>
+</div>
+<div class="space-y-2 text-body-sm text-on-surface-variant">
+<p class="font-medium text-forest-900">Priority F&amp;B Fresh Consignments</p>
+<p>Bali Oceanic Seafood &amp; Tabanan Organic Farm awaiting dock cold-chain temperature verification &amp; sommelier sensory log.</p>
+</div>
+<div class="p-2.5 bg-surface-container rounded-lg space-y-1">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-forest-900 font-medium">Bay 02: In Progress</span>
+<span class="text-brass-700 font-semibold">74% Done</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1">
+<div class="bg-brass-500 h-1 rounded-full" style="width: 74%"></div>
+</div>
+</div>
+</div>
+<div class="p-pad-md pl-pad-xl bg-surface-container flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-forest-900">Assigned: Inspector K. Artha</span>
+<button class="text-forest-900 hover:text-brass-700 font-label-md text-label-md flex items-center gap-1 transition-colors" type="button">
+<span>Log Inspection</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 2: TO PUT AWAY -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col justify-between relative group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-forest-900"></div>
+<div class="p-pad-lg pl-pad-xl space-y-4">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-forest-700">STATION 02</span>
+<h4 class="font-headline-sm text-headline-sm text-forest-900 mt-0.5">To Put Away</h4>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-sage-50 text-sage-700 font-label-caps text-label-caps font-semibold">
+              04 Batches
+            </span>
+</div>
+<div class="space-y-2 text-body-sm text-on-surface-variant">
+<p class="font-medium text-forest-900">Fine Vault &amp; Linen Reserves</p>
+<p>Fine Bordeaux allocations, Belgian couverture chocolate, and 600-thread Egyptian cotton linen rolls staged in airlock.</p>
+</div>
+<div class="p-2.5 bg-surface-container rounded-lg space-y-1">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-forest-900 font-medium">Staging Dwell Elapsed</span>
+<span class="text-on-surface-variant font-mono">24 min</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1">
+<div class="bg-forest-700 h-1 rounded-full" style="width: 45%"></div>
+</div>
+</div>
+</div>
+<div class="p-pad-md pl-pad-xl bg-surface-container flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-forest-900">Assigned: Vault Lead R. Dharma</span>
+<button class="text-forest-900 hover:text-brass-700 font-label-md text-label-md flex items-center gap-1 transition-colors" type="button">
+<span>Transfer to Bin</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 3: TO GATE OUT -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col justify-between relative group hover:shadow-md transition-shadow">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-saffron-500"></div>
+<div class="p-pad-lg pl-pad-xl space-y-4">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-saffron-700">STATION 03</span>
+<h4 class="font-headline-sm text-headline-sm text-forest-900 mt-0.5">To Gate Out</h4>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-saffron-50 text-saffron-700 font-label-caps text-label-caps font-semibold">
+              01 Exiting
+            </span>
+</div>
+<div class="space-y-2 text-body-sm text-on-surface-variant">
+<p class="font-medium text-forest-900">Commercial Outflow Clearance</p>
+<p>Sanur Commercial Drycleaners transit truck <span class="font-mono text-forest-900">#DK-8821-FX</span> with 16 returnable canvas roll-cages.</p>
+</div>
+<div class="p-2.5 bg-saffron-50/70 rounded-lg space-y-1">
+<div class="flex items-center justify-between font-label-sm text-label-sm">
+<span class="text-saffron-700 font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">timer</span> Gate Pass Expiry
+              </span>
+<span class="text-saffron-700 font-mono font-bold">12m Remaining</span>
+</div>
+<div class="w-full bg-saffron-500/20 rounded-full h-1">
+<div class="bg-saffron-500 h-1 rounded-full" style="width: 80%"></div>
+</div>
+</div>
+</div>
+<div class="p-pad-md pl-pad-xl bg-surface-container flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-forest-900">Gate: North Portal</span>
+<button class="text-forest-900 hover:text-saffron-700 font-label-md text-label-md flex items-center gap-1 transition-colors" type="button">
+<span>Authorize Clearance</span>
+<span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Dual Split Section: Dock Manifest vs Critical Stock & HACCP Telemetry -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column (7 cols): Live Receiving Dock & Purveyor Manifest -->
+<div class="lg:col-span-7 space-y-4">
+<div class="flex items-center justify-between pb-1">
+<div>
+<span class="font-label-caps text-label-caps uppercase text-brass-700">Dock Flow &amp; Gate Manifest</span>
+<h3 class="font-headline-sm text-headline-sm text-forest-900">Today's Purveyor Consignments</h3>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-forest-900 transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+</button>
+<button class="p-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-forest-900 transition-colors" type="button">
+<span class="material-symbols-outlined text-sm">refresh</span>
+</button>
+</div>
+</div>
+<div class="space-y-3">
+<!-- Purveyor Item 1 -->
+<div class="p-pad-md bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-forest-900 font-headline-sm text-headline-sm flex-shrink-0">
+              01
+            </div>
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-forest-900 font-bold">Bali Oceanic Cold Chain Corp</h4>
+<span class="px-2 py-0.5 rounded-full bg-brass-100 text-brass-800 font-label-caps text-label-caps uppercase">Inspecting</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                Bluefin Tuna &amp; Yellowtail • 18 Items (340 kg)
+              </p>
+<div class="flex flex-wrap items-center gap-3 font-label-sm text-label-sm text-on-surface-variant pt-0.5">
+<span class="flex items-center gap-1 text-sage-700 font-medium">
+<span class="material-symbols-outlined text-xs">thermostat</span> Reefer: 1.2°C (Compliant)
+                </span>
+<span>•</span>
+<span>Bay 02 Docked</span>
+<span>•</span>
+<span>PO #PO-98421</span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0">
+<span class="font-label-caps text-label-caps text-on-surface-variant">ETA 08:30 • Arrived</span>
+<button class="px-3 py-1.5 rounded-full bg-forest-900 text-linen-50 hover:bg-forest-800 font-label-sm text-label-sm transition-colors" type="button">
+              Verify Log
+            </button>
+</div>
+</div>
+<!-- Purveyor Item 2 -->
+<div class="p-pad-md bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-forest-900 font-headline-sm text-headline-sm flex-shrink-0">
+              02
+            </div>
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-forest-900 font-bold">Bedugul Highland Dairy &amp; Microgreens</h4>
+<span class="px-2 py-0.5 rounded-full bg-forest-900 text-brass-300 font-label-caps text-label-caps uppercase">Staging</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                Artisan Goat Cheeses, Organic Herbs &amp; Microgreens • 42 Crates
+              </p>
+<div class="flex flex-wrap items-center gap-3 font-label-sm text-label-sm text-on-surface-variant pt-0.5">
+<span class="flex items-center gap-1 text-sage-700 font-medium">
+<span class="material-symbols-outlined text-xs">check_circle</span> Temp: 3.8°C Inspected
+                </span>
+<span>•</span>
+<span>Bay 01 Staging</span>
+<span>•</span>
+<span>PO #PO-98429</span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Gate Passed 09:12</span>
+<button class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-forest-900 font-label-sm text-label-sm transition-colors" type="button">
+              Assign Airlock
+            </button>
+</div>
+</div>
+<!-- Purveyor Item 3 -->
+<div class="p-pad-md bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-start gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-forest-900 font-headline-sm text-headline-sm flex-shrink-0">
+              03
+            </div>
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-forest-900 font-bold">Grand Cru Importation Ltd.</h4>
+<span class="px-2 py-0.5 rounded-full bg-sage-50 text-sage-700 font-label-caps text-label-caps uppercase">Completed</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                60 Cases Premier Cru Champagne, Tuscan EVOO &amp; Balearic Salt
+              </p>
+<div class="flex flex-wrap items-center gap-3 font-label-sm text-label-sm text-on-surface-variant pt-0.5">
+<span class="text-on-surface-variant">Controlled Climate Van</span>
+<span>•</span>
+<span>Vault Bay Stored</span>
+<span>•</span>
+<span>GRN-10992</span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0">
+<span class="font-label-caps text-label-caps text-sage-700 font-semibold">Vault Secured</span>
+<button class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-forest-900 font-label-sm text-label-sm transition-colors" type="button">
+              View Receipt
+            </button>
+</div>
+</div>
+<!-- Purveyor Item 4 -->
+<div class="p-pad-md bg-surface-container-lowest rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 opacity-85">
+<div class="flex items-start gap-3.5">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant font-headline-sm text-headline-sm flex-shrink-0">
+              04
+            </div>
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-forest-900 font-bold">Bali Eco Spa &amp; Pure Linens</h4>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-caps text-label-caps uppercase">Queued</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                22 Cartons Egyptian Robes, Spa Toweling &amp; Lemongrass Oils
+              </p>
+<div class="flex flex-wrap items-center gap-3 font-label-sm text-label-sm text-on-surface-variant pt-0.5">
+<span>Flatbed Van #DK-4091-AB</span>
+<span>•</span>
+<span>Bay 03 Allocated</span>
+<span>•</span>
+<span>PO #PO-98444</span>
+</div>
+</div>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0">
+<span class="font-label-caps text-label-caps text-brass-700 font-semibold">In Gatehouse Holding</span>
+<button class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-forest-900 font-label-sm text-label-sm transition-colors" type="button">
+              Call into Bay
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (5 cols): Critical Stock Health & Cold Chain HACCP -->
+<div class="lg:col-span-5 space-y-6">
+<!-- Stock Health Diagnostics -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-pad-lg space-y-5">
+<div class="flex items-center justify-between pb-1">
+<div>
+<span class="font-label-caps text-label-caps uppercase text-brass-700">Inventory Integrity</span>
+<h3 class="font-headline-sm text-headline-sm text-forest-900">Critical Stock Health</h3>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-sage-50 text-sage-700 font-label-caps text-label-caps font-semibold">
+            Zero Past Expiration
+          </span>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container p-3 rounded-lg">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Active Stock Lines</span>
+<p class="font-headline-md text-headline-md text-forest-900 mt-1">1,420</p>
+<span class="font-label-sm text-label-sm text-sage-700">99.4% Valuation Accuracy</span>
+</div>
+<div class="bg-surface-container p-3 rounded-lg">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant">Vendor Performance</span>
+<p class="font-headline-md text-headline-md text-forest-900 mt-1">98.2%</p>
+<span class="font-label-sm text-label-sm text-sage-700">On-Time &amp; Fresh In-Spec</span>
+</div>
+</div>
+<!-- 48-Hour High-Value Watchlist -->
+<div class="space-y-2.5 pt-1">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-saffron-700 flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">hourglass_top</span> Expiring ≤ 48 Hours Watchlist
+            </span>
+<span class="font-label-sm text-label-sm text-forest-900 font-medium">3 High-Value Lines</span>
+</div>
+<div class="space-y-2">
+<div class="p-2.5 bg-saffron-50 rounded-lg flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-forest-900">A5 Miyazaki Wagyu Ribeye</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Vault Batch #WGY-881 • Fine Dining</p>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps uppercase text-saffron-700 font-bold">18h Remaining</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Chef Alloc. Active</p>
+</div>
+</div>
+<div class="p-2.5 bg-saffron-50 rounded-lg flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-forest-900">Alba White Truffles (Piedmont)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Preservation Chiller 02 • 1.4 kg</p>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps uppercase text-saffron-700 font-bold">28h Remaining</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Sommelier Dinner</p>
+</div>
+</div>
+<div class="p-2.5 bg-surface-container rounded-lg flex items-center justify-between">
+<div>
+<p class="font-label-md text-label-md text-forest-900">Organic Double Cream</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Bedugul Dairy Batch #BC-304 • Bakery</p>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps uppercase text-on-surface-variant font-bold">36h Remaining</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Pastry Prep</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- HACCP Cold Chain Sensors Card -->
+<div class="bg-forest-950 text-linen-50 rounded-xl shadow-md p-pad-lg space-y-4 relative overflow-hidden">
+<!-- Delicate background glow -->
+<div class="absolute -right-8 -bottom-8 w-40 h-40 bg-forest-700/30 rounded-full blur-3xl pointer-events-none"></div>
+<div class="flex items-center justify-between">
+<div class="space-y-0.5">
+<span class="font-label-caps text-label-caps uppercase text-brass-400">Critical Cold Chain</span>
+<h4 class="font-headline-sm text-headline-sm text-linen-50">HACCP Telemetry</h4>
+</div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-forest-900 text-sage-500 font-label-caps text-label-caps uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span> Verified Safe
+          </span>
+</div>
+<div class="space-y-3 pt-1">
+<!-- Sensor 1 -->
+<div class="p-3 rounded-lg bg-forest-900/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-brass-400 text-lg">kitchen</span>
+<div>
+<p class="font-label-md text-label-md text-linen-50">Walk-in Chiller (Kitchen Main)</p>
+<p class="font-body-sm text-body-sm text-linen-50/70">Target: 0.0°C to +4.0°C</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-headline-sm text-headline-sm text-brass-300">-2.1°C</span>
+<p class="font-label-caps text-label-caps uppercase text-sage-500">Optimal</p>
+</div>
+</div>
+<!-- Sensor 2 -->
+<div class="p-3 rounded-lg bg-forest-900/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-brass-400 text-lg">ac_unit</span>
+<div>
+<p class="font-label-md text-label-md text-linen-50">Deep Freeze (Proteins &amp; Seafood)</p>
+<p class="font-body-sm text-body-sm text-linen-50/70">Target: &lt; -18.0°C</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-headline-sm text-headline-sm text-brass-300">-21.4°C</span>
+<p class="font-label-caps text-label-caps uppercase text-sage-500">Optimal</p>
+</div>
+</div>
+<!-- Sensor 3 -->
+<div class="p-3 rounded-lg bg-forest-900/80 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-brass-400 text-lg">wine_bar</span>
+<div>
+<p class="font-label-md text-label-md text-linen-50">Grand Reserve Wine Cellar</p>
+<p class="font-body-sm text-body-sm text-linen-50/70">Target: +12.0°C to +14.0°C</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-headline-sm text-headline-sm text-brass-300">+13.2°C</span>
+<p class="font-label-caps text-label-caps uppercase text-brass-400">65% RH • Stable</p>
+</div>
+</div>
+</div>
+<!-- Digital Sign-off Banner -->
+<div class="pt-2 flex items-center justify-between text-linen-50/80 text-xs">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm text-brass-400">verified</span>
+<span class="font-label-sm text-label-sm">Signed off by Exec Chef M. Laurent</span>
+</div>
+<span class="font-mono text-linen-50/60 text-[11px]">Today 08:00 WITA</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<script>
+  // Interactive micro-interaction to toggle visual pins on schematic diagram
+  const toggleBtn = document.getElementById('togglePillBtn');
+  const pills = document.getElementById('schematicPills');
+  if (toggleBtn && pills) {
+    let visible = true;
+    toggleBtn.addEventListener('click', () => {
+      visible = !visible;
+      pills.style.opacity = visible ? '1' : '0';
+      toggleBtn.textContent = visible ? 'Hide Overlays' : 'Show Overlays';
+    });
+  }
+</script></div></main></div></body></html>

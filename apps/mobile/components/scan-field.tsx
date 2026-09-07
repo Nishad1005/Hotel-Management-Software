@@ -281,7 +281,12 @@ function CameraSheet({
           </View>
         ) : (
           <View style={{ padding: space.lg }}>
-            <Text style={{ fontSize: type.caption, color: "#B9B2AA", textAlign: "center" }}>
+            {/*
+              The one caption in the app that stands on the camera feed rather than on a
+              palette surface, so it takes the token meant for a muted voice on a dark
+              ground instead of the loose grey it used to carry.
+            */}
+            <Text role="caption" align="center" style={{ color: p.onBrandMuted }}>
               Hold the code inside the frame. It reads on its own.
             </Text>
           </View>

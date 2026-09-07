@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary-fixed":"#cbead1","on-primary-fixed-variant":"#324d3a","secondary":"#775a19","tertiary-fixed":"#c5ecce","surface":"#FAF9F5","outline-variant":"#E8E3D7","champagne":"#E8E3D7","on-surface":"#191C1B","brass-100":"#F5EEDC","on-tertiary":"#ffffff","on-error-container":"#93000a","sage-500":"#43654E","brass-700":"#9A7B38","linen-50":"#FAF9F5","brass-600":"#B8860B","on-secondary-fixed-variant":"#5d4201","inverse-primary":"#afceb6","on-tertiary-fixed":"#00210f","saffron-50":"#FEF7ED","surface-container-high":"#e9e8e4","forest-800":"#0D2818","primary":"#001106","inverse-on-surface":"#f2f1ed","on-secondary":"#ffffff","secondary-container":"#F5EEDC","primary-fixed-dim":"#afceb6","outline":"#A39E93","sage-700":"#2D4735","linen-100":"#F5F2EB","brass-500":"#C5A059","on-primary-container":"#F5EEDC","background":"#faf9f5","saffron-700":"#9C5914","on-surface-variant":"#555E58","tertiary-fixed-dim":"#aad0b3","forest-950":"#061510","on-tertiary-fixed-variant":"#2c4e38","surface-container":"#F5F2EB","linen-200":"#EDE8DC","surface-dim":"#dbdad6","tertiary":"#2D4735","on-secondary-container":"#5d4201","surface-tint":"#496551","surface-container-lowest":"#FFFFFF","error":"#ba1a1a","forest-600":"#1D4736","brass-400":"#D4AF37","saffron-500":"#C87D28","error-container":"#ffdad6","on-primary-fixed":"#052011","forest-900":"#081C15","surface-container-highest":"#e3e2df","brass-300":"#DCB879","sage-50":"#F2F6F3","on-tertiary-container":"#6f9379","forest-700":"#143628","surface-variant":"#e3e2df","surface-bright":"#faf9f5","inverse-surface":"#081C15","on-primary":"#ffffff","surface-container-low":"#f4f4f0","secondary-fixed":"#ffdea5","on-error":"#ffffff","on-background":"#1b1c1a","primary-container":"#081C15","secondary-fixed-dim":"#e9c176","tertiary-container":"#143628","on-secondary-fixed":"#261900"},borderRadius:{DEFAULT:"0.125rem",lg:"0.375rem",xl:"0.625rem",full:"9999px"},spacing:{"pad-md":"1rem","content-max-w":"1380px","pad-2xl":"3rem","pad-lg":"1.5rem","sidebar-w":"264px","sidebar-w-collapsed":"72px","pad-2xs":"0.25rem","pad-sm":"0.75rem","pad-xl":"2rem","pad-xs":"0.5rem",gutter:"1rem"},fontFamily:{"headline-md":["Playfair Display","serif"],"label-sm":["Plus Jakarta Sans","sans-serif"],"body-md":["Plus Jakarta Sans","sans-serif"],"label-caps":["Plus Jakarta Sans","sans-serif"],"title-metric":["Playfair Display","serif"],"headline-lg-mobile":["Playfair Display","serif"],"label-md":["Plus Jakarta Sans","sans-serif"],"body-sm":["Plus Jakarta Sans","sans-serif"],"display-hero":["Playfair Display","serif"],"body-lg":["Plus Jakarta Sans","sans-serif"],"headline-sm":["Playfair Display","serif"],"headline-lg":["Playfair Display","serif"]},fontSize:{"headline-md":["24px",{lineHeight:"30px",letterSpacing:"-0.01em",fontWeight:"600"}],"label-sm":["11px",{lineHeight:"15px",fontWeight:"500"}],"body-md":["14px",{lineHeight:"20px",fontWeight:"400"}],"label-caps":["10.5px",{lineHeight:"15px",letterSpacing:"0.12em",fontWeight:"600"}],"title-metric":["42px",{lineHeight:"46px",letterSpacing:"-0.03em",fontWeight:"600"}],"headline-lg-mobile":["26px",{lineHeight:"32px",letterSpacing:"-0.015em",fontWeight:"600"}],"label-md":["13px",{lineHeight:"18px",fontWeight:"600"}],"body-sm":["13px",{lineHeight:"18px",fontWeight:"400"}],"display-hero":["42px",{lineHeight:"48px",letterSpacing:"-0.02em",fontWeight:"600"}],"body-lg":["16px",{lineHeight:"24px",fontWeight:"400"}],"headline-sm":["19px",{lineHeight:"24px",fontWeight:"600"}],"headline-lg":["32px",{lineHeight:"38px",letterSpacing:"-0.02em",fontWeight:"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-[264px] bg-[#081C15] text-[#F5EEDC] z-50 flex flex-col justify-between border-r border-[#1D4736]/40 shadow-[0_4px_24px_rgba(0,0,0,0.3)] overflow-hidden"><div class="flex flex-col h-full"><div class="px-pad-lg pt-pad-lg pb-pad-md flex flex-col gap-pad-sm border-b border-[#143628]"><div class="flex items-center gap-pad-sm"><img alt="Pargolai Luxury Resort OS Logo" class="h-8 w-auto object-contain brightness-125" src="https://lh3.googleusercontent.com/aida/AEtjO1Uf2-1LAwzcgD8mih3JkI9CCkMf0PXQ03mq2f9GzxeTAdi5Y_4JzhKTM84-M__ROrASzaONhtOvg6LB7rda_MDQiP1nHFYe3IXE3Hn87ub__xhghBU7ChoxvzUHX2R5yJEtAQZLq_oHz3W5IQ_W3vKqULHSQpMcE-xwTCS4SYZQY6XXj-_xFN0juKa4purwSx4P-fsiAqkqcZgvKpL-qaXv-FdMqzR3noTu3jF6OSeJwXDcRZdmLkLPxHqN"/><div class="flex flex-col"><span class="font-headline-md text-headline-md tracking-wider text-[#F5EEDC] leading-none">PARGOLAI</span><span class="font-label-caps text-label-caps uppercase tracking-[0.18em] text-[#C5A059] font-medium mt-1">Resort Operations</span></div></div><div class="mt-pad-xs p-pad-xs bg-[#143628]/70 border border-[#C5A059]/25 rounded-lg flex items-center justify-between cursor-pointer hover:bg-[#1D4736] transition-colors"><div class="flex items-center gap-pad-xs min-w-0"><span class="material-symbols-outlined text-[#DCB879] text-[18px] shrink-0">villa</span><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-[#F5EEDC] font-medium truncate">The Royal Palm Villa &amp; Spa</span><span class="font-label-sm text-label-sm text-[#A39E93] truncate">Bali • T1 Main Dock</span></div></div><span class="material-symbols-outlined text-[#C5A059] text-[16px] shrink-0">unfold_more</span></div></div><nav class="flex-1 overflow-y-auto px-pad-md space-y-pad-md py-pad-md" data-active-classes="bg-[#143628] text-[#F5EEDC] font-semibold rounded-lg shadow-sm border border-[#C5A059]/40"><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-label-caps uppercase tracking-widest text-[#A39E93]/80">Main</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="home-dashboard" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">space_dashboard</span><span>Home (Dashboard)</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-label-caps uppercase tracking-widest text-[#A39E93]/80">The Flow</p><a aria-current="page" class="flex items-center gap-pad-sm px-pad-sm py-pad-xs transition-all bg-[#143628] text-[#FAF9F5] font-semibold rounded-lg shadow-sm border border-[#C5A059]/40" data-path="new-arrival" href="#"><span class="material-symbols-outlined text-[19px] text-[#C5A059]">local_shipping</span><span>New arrival (Gate Log)</span><span class="ml-auto w-1.5 h-1.5 rounded-full bg-[#C5A059]"></span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="receive-goods" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">move_to_inbox</span><span>Receive goods (Dock)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="put-away" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">shelves</span><span>Put away (Staging)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="issue" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">outbox</span><span>Issue (Requests)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="send-out" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">forklift</span><span>Send out (Transfers)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="gate-out" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">minor_crash</span><span>Gate out (Pass-through)</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-label-caps uppercase tracking-widest text-[#A39E93]/80">Stock</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="in-the-store" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">inventory_2</span><span>In the store</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="expiring" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">hourglass_bottom</span><span>Expiring watch</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="opening-stock" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">history</span><span>Opening stock</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-label-caps uppercase tracking-widest text-[#A39E93]/80">Compliance</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="temperature-round" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">thermostat</span><span>Temperature round (HACCP)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="fssai-registers" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">verified</span><span>FSSAI registers</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="goods-receipts" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">receipt_long</span><span>Goods receipts</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="returnables" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">assignment_return</span><span>Returnables</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-label-caps uppercase tracking-widest text-[#A39E93]/80">System</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-[#EDE8DC]/80 hover:bg-[#143628]/60 hover:text-[#FAF9F5] transition-all font-body-sm text-body-sm" data-path="setup-integrations" href="#"><span class="material-symbols-outlined text-[19px] text-[#A39E93]">tune</span><span>Setup &amp; Integrations</span></a></div></nav></div><div class="p-pad-md bg-[#061510] border-t border-[#143628] flex items-center justify-between"><div class="flex items-center gap-pad-xs min-w-0"><div class="w-2.5 h-2.5 rounded-full bg-[#43654E] ring-2 ring-[#C5A059]/40"></div><span class="font-label-caps text-label-caps uppercase text-[#DCB879] tracking-wider font-semibold">Direct Line Secure</span></div><span class="material-symbols-outlined text-[#C5A059] text-[18px]">lock</span></div></aside><div class="pl-[264px] min-h-screen flex flex-col bg-[#FAF9F5]"><header class="fixed top-0 left-[264px] right-0 h-16 bg-[#FAF9F5]/95 backdrop-blur-xl border-b border-[#E8E3D7] shadow-[0_1px_8px_rgba(13,40,24,0.03)] z-40"><div class="h-16 w-full px-pad-lg flex items-center justify-between gap-pad-md"><div class="flex items-center gap-pad-md min-w-0 flex-1"><div class="hidden xl:flex items-center gap-pad-xs bg-[#F5F2EB] border border-[#E8E3D7] px-pad-sm py-1.5 rounded-full shrink-0"><span class="w-2 h-2 rounded-full bg-[#43654E] animate-pulse"></span><span class="font-label-sm text-label-sm text-[#2D4735] font-semibold">Dock Status: Operational • Bay 1-4 Active</span></div><div class="hidden lg:flex items-center gap-1.5 bg-[#F5F2EB] border border-[#E8E3D7] px-pad-sm py-1.5 rounded-full shrink-0"><span class="material-symbols-outlined text-[#C5A059] text-[16px]">wb_sunny</span><span class="font-label-sm text-label-sm text-[#555E58]">09:42 AM • 28°C Sunny</span></div><div class="relative flex-1 max-w-md"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#A39E93] text-[18px]">search</span><input class="w-full pl-9 pr-pad-md py-1.5 bg-[#F5F2EB] focus:bg-white border border-[#E8E3D7] focus:border-[#C5A059] rounded-full font-body-sm text-body-sm text-[#191C1B] placeholder:text-[#A39E93] focus:outline-none focus:ring-1 focus:ring-[#C5A059] transition-all" placeholder="Search shipments, purchase orders, PO#, vendors..." type="text"/></div></div><div class="flex items-center gap-pad-sm shrink-0"><button class="flex items-center gap-1.5 bg-[#C5A059] hover:bg-[#B8860B] text-[#081C15] font-label-md text-label-md px-pad-md py-2 rounded-full shadow-sm hover:shadow transition-all font-semibold" type="button"><span class="material-symbols-outlined text-[18px]">add</span><span>Record Arrival</span></button><button class="relative w-9 h-9 rounded-full bg-[#F5F2EB] hover:bg-[#EDE8DC] border border-[#E8E3D7] flex items-center justify-center text-[#2D4735] transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#C5A059]"></span></button><div class="flex items-center gap-pad-xs pl-pad-xs border-l border-[#E8E3D7]"><img alt="Profile" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-[#C5A059]/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtUJjrEyghsT0dQIGpWksQSW92iB_psJKTc3fVUPNGAZD7UcLm4pJ9AYPWG-G6Tjkp4SaPWgOip7QG45ctATptgqquLy_tjgi7r3nBAXaYLR9mjFxg4j8vG5_e6QWC4-8QVs6uImFh3ooe211QvTWFTpT3LP7mC0oeKRXLmrXCMb4xA19HjsXLeQUZ88qouS12k9BUOfWRhX_-h2SXKZUTpgCBjXm0QFuHDLK9srVj3F8tRy8k0Ia2Uw"/><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-[#191C1B] font-semibold leading-none">Elena Vance</span><span class="font-label-sm text-label-sm text-[#775a19] leading-tight mt-0.5">Director of Hospitality Supply</span></div></div></div></div></header><main class="w-full pt-16 bg-[#FAF9F5] flex-1"><div class="w-full max-w-[1380px] mx-auto px-pad-lg py-pad-lg"><div class="flex flex-col w-full">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-pad-md pb-pad-lg">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-2">
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-[#775a19] font-semibold">The Flow</span>
+<span class="text-[#E8E3D7] text-[12px]">•</span>
+<span class="font-label-caps text-label-caps uppercase tracking-widest text-[#081C15] font-bold">Gate Entry</span>
+<span class="inline-flex items-center gap-1.5 ml-2 px-2.5 py-0.5 rounded-full bg-[#F2F6F3] border border-[#43654E]/30 text-[#2D4735] font-label-sm text-label-sm font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-[#43654E] animate-ping"></span>
+          Gate 1 Active
+        </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-[#081C15] tracking-tight">Security Gatehouse Vehicle &amp; Consignment Inward</h1>
+<p class="font-body-md text-body-md text-[#555E58] max-w-2xl">
+        Record incoming delivery vehicle &amp; vendor credentials before dock unloading. Verify cold chain clearance and dispatch immediate bay assignment.
+      </p>
+</div>
+<div class="flex items-center gap-3 shrink-0">
+<button class="px-pad-md py-2.5 rounded-full bg-white hover:bg-[#F5F2EB] border border-[#E8E3D7] text-[#191C1B] font-label-md text-label-md transition-all shadow-sm flex items-center gap-2" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#775a19]">history</span>
+<span>Recent Gate Passes (14)</span>
+</button>
+<button class="px-pad-md py-2.5 rounded-full bg-[#081C15] hover:bg-[#143628] text-[#F5EEDC] border border-[#C5A059]/40 font-label-md text-label-md transition-all flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#C5A059]">qr_code_scanner</span>
+<span>Quick OCR Scan</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-pad-lg items-start">
+<div class="lg:col-span-8 flex flex-col gap-pad-lg">
+<section class="bg-white rounded-xl p-pad-xl shadow-sm border border-[#E8E3D7] relative overflow-hidden">
+<div class="absolute top-0 left-0 bottom-0 w-1 bg-[#C5A059]"></div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-pad-md mb-pad-lg pb-3 border-b border-[#E8E3D7]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#F5EEDC] border border-[#DCB879]/40 flex items-center justify-center text-[#775a19]">
+<span class="material-symbols-outlined text-[22px]">badge</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-bold">Stage 01</span>
+<h2 class="font-headline-sm text-headline-sm text-[#081C15]">Vendor Identification &amp; Credentialing</h2>
+</div>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F2F6F3] border border-[#43654E]/30 text-[#2D4735] font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-[#43654E] text-[16px]">verified_user</span>
+<span>Accredited Supplier Pool</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-pad-md mb-pad-lg">
+<div class="vendor-card cursor-pointer p-pad-md rounded-xl bg-[#F5F2EB] border-2 border-[#C5A059] hover:bg-[#EDE8DC] transition-all flex flex-col justify-between group" id="vendor-card-1" onclick="selectVendor(this, 'Ocean Catch Seafoods Co.', 'PO-2025-0842 (Pre-approved by Exec Chef)')">
+<div class="flex items-start justify-between">
+<div class="w-8 h-8 rounded-lg bg-[#081C15] flex items-center justify-center text-[#C5A059] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px]">set_meal</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-[#F5EEDC] border border-[#DCB879] text-[#775a19] font-label-sm text-label-sm font-bold">Tier 1</span>
+</div>
+<div class="mt-3">
+<h3 class="font-label-md text-label-md text-[#081C15] font-bold">Ocean Catch Seafoods Co.</h3>
+<p class="font-body-sm text-body-sm text-[#555E58] mt-0.5">Fresh Marine Goods • Daily Catch</p>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between border-t border-[#E8E3D7]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[#C5A059] text-[14px]">star</span>
+<span class="font-label-sm text-label-sm text-[#081C15] font-bold">5.0</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#43654E] font-semibold">Window 09:00 - 11:30</span>
+</div>
+</div>
+<div class="vendor-card cursor-pointer p-pad-md rounded-xl bg-white border border-[#E8E3D7] hover:border-[#C5A059]/60 hover:bg-[#FAF9F5] transition-all flex flex-col justify-between group shadow-sm" id="vendor-card-2" onclick="selectVendor(this, 'Château Margaux Imports', 'PO-2025-0914 (Cellar Reserve)')">
+<div class="flex items-start justify-between">
+<div class="w-8 h-8 rounded-lg bg-[#F5F2EB] flex items-center justify-center text-[#775a19] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px]">wine_bar</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-[#F5EEDC] border border-[#DCB879] text-[#775a19] font-label-sm text-label-sm font-bold">Pre-cleared</span>
+</div>
+<div class="mt-3">
+<h3 class="font-label-md text-label-md text-[#081C15] font-bold">Château Margaux Imports</h3>
+<p class="font-body-sm text-body-sm text-[#555E58] mt-0.5">Grand Cru &amp; Sommelier Reserve</p>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between border-t border-[#E8E3D7]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[#C5A059] text-[14px]">star</span>
+<span class="font-label-sm text-label-sm text-[#081C15] font-bold">4.9</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#555E58]">Window 10:00 - 14:00</span>
+</div>
+</div>
+<div class="vendor-card cursor-pointer p-pad-md rounded-xl bg-white border border-[#E8E3D7] hover:border-[#C5A059]/60 hover:bg-[#FAF9F5] transition-all flex flex-col justify-between group shadow-sm" id="vendor-card-3" onclick="selectVendor(this, 'Luxury Linen Logistics', 'PO-2025-0771 (Housekeeping Quota)')">
+<div class="flex items-start justify-between">
+<div class="w-8 h-8 rounded-lg bg-[#F5F2EB] flex items-center justify-center text-[#775a19] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[18px]">dry_cleaning</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-[#F5EEDC] border border-[#DCB879] text-[#775a19] font-label-sm text-label-sm font-bold">Contract</span>
+</div>
+<div class="mt-3">
+<h3 class="font-label-md text-label-md text-[#081C15] font-bold">Luxury Linen Logistics</h3>
+<p class="font-body-sm text-body-sm text-[#555E58] mt-0.5">Egyptian Cotton Villa Linens</p>
+</div>
+<div class="mt-3 pt-3 flex items-center justify-between border-t border-[#E8E3D7]">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[#C5A059] text-[14px]">star</span>
+<span class="font-label-sm text-label-sm text-[#081C15] font-bold">4.8</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#555E58]">Window Scheduled</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row gap-pad-sm">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A39E93] text-[20px]">manage_search</span>
+<input class="w-full pl-11 pr-pad-md py-3 bg-[#F5F2EB] border border-[#E8E3D7] rounded-xl font-body-md text-body-md text-[#191C1B] placeholder:text-[#A39E93] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C5A059] transition-all" id="vendor-input" placeholder="Search vendor master database, supplier VAT, or license ID..." type="text" value="Ocean Catch Seafoods Co."/>
+</div>
+<button class="px-pad-lg py-3 rounded-xl bg-[#F5EEDC] border border-[#DCB879]/60 text-[#081C15] hover:bg-[#C5A059] hover:text-[#081C15] font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#775a19]">nfc</span>
+<span>NFC Gate Token</span>
+</button>
+</div>
+</section>
+<section class="bg-white rounded-xl p-pad-xl shadow-sm border border-[#E8E3D7] relative overflow-hidden">
+<div class="flex items-center gap-3 mb-pad-lg pb-3 border-b border-[#E8E3D7]">
+<div class="w-10 h-10 rounded-full bg-[#F5EEDC] border border-[#DCB879]/40 flex items-center justify-center text-[#775a19]">
+<span class="material-symbols-outlined text-[22px]">description</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-bold">Stage 02</span>
+<h2 class="font-headline-sm text-headline-sm text-[#081C15]">Consignment Documentation &amp; PO Matching</h2>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-pad-sm mb-pad-lg">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="bill_type" type="radio" value="camera"/>
+<div class="p-pad-md rounded-xl bg-[#F5F2EB] border border-[#E8E3D7] peer-checked:bg-[#081C15] peer-checked:text-[#FAF9F5] peer-checked:border-[#C5A059] transition-all flex flex-col gap-2 group">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[#775a19] group-hover:text-[#081C15] peer-checked:text-[#C5A059] text-[20px]">photo_camera</span>
+<span class="w-3 h-3 rounded-full border border-[#C5A059] bg-[#C5A059]"></span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-[#081C15] group-has-[:checked]:text-[#FAF9F5]">Photograph Waybill</span>
+<span class="font-body-sm text-body-sm text-[#555E58] group-has-[:checked]:text-[#EDE8DC] leading-tight">Instant OCR parsing for paper delivery challan</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="bill_type" type="radio" value="digital"/>
+<div class="p-pad-md rounded-xl bg-[#F5F2EB] border border-[#E8E3D7] peer-checked:bg-[#081C15] peer-checked:text-[#FAF9F5] peer-checked:border-[#C5A059] transition-all flex flex-col gap-2 group">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[#775a19] group-has-[:checked]:text-[#C5A059] text-[20px]">receipt_long</span>
+<span class="w-3 h-3 rounded-full border border-[#A39E93]"></span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-[#081C15] group-has-[:checked]:text-[#FAF9F5]">Digital e-Invoice</span>
+<span class="font-body-sm text-body-sm text-[#555E58] group-has-[:checked]:text-[#EDE8DC] leading-tight">Pre-linked EDI consignment manifest</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="bill_type" type="radio" value="nobill"/>
+<div class="p-pad-md rounded-xl bg-[#F5F2EB] border border-[#E8E3D7] peer-checked:bg-[#FAF9F5] peer-checked:border-[#ba1a1a] transition-all flex flex-col gap-2 group">
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-[#ba1a1a] text-[20px]">warning_amber</span>
+<span class="w-3 h-3 rounded-full border border-[#A39E93]"></span>
+</div>
+<span class="font-label-md text-label-md font-semibold text-[#081C15]">No Bill Accompanied</span>
+<span class="font-body-sm text-body-sm text-[#555E58] leading-tight">Requires Receiving Clerk verification memo</span>
+</div>
+</label>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-pad-md items-center bg-[#F5F2EB] p-pad-md rounded-xl border border-[#E8E3D7]">
+<div class="md:col-span-4 relative rounded-lg overflow-hidden bg-[#081C15] h-32 flex flex-col items-center justify-center p-3 text-center group border border-[#C5A059]/40">
+<img class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity" data-alt="High-resolution close up photograph of a luxury resort food delivery physical paper waybill with stamped customs and quality certification resting on a warm oak security gate desk with shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCld5panlFU_6qifzSqPkXSd6KKORZai7kzqYUmk1dLQZFcqdp3ZeqJj_gCBgbzxUDl2Yytw5nwl4rALJNrDEb-gWCcBUhQPAUUhpIe7VlQAcHHAHs9ijRYdNRtG2isjiK0ARC5zVMK84YrtdQIasMGZAdERC-tPMXaxahPgYeo-saVjsC5oItbWmH_aLwD50EgFAZXEpCr-F73SGV5cPwO4ZNy8MD2UTMfQ9xdDnR3Sxxdwh9ZzRE22A"/>
+<div class="relative z-10 flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-[#C5A059] text-[24px]">document_scanner</span>
+<span class="font-label-sm text-label-sm font-semibold text-[#081C15] bg-[#F5EEDC] border border-[#DCB879] px-2.5 py-0.5 rounded shadow">OCR Matched (99.4%)</span>
+</div>
+</div>
+<div class="md:col-span-8 flex flex-col gap-pad-xs">
+<label class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-semibold">Verified PO Reference Match</label>
+<div class="flex items-center gap-2">
+<div class="flex-1 relative">
+<input class="w-full px-pad-md py-2.5 bg-white border border-[#E8E3D7] rounded-lg font-body-md text-body-md text-[#081C15] font-semibold focus:outline-none focus:border-[#C5A059]" id="po-input" type="text" value="PO-2025-0842 (Pre-approved by Executive Chef)"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#43654E] text-[18px]">verified</span>
+</div>
+<button class="px-pad-md py-2.5 rounded-lg bg-[#F5EEDC] hover:bg-[#C5A059] border border-[#DCB879]/50 font-label-md text-label-md text-[#081C15] font-semibold transition-colors whitespace-nowrap" type="button">
+                Change PO
+              </button>
+</div>
+<p class="font-body-sm text-body-sm text-[#555E58]">Allocated to: <span class="text-[#081C15] font-medium">Fine Dining Lagoon Pavilions • Chef Luca Moretti</span></p>
+</div>
+</div>
+</section>
+<section class="bg-white rounded-xl p-pad-xl shadow-sm border border-[#E8E3D7] relative overflow-hidden">
+<div class="flex items-center gap-3 mb-pad-lg pb-3 border-b border-[#E8E3D7]">
+<div class="w-10 h-10 rounded-full bg-[#F5EEDC] border border-[#DCB879]/40 flex items-center justify-center text-[#775a19]">
+<span class="material-symbols-outlined text-[22px]">inventory</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-bold">Stage 03</span>
+<h2 class="font-headline-sm text-headline-sm text-[#081C15]">Consignment Packages &amp; Cargo Spec</h2>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-pad-xl items-center">
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-semibold block mb-2">Total Package / Pallet Count</span>
+<div class="flex items-center bg-[#F5F2EB] border border-[#E8E3D7] p-2 rounded-2xl max-w-sm justify-between shadow-inner">
+<button class="w-12 h-12 rounded-xl bg-white hover:bg-[#F5EEDC] border border-[#E8E3D7] text-[#081C15] font-headline-md text-headline-md flex items-center justify-center shadow-sm active:scale-95 transition-all" onclick="adjustPackages(-1)" type="button">
+<span class="material-symbols-outlined text-[20px]">remove</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-title-metric text-title-metric text-[#081C15] leading-none" id="pkg-counter">24</span>
+<span class="font-label-sm text-label-sm text-[#775a19] uppercase tracking-wider mt-1 font-semibold">Crates / Totes</span>
+</div>
+<button class="w-12 h-12 rounded-xl bg-white hover:bg-[#F5EEDC] border border-[#E8E3D7] text-[#081C15] font-headline-md text-headline-md flex items-center justify-center shadow-sm active:scale-95 transition-all" onclick="adjustPackages(1)" type="button">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+</div>
+<div class="flex items-center gap-2 mt-pad-sm">
+<span class="font-label-sm text-label-sm text-[#555E58]">Quick Presets:</span>
+<button class="px-2.5 py-1 rounded-md bg-[#F5EEDC] hover:bg-[#C5A059] border border-[#DCB879]/60 font-label-sm text-label-sm text-[#081C15] font-bold transition-colors" onclick="setPackages(5)" type="button">+5</button>
+<button class="px-2.5 py-1 rounded-md bg-[#F5EEDC] hover:bg-[#C5A059] border border-[#DCB879]/60 font-label-sm text-label-sm text-[#081C15] font-bold transition-colors" onclick="setPackages(10)" type="button">+10</button>
+<button class="px-2.5 py-1 rounded-md bg-[#F5EEDC] hover:bg-[#C5A059] border border-[#DCB879]/60 font-label-sm text-label-sm text-[#081C15] font-bold transition-colors" onclick="setPackages(25)" type="button">+25</button>
+<button class="px-2.5 py-1 rounded-md bg-[#F5EEDC] hover:bg-[#C5A059] border border-[#DCB879]/60 font-label-sm text-label-sm text-[#081C15] font-bold transition-colors" onclick="setPackages(50)" type="button">+50</button>
+</div>
+</div>
+<div class="flex flex-col gap-2.5">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-semibold">Consignment Classification</span>
+<div class="flex flex-wrap gap-2">
+<button class="px-3.5 py-2 rounded-lg bg-[#081C15] text-[#F5EEDC] border border-[#C5A059] font-label-md text-label-md font-semibold flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-[#C5A059] text-[16px]">ac_unit</span>
+<span>Chilled / Fresh Perishable</span>
+</button>
+<button class="px-3.5 py-2 rounded-lg bg-[#F5F2EB] text-[#191C1B] border border-[#E8E3D7] hover:bg-[#F5EEDC] hover:border-[#DCB879] font-label-md text-label-md flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[#775a19] text-[16px]">inventory_2</span>
+<span>Dry Goods</span>
+</button>
+<button class="px-3.5 py-2 rounded-lg bg-[#F5F2EB] text-[#191C1B] border border-[#E8E3D7] hover:bg-[#F5EEDC] hover:border-[#DCB879] font-label-md text-label-md flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[#775a19] text-[16px]">wine_bar</span>
+<span>Beverage / Wine</span>
+</button>
+<button class="px-3.5 py-2 rounded-lg bg-[#F5F2EB] text-[#191C1B] border border-[#E8E3D7] hover:bg-[#F5EEDC] hover:border-[#DCB879] font-label-md text-label-md flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[#775a19] text-[16px]">bed</span>
+<span>Room Amenities</span>
+</button>
+<button class="px-3.5 py-2 rounded-lg bg-[#F5F2EB] text-[#191C1B] border border-[#E8E3D7] hover:bg-[#F5EEDC] hover:border-[#DCB879] font-label-md text-label-md flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[#775a19] text-[16px]">build</span>
+<span>Engineering</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-white rounded-xl p-pad-xl shadow-sm border border-[#E8E3D7] relative overflow-hidden">
+<div class="flex items-center gap-3 mb-pad-lg pb-3 border-b border-[#E8E3D7]">
+<div class="w-10 h-10 rounded-full bg-[#F5EEDC] border border-[#DCB879]/40 flex items-center justify-center text-[#775a19]">
+<span class="material-symbols-outlined text-[22px]">directions_car</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-bold">Stage 04</span>
+<h2 class="font-headline-sm text-headline-sm text-[#081C15]">Vehicle Classification &amp; Driver Clearance</h2>
+</div>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-pad-sm mb-pad-lg">
+<div class="vehicle-card cursor-pointer p-pad-md rounded-xl bg-[#F5F2EB] border-2 border-[#C5A059] hover:bg-[#EDE8DC] transition-all flex flex-col items-center text-center gap-2 group" onclick="selectVehicle(this)">
+<div class="w-12 h-12 rounded-full bg-[#081C15] flex items-center justify-center text-[#C5A059] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[26px]">rv_hookup</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-[#081C15] font-bold block">Refrigerated Truck</span>
+<span class="font-label-sm text-label-sm text-[#43654E] font-bold">Cold Chain Active</span>
+</div>
+</div>
+<div class="vehicle-card cursor-pointer p-pad-md rounded-xl bg-white border border-[#E8E3D7] hover:border-[#C5A059]/60 hover:bg-[#FAF9F5] transition-all flex flex-col items-center text-center gap-2 group shadow-sm" onclick="selectVehicle(this)">
+<div class="w-12 h-12 rounded-full bg-[#F5F2EB] flex items-center justify-center text-[#555E58] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[26px]">local_shipping</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-[#081C15] font-semibold block">Delivery Van / Tempo</span>
+<span class="font-label-sm text-label-sm text-[#555E58]">Standard Freight</span>
+</div>
+</div>
+<div class="vehicle-card cursor-pointer p-pad-md rounded-xl bg-white border border-[#E8E3D7] hover:border-[#C5A059]/60 hover:bg-[#FAF9F5] transition-all flex flex-col items-center text-center gap-2 group shadow-sm" onclick="selectVehicle(this)">
+<div class="w-12 h-12 rounded-full bg-[#F5F2EB] flex items-center justify-center text-[#555E58] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[26px]">two_wheeler</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-[#081C15] font-semibold block">Two-Wheeler</span>
+<span class="font-label-sm text-label-sm text-[#555E58]">Express Courier</span>
+</div>
+</div>
+<div class="vehicle-card cursor-pointer p-pad-md rounded-xl bg-white border border-[#E8E3D7] hover:border-[#C5A059]/60 hover:bg-[#FAF9F5] transition-all flex flex-col items-center text-center gap-2 group shadow-sm" onclick="selectVehicle(this)">
+<div class="w-12 h-12 rounded-full bg-[#F5F2EB] flex items-center justify-center text-[#555E58] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[26px]">electric_rickshaw</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-[#081C15] font-semibold block">Internal Buggy</span>
+<span class="font-label-sm text-label-sm text-[#555E58]">Resort Cart</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-pad-md">
+<div class="flex flex-col gap-1.5">
+<label class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-semibold">Vehicle License Plate</label>
+<div class="relative">
+<input class="w-full px-pad-md py-3 bg-[#F5F2EB] border border-[#E8E3D7] rounded-xl font-headline-sm text-headline-sm text-[#081C15] uppercase tracking-wider font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] shadow-inner" type="text" value="BAL-9821-X"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#C5A059] text-[20px]">pin</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-semibold">Driver Full Name &amp; Phone</label>
+<input class="w-full px-pad-md py-3 bg-[#F5F2EB] border border-[#E8E3D7] rounded-xl font-body-md text-body-md text-[#191C1B] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#C5A059] shadow-inner" type="text" value="Wayan Arya (+62 811 4452 990)"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-semibold">Gate Guard Clearance ID</label>
+<input class="w-full px-pad-md py-3 bg-[#EDE8DC]/70 border border-[#E8E3D7] rounded-xl font-body-md text-body-md text-[#555E58] cursor-not-allowed" readonly="" type="text" value="SEC-GRD-041 (I Made Ketut)"/>
+</div>
+</div>
+</section>
+</div>
+<div class="lg:col-span-4 flex flex-col gap-pad-lg">
+<div class="bg-white rounded-xl p-pad-lg shadow-sm border border-[#E8E3D7] relative overflow-hidden">
+<div class="flex items-center justify-between pb-pad-sm border-b border-[#E8E3D7]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#C5A059] text-[20px]">dock</span>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#081C15] font-bold">Live Bay Routing</span>
+</div>
+<span class="text-[#2D4735] font-label-sm text-label-sm font-semibold px-2 py-0.5 rounded-full bg-[#F2F6F3] border border-[#43654E]/30">Auto-Assigned</span>
+</div>
+<div class="p-pad-md rounded-xl bg-[#081C15] text-[#FAF9F5] my-pad-sm flex items-center justify-between border border-[#C5A059]/40 shadow-sm">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-[#C5A059] uppercase font-bold tracking-wider">Direct To</span>
+<span class="font-headline-md text-headline-md text-[#F5EEDC]">Bay 02 • Cold Dock</span>
+<span class="font-body-sm text-body-sm text-[#EDE8DC]/80">Refrigerated roll-up vestibule</span>
+</div>
+<div class="w-12 h-12 rounded-xl bg-[#C5A059] text-[#081C15] font-bold flex items-center justify-center font-headline-sm text-headline-sm shadow">
+            B2
+          </div>
+</div>
+<div class="space-y-2 text-[#555E58] text-body-sm font-body-sm pt-2 divide-y divide-[#E8E3D7]">
+<div class="flex items-center justify-between py-1">
+<span>Dock Availability</span>
+<span class="font-label-md text-label-md text-[#43654E] font-bold">Bay Clear (0 waiting)</span>
+</div>
+<div class="flex items-center justify-between py-1 pt-2">
+<span>Receiving Clerk On Duty</span>
+<span class="font-label-md text-label-md text-[#081C15] font-medium">G. Pranata (Lead)</span>
+</div>
+<div class="flex items-center justify-between py-1 pt-2">
+<span>Current Ambient Temp</span>
+<span class="font-label-md text-label-md text-[#081C15]">28.4°C • Sunny</span>
+</div>
+<div class="flex items-center justify-between py-1 pt-2">
+<span>Required Cargo Temp</span>
+<span class="font-label-md text-label-md text-[#43654E] font-bold">&lt; 4.0°C (HACCP Safe)</span>
+</div>
+</div>
+</div>
+<div class="bg-white rounded-xl p-pad-lg shadow-sm border border-[#E8E3D7] flex flex-col gap-pad-md">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#775a19] font-bold">Camera Gate Verification</span>
+<span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-[#081C15] text-[#C5A059] border border-[#C5A059]/40 font-semibold">ANPR Matched</span>
+</div>
+<div class="relative h-44 rounded-xl overflow-hidden bg-[#081C15] border-2 border-[#C5A059]/50 shadow-md">
+<img alt="02-gate-new.png" class="w-full h-full object-cover opacity-90" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkPc3USByHMEZ4ZjTllgUGYWTe-L1wAQZOr6qlEVaJEhKSC40IIyKQ9hdWVJuMl22BQh8K5g2L6oNxHaIroYV29sj7KaVXjs0IYVozppOn5NVrZglYvSfz-xwS9LLSxnA-5mE_qOBV-VkwSqSAQxI8lXElN8Rn5f2BX29RH_jFSidPif08T9Lc7xOka1lf_tj8O89hhmD6U_wFf47jFwekz6hvIJUsoTQjRsTjlRqs77Xu2Lkp2bU0Jw990ZZ26xJCB2A"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#081C15] via-[#081C15]/30 to-transparent flex flex-col justify-end p-3 text-[#FAF9F5]">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-mono tracking-wider text-[#C5A059]">CAM-01 [NORTH GATE ENTRANCE]</span>
+<span class="w-2 h-2 rounded-full bg-[#43654E] ring-2 ring-[#C5A059] animate-ping"></span>
+</div>
+<span class="font-headline-sm text-headline-sm leading-none mt-1 text-[#FAF9F5]">Plate: BAL-9821-X</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-pad-sm rounded-lg bg-[#F5F2EB] border border-[#E8E3D7] text-body-sm font-body-sm text-[#2D4735]">
+<span class="material-symbols-outlined text-[#43654E] text-[20px] shrink-0">verified</span>
+<span>Automatic Number Plate Recognition (ANPR) successfully cross-checked against resort vendor gate register.</span>
+</div>
+</div>
+<div class="bg-white rounded-xl p-pad-lg shadow-sm border border-[#E8E3D7] flex flex-col gap-pad-md">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#775a19] text-[20px]">thermostat</span>
+<span class="font-label-caps text-label-caps uppercase tracking-wider text-[#081C15] font-bold">HACCP Cold Chain Pre-Check</span>
+</div>
+<div class="p-pad-md rounded-xl bg-[#F5F2EB] border border-[#E8E3D7] flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-[#191C1B] font-medium">Reefer Compartment Sensor</span>
+<span class="font-label-md text-label-md text-[#43654E] font-bold">2.8°C (PASS)</span>
+</div>
+<div class="w-full bg-[#E8E3D7] h-2 rounded-full overflow-hidden">
+<div class="bg-[#43654E] h-full rounded-full" style="width: 35%"></div>
+</div>
+<span class="font-label-sm text-label-sm text-[#555E58]">Thermal threshold limit: max 4.5°C before refusal.</span>
+</div>
+<div class="flex items-start gap-2.5 p-pad-sm rounded-lg bg-[#F2F6F3] border border-[#43654E]/30 text-[#2D4735] font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[#43654E] text-[18px] shrink-0 mt-0.5">policy</span>
+<span>Cold seal #99831 intact. Security guard verified signature on reefer telemetry data-logger slip.</span>
+</div>
+</div>
+<div class="flex flex-col gap-pad-sm">
+<button class="w-full py-4 px-pad-lg rounded-full bg-[#C5A059] hover:bg-[#B8860B] text-[#081C15] font-headline-sm text-headline-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group font-semibold" onclick="authorizeGateIn()" type="button">
+<span>Authorize Gate In &amp; Dispatch Dock</span>
+<span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+<button class="w-full py-3 px-pad-md rounded-full bg-white hover:bg-[#F5F2EB] border border-[#E8E3D7] text-[#081C15] font-label-md text-label-md transition-colors flex items-center justify-center gap-2 font-semibold" type="button">
+<span class="material-symbols-outlined text-[18px] text-[#775a19]">save</span>
+<span>Save Draft Entry Log</span>
+</button>
+<p class="text-center font-label-sm text-label-sm text-[#775a19] px-pad-md mt-1">
+          Security guideline: All cold-chain vehicles must retain bay pass slip until gate exit inspection.
+        </p>
+</div>
+</div>
+</div>
+<div class="fixed bottom-6 right-6 max-w-md p-pad-md bg-[#081C15] text-[#FAF9F5] rounded-xl border border-[#C5A059]/40 shadow-2xl flex items-center gap-3 translate-y-24 opacity-0 transition-all duration-300 z-50 pointer-events-none" id="confirmation-toast">
+<div class="w-8 h-8 rounded-full bg-[#C5A059] text-[#081C15] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md font-semibold text-[#F5EEDC]">Vehicle Inward Authorized</span>
+<span class="font-body-sm text-body-sm text-[#A39E93]">Notified Receiving Dock Bay 2. Printing gatehouse pass ticket...</span>
+</div>
+</div>
+<script>
+    function selectVendor(el, name, po) {
+      document.querySelectorAll('.vendor-card').forEach(c => {
+        c.classList.remove('bg-[#F5F2EB]', 'border-2', 'border-[#C5A059]');
+        c.classList.add('bg-white', 'border', 'border-[#E8E3D7]');
+      });
+      el.classList.add('bg-[#F5F2EB]', 'border-2', 'border-[#C5A059]');
+      el.classList.remove('bg-white', 'border-[#E8E3D7]');
+      
+      const vInput = document.getElementById('vendor-input');
+      const poInput = document.getElementById('po-input');
+      if(vInput) vInput.value = name;
+      if(poInput) poInput.value = po;
+    }
+
+    function selectVehicle(el) {
+      document.querySelectorAll('.vehicle-card').forEach(c => {
+        c.classList.remove('bg-[#F5F2EB]', 'border-2', 'border-[#C5A059]');
+        c.classList.add('bg-white', 'border', 'border-[#E8E3D7]');
+      });
+      el.classList.add('bg-[#F5F2EB]', 'border-2', 'border-[#C5A059]');
+      el.classList.remove('bg-white', 'border-[#E8E3D7]');
+    }
+
+    let pkgCount = 24;
+    function adjustPackages(delta) {
+      pkgCount = Math.max(1, pkgCount + delta);
+      document.getElementById('pkg-counter').innerText = pkgCount;
+    }
+
+    function setPackages(num) {
+      pkgCount += num;
+      document.getElementById('pkg-counter').innerText = pkgCount;
+    }
+
+    function authorizeGateIn() {
+      const toast = document.getElementById('confirmation-toast');
+      if(toast) {
+        toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+          toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+        }, 4000);
+      }
+    }
+  </script>
+</div></div></main></div></body></html>

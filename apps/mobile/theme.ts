@@ -1,5 +1,5 @@
 /**
- * Design tokens.
+ * Design tokens — "Estate Heritage".
  *
  * Two things drive everything here.
  *
@@ -11,11 +11,22 @@
  * dock screens use field. Masters, lists and settings use desk.
  *
  * SECOND, this is an operations tool, but it is also the thing a managing director
- * judges in ten seconds. The first palette was industrial slate on cold grey, following
- * the system theme, which meant it rendered near-black and read as unfinished. It is
- * now warm, light and soft: an off-white page, white cards raised above it, terracotta
- * for action. Colour still stays scarce, so that when something IS coloured — expiring,
- * blocked, rejected — it means something.
+ * judges in ten seconds. The palette went industrial slate → warm terracotta → this:
+ * deep forest structure, brass accents, warm linen ground, a serif for the editorial
+ * layer. The through-line across all three is unchanged and is the actual rule — a warm
+ * light page, white cards raised above it, and **colour kept scarce** so that when
+ * something IS coloured (expiring, blocked, rejected) it means something. Estate
+ * Heritage adds a register of luxury; it does not add permission to badge everything.
+ *
+ * ## Brass is not an ink
+ *
+ * The one trap in this palette, measured rather than assumed. Brass at its brand values
+ * — `#DCB879`, `#C5A059` — reaches 1.9:1 and 2.5:1 on white. It is a *material*: a
+ * hairline, a fill, an indicator on a dark rail. Where brass has to carry a word, the
+ * ink is `brass` (#7A5F22, 5.2:1 on its own tint); where it only has to be seen,
+ * `brassLine` (#9A7B38) clears the 3:1 that WCAG asks of a graphic. Reaching for the
+ * bright brass because it looks more like brass is how this palette gets an
+ * illegible screen, so the two are named apart.
  */
 
 export const space = {
@@ -104,12 +115,17 @@ export const weight = {
 } as const;
 
 /**
- * Typography — Inter, one family across every weight.
+ * Typography — two families, one job each.
  *
- * It was drawn for user interfaces at small sizes: tall x-height, unambiguous 1/l/I,
- * and genuine tabular figures. That last one matters more here than it sounds, because
- * this app is mostly numbers in columns — quantities, temperatures, days remaining,
- * item codes.
+ * **Plus Jakarta Sans** carries everything functional: data, vendor names, quantities,
+ * statuses, timestamps, buttons. It is a geometric humanist grotesque with a tall
+ * x-height and genuine tabular figures, and that last property matters more here than
+ * it sounds, because this app is mostly numbers in columns.
+ *
+ * **Playfair Display** carries the editorial layer only: screen titles and the single
+ * large figure on a tile. It is a high-contrast display serif — magnificent at 32px,
+ * fragile at 13 — so it is deliberately confined to the two roles that are always large
+ * and never dense.
  *
  * `font()` returns fontWeight alongside fontFamily deliberately. If the font has not
  * loaded — slow first paint, a cache miss, a native build without the asset — the
@@ -117,17 +133,38 @@ export const weight = {
  * flattening to a single undifferentiated weight.
  */
 export const fontFamily = {
-  regular: "Inter_400Regular",
-  medium: "Inter_500Medium",
-  semibold: "Inter_600SemiBold",
-  bold: "Inter_700Bold",
-  heavy: "Inter_800ExtraBold",
+  sans: {
+    regular: "PlusJakartaSans_400Regular",
+    medium: "PlusJakartaSans_500Medium",
+    semibold: "PlusJakartaSans_600SemiBold",
+    bold: "PlusJakartaSans_700Bold",
+    heavy: "PlusJakartaSans_800ExtraBold",
+  },
+  /**
+   * Playfair carries no 500, and its 400 is too fine to hold a page title against a
+   * linen ground, so the lighter three weights all resolve to 600 — the weight the
+   * design system specifies for every serif role it has. `bold` and `heavy` reach for
+   * 700 so a serif `display` still outweighs a serif `title`.
+   */
+  serif: {
+    regular: "PlayfairDisplay_600SemiBold",
+    medium: "PlayfairDisplay_600SemiBold",
+    semibold: "PlayfairDisplay_600SemiBold",
+    bold: "PlayfairDisplay_700Bold",
+    heavy: "PlayfairDisplay_700Bold",
+  },
 } as const;
 
-export type WeightName = keyof typeof fontFamily;
+export type FamilyName = keyof typeof fontFamily;
+export type WeightName = keyof (typeof fontFamily)["sans"];
 
-export function font(w: WeightName) {
-  return { fontFamily: fontFamily[w], fontWeight: weight[w] } as const;
+/**
+ * Defaults to sans, because the overwhelming majority of call sites are functional text
+ * and an explicit `"sans"` at every one of them would be noise. The serif is opted into,
+ * which is the correct default for a family that must stay scarce.
+ */
+export function font(w: WeightName, family: FamilyName = "sans") {
+  return { fontFamily: fontFamily[family][w], fontWeight: weight[w] } as const;
 }
 
 /**
@@ -162,6 +199,12 @@ export interface TextStyleToken {
   letterSpacing: number;
   weight: WeightName;
   /**
+   * Which of the two families this role is set in. Present on every role for the same
+   * reason `textTransform` is: a role is a complete instruction, and an optional family
+   * would mean every call site deciding what "unset" means.
+   */
+  family: FamilyName;
+  /**
    * Always present, never optional. An optional member here would be `"uppercase" |
    * undefined` at the one call site that reads it, which `exactOptionalPropertyTypes`
    * rejects — and working around that with a conditional spread is how a primitive used
@@ -171,28 +214,46 @@ export interface TextStyleToken {
 }
 
 export const text = {
-  /** The one big figure on a tile. Never a sentence. */
+  /**
+   * The one big figure on a tile. Never a sentence.
+   *
+   * Serif, and the clearest case for it: the design system calls this `title-metric` and
+   * makes it the signature of the whole identity. Lighter than the old `heavy` because
+   * Playfair at 32px carries authority through contrast rather than mass — the extra
+   * weight only muddied its thin strokes.
+   */
   display: {
     fontSize: 32,
-    lineHeight: 36,
-    letterSpacing: -0.8,
-    weight: "heavy",
+    lineHeight: 38,
+    letterSpacing: -0.6,
+    weight: "bold",
+    family: "serif",
     textTransform: "none",
   },
-  /** Screen titles. */
+  /** Screen titles. The other serif role, and the last one. */
   title: {
     fontSize: 22,
     lineHeight: 28,
-    letterSpacing: -0.4,
-    weight: "bold",
+    letterSpacing: -0.3,
+    weight: "semibold",
+    family: "serif",
     textTransform: "none",
   },
-  /** Card headings, and the figure at the end of a list row. */
+  /**
+   * Card headings, and the figure at the end of a list row.
+   *
+   * Sans, against the brief's first suggestion of Playfair here, and the reason is the
+   * second half of that sentence: this role sets *figures in a column*. Playfair has no
+   * tabular figures, so every quantity in every list would jog sideways as its digits
+   * changed — and 17px is also where the brief itself flags the serif as a risk on
+   * Android. Both point the same way, so the serif stops at `title`.
+   */
   heading: {
     fontSize: 17,
     lineHeight: 24,
     letterSpacing: -0.2,
     weight: "semibold",
+    family: "sans",
     textTransform: "none",
   },
   /** Prose, field values, button labels, the name in a list row. The workhorse. */
@@ -201,6 +262,7 @@ export const text = {
     lineHeight: 22,
     letterSpacing: 0,
     weight: "regular",
+    family: "sans",
     textTransform: "none",
   },
   /** The metadata line under a name. The 15 → 13 gap is what makes a list scannable. */
@@ -209,6 +271,7 @@ export const text = {
     lineHeight: 18,
     letterSpacing: 0,
     weight: "regular",
+    family: "sans",
     textTransform: "none",
   },
   /** Tertiary — hints, and a third line only where one is genuinely conditional. */
@@ -217,20 +280,29 @@ export const text = {
     lineHeight: 18,
     letterSpacing: 0,
     weight: "regular",
+    family: "sans",
     textTransform: "none",
   },
   /**
-   * Uppercase section labels and pills, and nothing else.
+   * Uppercase section labels, technical badges and pills, and nothing else.
    *
    * 11px is not a content size. It was used as one 32 times, which is where "compensate
    * with colour" came from — you cannot make 11px carry meaning any other way. It earns
    * its place here only because uppercase, weight and tracking do the work instead.
+   *
+   * This IS the design system's `label-caps`, retuned to its tracking (0.12em ≈ 1.3 at
+   * 11px) rather than added beside the existing role as a second one. Two uppercase
+   * 11px roles separated by 0.4 of tracking and one weight step would be precisely the
+   * near-duplicate this ramp was collapsed from eight sizes to five to eliminate, and
+   * the next author would have no way to choose between them. Kept at 11px, not the
+   * system's 10.5 — this is read in gloves.
    */
   overline: {
     fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 0.8,
-    weight: "bold",
+    lineHeight: 15,
+    letterSpacing: 1.3,
+    weight: "semibold",
+    family: "sans",
     textTransform: "uppercase",
   },
 } as const satisfies Record<string, TextStyleToken>;
@@ -266,6 +338,19 @@ export interface Palette {
   accent: string;
   onAccent: string;
   accentSurface: string;
+  /**
+   * Brass, in the three forms it can legibly take. See the note at the top of this file:
+   * the bright brass of the brand is a material, not an ink, and these are named so that
+   * choosing wrongly is harder than choosing rightly.
+   */
+  /** Brass that carries a word. Clears AA on every light ground including its own tint. */
+  brass: string;
+  /** Brass that only has to be seen: hairlines, focus rings, indicators. 3:1 class. */
+  brassLine: string;
+  /** The brass chip ground, and any panel that wants warmth without state. */
+  brassSurface: string;
+  /** Brass on a dark rail, where the bright brand value is finally legible. */
+  brassOnBrand: string;
   success: string;
   successSurface: string;
   warning: string;
@@ -278,87 +363,91 @@ export interface Palette {
 }
 
 /**
- * Warm, light, and soft.
+ * Estate Heritage — linen ground, forest structure, brass detail.
  *
- * The first version was industrial slate on a cold grey, following the system theme —
- * which meant it rendered near-black on most machines and read as grim. This is the
- * deliberate opposite: a warm off-white page, white cards that sit above it, and
- * terracotta for action.
+ * The warmth is in the neutrals, not just the accent. Every surface here carries a
+ * little yellow-red so the linen reads as unbleached cloth rather than dirty white, and
+ * so the forest and brass sitting on it agree with it rather than fighting it. A cold
+ * grey under a warm accent looks like an accident.
  *
- * The warmth is in the neutrals, not just the accent. A cold grey under a warm accent
- * looks like an accident; every neutral here carries a little red so the whole thing
- * agrees with itself.
+ * Every value below was measured, not eyeballed, against all four grounds an ink can
+ * land on — its own tinted surface, the page, a card, and a sunken input — because the
+ * last two palettes each shipped a colour that passed on the page and failed on the
+ * surface it was actually used on.
  */
 const light: Palette = {
-  background: "#FAF7F4",
+  background: "#FAF9F5",
   surface: "#FFFFFF",
   surfaceRaised: "#FFFFFF",
-  surfaceSunken: "#F4EFE9",
-  border: "#ECE4DB",
-  borderStrong: "#C9BCAE",
-  text: "#1F1B18",
-  textMuted: "#736A62",
+  surfaceSunken: "#F5F2EB",
+  border: "#E8E3D7",
+  borderStrong: "#A39E93",
+  text: "#191C1B",
+  textMuted: "#555E58",
   /**
-   * Was `#A69C93` (2.52:1), then `#7A7068`. Both were measured against the *page* and
-   * both were wrong for the surface this colour actually lands on: it is used for
-   * placeholders and glyphs inside `surfaceSunken` inputs, where `#7A7068` came to
-   * **4.23:1** — under AA, and nobody noticed because the check had been run against
-   * `background`.
+   * The third ink, and the one that moves between surfaces — placeholders and glyphs
+   * inside `surfaceSunken` inputs as well as on cards and the page.
    *
-   * `#6E655D` clears 4.5:1 on all three surfaces (page 5.34, card 5.70, sunken 4.99),
-   * which is the property this token needs: it is the one ink that moves between them.
+   * `#646D67` clears 4.5:1 on all three (page 5.08, card 5.35, sunken 4.79). The
+   * palette's own `outline` (#A39E93) is the obvious-looking choice here and reaches
+   * only 2.39:1 on a sunken input — it is a border colour, and using it as a third ink
+   * is exactly the mistake the previous two palettes made in turn.
    *
-   * It remains decoration only. The palette has room for two text colours, not three —
+   * It remains decoration only. The palette has room for three text colours at most;
    * hierarchy comes from size, weight and space.
    */
-  textFaint: "#6E655D",
-  primary: "#33241D",
-  onPrimary: "#FFFFFF",
-  brand: "#33241D",
-  onBrand: "#FDFBF9",
-  onBrandMuted: "#C4B3A6",
-  accent: "#C2410C",
-  onAccent: "#FFFFFF",
-  accentSurface: "#FCEFE7",
+  textFaint: "#646D67",
+  primary: "#0D2818",
+  onPrimary: "#FAF9F5",
+  brand: "#081C15",
+  onBrand: "#FAF9F5",
+  /** 6.8:1 on the forest rail — a muted voice, still a legible one. */
+  onBrandMuted: "#8FA69A",
   /**
-   * The semantic inks are darkened from `#15803D` and `#A16207`.
+   * Action is forest, not brass.
    *
-   * Both passed against the page and failed against their own tinted surface — 4.48:1 and
-   * 4.45:1, short of AA by 0.02 and 0.05. That is invisible to the eye and real to an
-   * auditor, and it is the pairing that matters: these colours are almost always set on
-   * their own surface, in a `Banner` or a `StatusPill`, rather than on the page.
-   *
-   * Every ink here is now checked against all four grounds it can land on — its own
-   * surface, the page, a card, and a sunken input.
+   * The obvious reading of a brass-accented identity is a brass button, and it does not
+   * survive contact with a contrast checker: brass on white is 2.5:1, so a brass button
+   * needs dark text on it and stops looking like brass. The design system agrees —
+   * primary actions are `forest-800` with linen text and a brass *edge*. Brass stays a
+   * detail, which is what makes it read as metal rather than as paint.
    */
-  success: "#12682F",
-  successSurface: "#E9F5EC",
-  // Pushed towards yellow rather than orange, because the accent is already terracotta
-  // and a warning that shares its hue stops being a warning.
-  warning: "#8A5406",
-  warningSurface: "#FBF3DF",
-  danger: "#CC2936",
-  dangerSurface: "#FDECEE",
+  accent: "#0D2818",
+  onAccent: "#FAF9F5",
+  /** Warm rather than green: a tinted panel should not read as a forest button. */
+  accentSurface: "#F5EEDC",
+  brass: "#7A5F22",
+  brassLine: "#9A7B38",
+  brassSurface: "#F5EEDC",
+  brassOnBrand: "#C5A059",
   /**
-   * The keyboard focus indicator.
+   * Sage for health, saffron for urgency, and the system's own error red.
    *
-   * Was `#2563EB`, chosen on the reasoning that "a focus ring that matches the brand is a
-   * focus ring nobody sees". Measured against the grounds it actually lands on, that blue
-   * was **1.00:1 on the terracotta button** — identical luminance, an indicator that
-   * literally cannot be seen on the app's primary action — and 2.88:1 on a sidebar row,
-   * under the 3:1 WCAG 2.4.11 asks of a focus indicator. It was legible on white and
-   * nowhere that mattered.
-   *
-   * The lesson is that a focus ring has no single correct colour, because it has no single
-   * background. This is the ring for light grounds — 14.88:1 on a card input. Controls
-   * standing on a dark ground pick the legible foreground they already have:
-   * `onAccent` on the terracotta button (5.18:1), `onBrand` in the sidebar (14.42:1).
-   *
-   * Two pixels wide and only ever drawn on focus, so "it looks like a border" is not the
-   * risk the old comment feared.
+   * Each ink is the design system's `-700` step rather than its `-500`: the 500s are
+   * specified for *borders at 30% opacity*, and reading them as text colours puts
+   * saffron at 3.07:1 on its own chip. The 700s clear AA on all four grounds.
    */
-  focus: "#33241D",
-  shadow: "#4A342A",
+  success: "#2D4735",
+  successSurface: "#F2F6F3",
+  warning: "#9C5914",
+  warningSurface: "#FEF7ED",
+  danger: "#BA1A1A",
+  dangerSurface: "#FFDAD6",
+  /**
+   * The keyboard focus indicator, and the one place brass earns a functional job.
+   *
+   * The previous palette needed three different focus colours because its ring had no
+   * single background: a near-black ring was 14.88:1 on a card and 1.00:1 on the
+   * terracotta button — invisible on the app's primary action. Brass is unusual in
+   * clearing the 3:1 of WCAG 2.4.11 on *both* ends of this palette: 3.99:1 on a card,
+   * 3.57:1 on a sunken input, and 3.95:1 on the forest button itself. One ring,
+   * everywhere, which is one fewer thing to get wrong per control.
+   *
+   * Two pixels wide and only ever drawn on focus.
+   */
+  focus: "#9A7B38",
+  /** Green-tinted, per the design system: warm ambient occlusion, never muddy grey. */
+  shadow: "#143628",
 };
 
 /**
@@ -366,8 +455,11 @@ const light: Palette = {
  *
  * Exported rather than deleted because the gate device at night is a real requirement
  * (PRD section 4 Gate 0a), and a palette that is deleted has to be invented again from
- * nothing. It is cold slate, so it needs rebuilding warm before it is switched on — the
- * two themes have to agree about the brand, and right now they do not.
+ * nothing. It is cold slate with a mint accent, so it needs rebuilding before it is
+ * switched on — the two themes have to agree about the brand, and the gap just widened:
+ * light is now forest and brass, and this is still the industrial slate that light was
+ * two identities ago. Rebuilding it is a deliberate piece of work, not a find-replace,
+ * and it belongs with whoever specifies the night-shift device.
  */
 export const darkPalette: Palette = {
   // Lifted as a set. The previous values put the page at #0A0F18 and cards at #141C28
@@ -391,6 +483,13 @@ export const darkPalette: Palette = {
   accent: "#2DD4A0",
   onAccent: "#04211A",
   accentSurface: "#0C2A22",
+  // Present so the palette satisfies its own interface, not because they have been
+  // designed — see the note above. On a dark ground the bright brand brass is finally
+  // the legible one, which is the only thing about this group that is already right.
+  brass: "#DCB879",
+  brassLine: "#C5A059",
+  brassSurface: "#2A2113",
+  brassOnBrand: "#DCB879",
   success: "#2DD4A0",
   successSurface: "#0C2A22",
   warning: "#F5B944",
@@ -429,9 +528,14 @@ export function useIsDark(): boolean {
  */
 export function elevation(level: 0 | 1 | 2, palette: Palette) {
   if (level === 0) return {};
+  // Softer and wider than before, and tinted forest by `palette.shadow`: the design
+  // system asks for `0 2px 14px rgba(20,54,40,.03)` on a card, which is barely a shadow
+  // at all — the separation is meant to come from the champagne hairline, with the
+  // shadow only keeping the card from looking pasted on. Level 2 stays heavier because
+  // it lifts modals and drawers off the page entirely.
   const config = {
-    1: { opacity: 0.05, radius: 8, offset: 2, elevation: 2 },
-    2: { opacity: 0.09, radius: 24, offset: 8, elevation: 8 },
+    1: { opacity: 0.04, radius: 14, offset: 2, elevation: 2 },
+    2: { opacity: 0.08, radius: 28, offset: 8, elevation: 8 },
   }[level];
   return {
     shadowColor: palette.shadow,
