@@ -1,5 +1,13 @@
-import type { MembershipRole } from "@golai/db";
-import { can, capabilitiesFor, type Capability, type GolaiRole } from "@golai/domain";
+import type { MembershipRole, ModuleKey } from "@golai/db";
+import {
+  can,
+  capabilitiesFor,
+  moduleAllows,
+  type Capability,
+  type GolaiModuleKey,
+  type GolaiRole,
+  type ModuleAccessMap,
+} from "@golai/domain";
 
 /**
  * Where the role list in the domain package meets the one in the database types.
@@ -23,6 +31,16 @@ import { can, capabilitiesFor, type Capability, type GolaiRole } from "@golai/do
 type Exact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
 
 export const ROLE_PARITY: Exact<GolaiRole, MembershipRole> = true;
+
+/**
+ * The same guard for modules, and for the same reason.
+ *
+ * `@golai/domain` owns the registry because the labels and ordering are product facts;
+ * `@golai/db` owns `ModuleKey` because it mirrors what the migration seeded. A module
+ * added to one and not the other stops this file compiling — which beats discovering
+ * it as a screen that is offered and then refused.
+ */
+export const MODULE_PARITY: Exact<GolaiModuleKey, ModuleKey> = true;
 
 /**
  * The capability each route needs.
@@ -73,10 +91,72 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   // server decides it. A route capability here would imply a property role grants it.
 };
 
+/**
+ * The module each route belongs to.
+ *
+ * Where `ROUTE_CAPABILITY` says which job a screen is part of, this says which part of
+ * the product it is sold in. A route needs both: an entry here and there. Absent means
+ * the screen belongs to no module and is therefore never switched off — the home screen
+ * and the property picker, which a customer must reach whatever they are paying for.
+ *
+ * Read-only screens are listed too, and that is not a contradiction of "reads are not
+ * gated" in the migration. The server still returns the rows — an inspector's question
+ * can always be answered — but a customer who does not hold Registers is not offered
+ * the screen. Hiding a menu item and refusing an export are different promises.
+ */
+export const ROUTE_MODULE: Record<string, ModuleKey> = {
+  "gate/new": "GATE",
+  "gate/recorded": "GATE",
+  "gate-out": "GATE",
+  receive: "RECEIVING",
+  "receive/[entry]": "RECEIVING",
+  receipts: "RECEIVING",
+  "receipts/[grn]": "RECEIVING",
+  putaway: "PUTAWAY",
+  issue: "ISSUE",
+  dispatch: "DISPATCH",
+  returnables: "RETURNABLES",
+  temperature: "TEMPERATURE",
+  stock: "STOCK",
+  "stock/opening": "STOCK",
+  perishables: "STOCK",
+  registers: "REGISTERS",
+  "registers/trace/[batch]": "REGISTERS",
+  items: "MASTERS",
+  "admin/locations": "MASTERS",
+  vendors: "MASTERS",
+  setup: "MASTERS",
+  "admin/users": "USERS",
+  // Deliberately absent, as in ROUTE_CAPABILITY: `platform` is ours, not a property's,
+  // and no customer's module list can grant or withhold it.
+};
+
 export function capabilitiesForMembership(
   roles: readonly MembershipRole[],
 ): ReadonlySet<Capability> {
   return capabilitiesFor(roles);
+}
+
+/**
+ * Whether a route may be offered: the role must carry the job, and the property must
+ * hold the module.
+ *
+ * Both halves fail closed. A route with no capability entry is open to any member, and
+ * a route with no module entry belongs to no module — those two absences are
+ * deliberate rather than oversights, so they are read as such.
+ */
+export function routeAllowed(
+  segment: string,
+  roles: readonly MembershipRole[],
+  modules: ModuleAccessMap,
+): boolean {
+  const capability = ROUTE_CAPABILITY[segment];
+  if (capability !== undefined && !can(roles, capability)) return false;
+
+  const module = ROUTE_MODULE[segment];
+  if (module !== undefined && !moduleAllows(modules, module)) return false;
+
+  return true;
 }
 
 export function memberCan(roles: readonly MembershipRole[], capability: Capability): boolean {

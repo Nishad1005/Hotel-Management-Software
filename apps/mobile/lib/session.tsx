@@ -31,6 +31,12 @@ export interface PropertyAccess {
   propertyName: string;
   organisationName: string;
   roles: MembershipRole[];
+  /**
+   * Which parts of the product are open here, as the server computed them — the
+   * property's licence, this person's role default, and any personal restriction,
+   * already resolved into one answer per module. The app never recomputes it.
+   */
+  modules: Record<string, boolean>;
 }
 
 interface SessionState {
@@ -129,10 +135,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // anyway, but the app needs the list to offer a choice and to label the header.
   useEffect(() => {
     if (!supabase || !session) return;
+    // Held as a const so the narrowing survives into the callback below: TypeScript
+    // cannot know a module-level binding is still non-null inside a nested closure.
+    const client = supabase;
     let alive = true;
 
     void (async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("membership")
         .select(
           "role, org_id, property_id, property:property_id(id, code, name, organisation:org_id(name))",
@@ -163,13 +172,50 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             propertyName: p.name,
             organisationName: p.organisation?.name ?? "",
             roles: [row.role],
+            // Filled in below, once the server has been asked.
+            modules: {},
           });
       }
 
       const list = [...byProperty.values()].sort((a, b) =>
         a.propertyCode.localeCompare(b.propertyCode),
       );
-      setProperties(list);
+
+      /*
+        Modules are fetched here rather than in an effect of their own, and the list is
+        not published until they arrive. A separate effect would set `properties` first
+        and the map a moment later, and because an absent map means "no" (fail closed,
+        `moduleAllows`), the sidebar would render nearly empty and then fill in. Late
+        arrival is fine for the platform-admin flag next door — it adds a section — but
+        here it would take the whole navigation away and give it back.
+
+        One call per property, and the count is the properties one person works at: one
+        for a hotel, a few for a group.
+      */
+      const withModules = await Promise.all(
+        list.map(async (p) => {
+          const { data: rows, error: moduleError } = await client.rpc("my_module_access", {
+            p_property_id: p.propertyId,
+          });
+
+          if (moduleError) {
+            // Fail closed, and say so. The alternative — assuming everything is on —
+            // offers screens the server will refuse, which is the exact failure the
+            // module check exists to prevent.
+            console.warn(`Could not load modules for ${p.propertyCode}:`, moduleError.message);
+            return { ...p, modules: {} };
+          }
+
+          return {
+            ...p,
+            modules: Object.fromEntries((rows ?? []).map((r) => [r.module_key, r.allowed])),
+          };
+        }),
+      );
+
+      if (!alive) return;
+
+      setProperties(withModules);
       // Only auto-select when there is genuinely no choice to make.
       setActiveId(
         (current) => current ?? (list.length === 1 ? (list[0]?.propertyId ?? null) : null),

@@ -64,7 +64,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const p = usePalette();
 
-  const groups = navigationFor(activeProperty?.roles ?? [], isPlatformAdmin);
+  const groups = navigationFor(
+    activeProperty?.roles ?? [],
+    isPlatformAdmin,
+    activeProperty?.modules,
+  );
   const current = activeHref(pathname, groups);
   const pageLabel = labelFor(current, groups);
   useDocumentTitle(pageLabel);

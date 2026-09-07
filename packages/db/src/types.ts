@@ -56,6 +56,28 @@ export type MembershipRole =
   | "BANQUET"
   | "AUDITOR";
 
+/**
+ * The parts the product is sold in.
+ *
+ * A union rather than a Postgres enum, because `module.key` is text with a check
+ * constraint — a module is a row, so that a customer's grant can reference it and an
+ * add-on can be registered by the migration that builds it. This union is therefore
+ * the narrowing, not the source: adding a module means a migration row AND this line,
+ * the same discipline every hand-maintained type in this file carries.
+ */
+export type ModuleKey =
+  | "GATE"
+  | "RECEIVING"
+  | "PUTAWAY"
+  | "ISSUE"
+  | "DISPATCH"
+  | "RETURNABLES"
+  | "TEMPERATURE"
+  | "STOCK"
+  | "REGISTERS"
+  | "MASTERS"
+  | "USERS";
+
 export type UomKind = "WEIGHT" | "VOLUME" | "COUNT";
 export type StorageRegime = "AMBIENT" | "CHILLED" | "FROZEN";
 
@@ -487,6 +509,34 @@ export type ReturnableItemRow = {
   created_at: string;
 };
 
+export type ModuleRow = {
+  key: ModuleKey;
+  label: string;
+  default_roles: MembershipRole[];
+  /** false: on unless switched off. true: an add-on, off until sold. */
+  requires_licence: boolean;
+  sort: number;
+};
+
+export type PropertyModuleRow = {
+  property_id: string;
+  module_key: ModuleKey;
+  enabled: boolean;
+  note: string | null;
+  changed_by: string | null;
+  changed_at: string;
+};
+
+export type MemberModuleRow = {
+  property_id: string;
+  user_id: string;
+  module_key: ModuleKey;
+  /** Narrowing only — false removes access, true is merely explicit. */
+  allowed: boolean;
+  changed_by: string | null;
+  changed_at: string;
+};
+
 export type TemperatureReadingRow = {
   id: string;
   property_id: string;
@@ -905,6 +955,27 @@ export type Database = {
         // A maintained projection. Written only by the ledger trigger.
         Insert: StockLotRow;
         Update: Partial<StockLotRow>;
+        Relationships: [];
+      };
+      // The three access tables. All read-only to a client: what a customer holds is
+      // set by platform staff, and personal exceptions go through set_member_module,
+      // which refuses an administrator editing themselves.
+      module: {
+        Row: ModuleRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      property_module: {
+        Row: PropertyModuleRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      member_module: {
+        Row: MemberModuleRow;
+        Insert: never;
+        Update: never;
         Relationships: [];
       };
       temperature_reading: {
@@ -1326,6 +1397,64 @@ export type Database = {
           qty_returned: number;
           outstanding: number;
         }[];
+      };
+      /**
+       * Every module with whether the caller may open it here. The navigation reads
+       * this rather than recomputing the rule, so the app can only ever offer what
+       * the server would allow.
+       */
+      my_module_access: {
+        Args: { p_property_id: string };
+        Returns: { module_key: ModuleKey; allowed: boolean }[];
+      };
+      /** The effective grid for one customer. Platform staff only; others get nothing. */
+      platform_list_property_modules: {
+        Args: { p_property_id: string };
+        Returns: {
+          module_key: ModuleKey;
+          label: string;
+          requires_licence: boolean;
+          enabled: boolean;
+          /** True when a row says so, rather than the default deciding. */
+          is_explicit: boolean;
+          note: string | null;
+          changed_at: string | null;
+        }[];
+      };
+      platform_set_property_module: {
+        Args: {
+          p_property_id: string;
+          p_module_key: ModuleKey;
+          p_enabled: boolean;
+          p_note: string | null;
+        };
+        Returns: undefined;
+      };
+      /** Removes the explicit row, returning the module to its default. */
+      platform_reset_property_module: {
+        Args: { p_property_id: string; p_module_key: ModuleKey };
+        Returns: undefined;
+      };
+      /** Everyone at the property against every module, for the access editor. */
+      list_member_modules: {
+        Args: { p_property_id: string };
+        Returns: {
+          user_id: string;
+          module_key: ModuleKey;
+          allowed: boolean;
+          /** Whether a personal exception is what produced that answer. */
+          is_override: boolean;
+        }[];
+      };
+      /** Narrows one person. `p_allowed: null` clears the exception. */
+      set_member_module: {
+        Args: {
+          p_property_id: string;
+          p_user_id: string;
+          p_module_key: ModuleKey;
+          p_allowed: boolean | null;
+        };
+        Returns: undefined;
       };
       /** Creates a customer, a property and its first owner. Idempotent. */
       provision_tenant: {
