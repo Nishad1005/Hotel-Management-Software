@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "primary-fixed": "#cbead1",
+          "on-primary-fixed-variant": "#324d3a",
+          "secondary": "#775a19",
+          "tertiary-fixed": "#c5ecce",
+          "surface": "#FAF9F5",
+          "outline-variant": "#E8E3D7",
+          "champagne": "#E8E3D7",
+          "on-surface": "#191C1B",
+          "brass-100": "#F5EEDC",
+          "on-tertiary": "#ffffff",
+          "on-error-container": "#93000a",
+          "sage-500": "#43654E",
+          "brass-700": "#9A7B38",
+          "linen-50": "#FAF9F5",
+          "brass-600": "#B8860B",
+          "on-secondary-fixed-variant": "#5d4201",
+          "inverse-primary": "#afceb6",
+          "on-tertiary-fixed": "#00210f",
+          "saffron-50": "#FEF7ED",
+          "surface-container-high": "#e9e8e4",
+          "forest-800": "#0D2818",
+          "primary": "#081C15",
+          "inverse-on-surface": "#f2f1ed",
+          "on-secondary": "#ffffff",
+          "secondary-container": "#F5EEDC",
+          "primary-fixed-dim": "#afceb6",
+          "outline": "#A39E93",
+          "sage-700": "#2D4735",
+          "linen-100": "#F5F2EB",
+          "brass-500": "#C5A059",
+          "on-primary-container": "#FAF9F5",
+          "background": "#faf9f5",
+          "saffron-700": "#9C5914",
+          "on-surface-variant": "#555E58",
+          "tertiary-fixed-dim": "#aad0b3",
+          "forest-950": "#061510",
+          "on-tertiary-fixed-variant": "#2c4e38",
+          "surface-container": "#F5F2EB",
+          "linen-200": "#EDE8DC",
+          "surface-dim": "#dbdad6",
+          "tertiary": "#1D4736",
+          "on-secondary-container": "#775a19",
+          "surface-tint": "#43654E",
+          "surface-container-lowest": "#FFFFFF",
+          "error": "#ba1a1a",
+          "forest-600": "#1D4736",
+          "brass-400": "#D4AF37",
+          "saffron-500": "#C87D28",
+          "error-container": "#ffdad6",
+          "on-primary-fixed": "#052011",
+          "forest-900": "#081C15",
+          "surface-container-highest": "#EDE8DC",
+          "brass-300": "#DCB879",
+          "sage-50": "#F2F6F3",
+          "on-tertiary-container": "#ffffff",
+          "forest-700": "#143628",
+          "surface-variant": "#E8E3D7",
+          "surface-bright": "#faf9f5",
+          "inverse-surface": "#081C15",
+          "on-primary": "#ffffff",
+          "surface-container-low": "#F8F6F0",
+          "secondary-fixed": "#ffdea5",
+          "on-error": "#ffffff",
+          "on-background": "#1b1c1a",
+          "primary-container": "#0D2818",
+          "secondary-fixed-dim": "#e9c176",
+          "tertiary-container": "#143628",
+          "on-secondary-fixed": "#261900"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.125rem",
+          "lg": "0.375rem",
+          "xl": "0.625rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "pad-lg": "1.5rem",
+          "sidebar-w-collapsed": "72px",
+          "pad-md": "1rem",
+          "sidebar-w": "264px",
+          "pad-2xs": "0.25rem",
+          "gutter": "1rem",
+          "pad-xl": "2rem",
+          "pad-2xl": "3rem",
+          "content-max-w": "1380px",
+          "pad-xs": "0.5rem",
+          "pad-sm": "0.75rem"
+        },
+        "fontFamily": {
+          "label-caps": ["Plus Jakarta Sans"],
+          "body-lg": ["Plus Jakarta Sans"],
+          "title-metric": ["Playfair Display"],
+          "headline-sm": ["Playfair Display"],
+          "label-sm": ["Plus Jakarta Sans"],
+          "body-sm": ["Plus Jakarta Sans"],
+          "headline-lg": ["Playfair Display"],
+          "headline-lg-mobile": ["Playfair Display"],
+          "label-md": ["Plus Jakarta Sans"],
+          "display-hero": ["Playfair Display"],
+          "headline-md": ["Playfair Display"],
+          "body-md": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "label-caps": ["10.5px", {lineHeight: "15px", letterSpacing: "0.12em", fontWeight: "600"}],
+          "body-lg": ["16px", {lineHeight: "24px", fontWeight: "400"}],
+          "title-metric": ["42px", {lineHeight: "46px", letterSpacing: "-0.03em", fontWeight: "600"}],
+          "headline-sm": ["19px", {lineHeight: "24px", fontWeight: "600"}],
+          "label-sm": ["11px", {lineHeight: "15px", fontWeight: "500"}],
+          "body-sm": ["13px", {lineHeight: "18px", fontWeight: "400"}],
+          "headline-lg": ["32px", {lineHeight: "38px", letterSpacing: "-0.02em", fontWeight: "600"}],
+          "headline-lg-mobile": ["26px", {lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "600"}],
+          "label-md": ["13px", {lineHeight: "18px", fontWeight: "600"}],
+          "display-hero": ["42px", {lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "600"}],
+          "headline-md": ["24px", {lineHeight: "30px", letterSpacing: "-0.01em", fontWeight: "600"}],
+          "body-md": ["14px", {lineHeight: "20px", fontWeight: "400"}]
+        }
+      }
+    }
+  }</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-brass-500/20 selection:text-forest-900"><aside class="fixed left-0 top-0 h-full w-[264px] bg-forest-950 text-surface-container border-r border-brass-500/20 z-50 flex flex-col justify-between shadow-[4px_0_32px_rgba(6,21,16,0.35)] overflow-hidden"><div class="flex flex-col h-full"><div class="px-pad-lg pt-pad-lg pb-pad-md flex flex-col gap-pad-sm border-b border-white/5"><div class="flex items-center gap-pad-sm"><img alt="Pargolai Luxury Resort OS Logo" class="h-8 w-auto object-contain brightness-110" src="https://lh3.googleusercontent.com/aida/AEtjO1Uf2-1LAwzcgD8mih3JkI9CCkMf0PXQ03mq2f9GzxeTAdi5Y_4JzhKTM84-M__ROrASzaONhtOvg6LB7rda_MDQiP1nHFYe3IXE3Hn87ub__xhghBU7ChoxvzUHX2R5yJEtAQZLq_oHz3W5IQ_W3vKqULHSQpMcE-xwTCS4SYZQY6XXj-_xFN0juKa4purwSx4P-fsiAqkqcZgvKpL-qaXv-FdMqzR3noTu3jF6OSeJwXDcRZdmLkLPxHqN"/><div class="flex flex-col"><span class="font-headline-md text-headline-md tracking-wider text-linen-50 leading-none">PARGOLAI</span><span class="font-label-caps text-[10px] uppercase tracking-[0.2em] text-brass-400 mt-1">Resort Logistics</span></div></div><div class="mt-pad-xs p-pad-xs bg-forest-900/90 rounded-lg border border-brass-500/20 flex items-center justify-between cursor-pointer hover:border-brass-400/50 transition-colors"><div class="flex items-center gap-pad-xs min-w-0"><span class="material-symbols-outlined text-brass-400 text-[18px] shrink-0">villa</span><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-linen-50 truncate">The Royal Palm Villa &amp; Spa</span><span class="font-label-sm text-label-sm text-outline-variant/70 truncate">Bali • T1 Staging Zone</span></div></div><span class="material-symbols-outlined text-brass-400/80 text-[16px] shrink-0">unfold_more</span></div></div><nav class="flex-1 overflow-y-auto px-pad-md space-y-pad-md py-pad-md" data-active-classes="bg-forest-800 text-brass-300 font-semibold rounded-lg shadow-sm border border-brass-500/30"><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-[10px] uppercase tracking-[0.16em] text-brass-400/80">Main</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="home-dashboard" href="#"><span class="material-symbols-outlined text-[19px]">space_dashboard</span><span>Home (Dashboard)</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-[10px] uppercase tracking-[0.16em] text-brass-400/80">The Flow</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="new-arrival" href="#"><span class="material-symbols-outlined text-[19px]">local_shipping</span><span>New arrival (Gate Log)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="receive-goods" href="#"><span class="material-symbols-outlined text-[19px]">move_to_inbox</span><span>Receive goods (Dock)</span></a><a aria-current="page" class="flex items-center gap-pad-sm px-pad-sm py-pad-xs transition-all bg-forest-800 text-brass-300 font-semibold rounded-lg shadow-sm border border-brass-500/40" data-path="put-away" href="#"><span class="material-symbols-outlined text-[19px] text-brass-400">shelves</span><span>Put away (Staging)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="issue" href="#"><span class="material-symbols-outlined text-[19px]">outbox</span><span>Issue (Requests)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="send-out" href="#"><span class="material-symbols-outlined text-[19px]">forklift</span><span>Send out (Transfers)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="gate-out" href="#"><span class="material-symbols-outlined text-[19px]">minor_crash</span><span>Gate out (Pass-through)</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-[10px] uppercase tracking-[0.16em] text-brass-400/80">Stock</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="in-the-store" href="#"><span class="material-symbols-outlined text-[19px]">inventory_2</span><span>In the store</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="expiring" href="#"><span class="material-symbols-outlined text-[19px]">hourglass_bottom</span><span>Expiring watch</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="opening-stock" href="#"><span class="material-symbols-outlined text-[19px]">history</span><span>Opening stock</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-[10px] uppercase tracking-[0.16em] text-brass-400/80">Compliance</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="temperature-round" href="#"><span class="material-symbols-outlined text-[19px]">thermostat</span><span>Temperature round (HACCP)</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="fssai-registers" href="#"><span class="material-symbols-outlined text-[19px]">verified</span><span>FSSAI registers</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="goods-receipts" href="#"><span class="material-symbols-outlined text-[19px]">receipt_long</span><span>Goods receipts</span></a><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="returnables" href="#"><span class="material-symbols-outlined text-[19px]">assignment_return</span><span>Returnables</span></a></div><div class="space-y-1"><p class="px-pad-xs py-pad-2xs font-label-caps text-[10px] uppercase tracking-[0.16em] text-brass-400/80">System</p><a class="flex items-center gap-pad-sm px-pad-sm py-pad-xs rounded-lg text-linen-100/70 hover:bg-forest-900 hover:text-brass-300 transition-all font-body-sm text-body-sm" data-path="setup-integrations" href="#"><span class="material-symbols-outlined text-[19px]">tune</span><span>Setup &amp; Integrations</span></a></div></nav></div><div class="p-pad-md bg-forest-900/60 border-t border-brass-500/20 flex items-center justify-between"><div class="flex items-center gap-pad-xs min-w-0"><div class="w-2 h-2 rounded-full bg-brass-400 animate-pulse"></div><span class="font-label-caps text-[10px] uppercase text-champagne tracking-widest">Monaco Direct Line</span></div><span class="material-symbols-outlined text-brass-400 text-[18px]">lock</span></div></aside><div class="pl-[264px] min-h-screen flex flex-col bg-surface"><header class="fixed top-0 left-[264px] right-0 h-16 bg-surface/95 backdrop-blur-xl border-b border-champagne z-40 shadow-[0_1px_12px_rgba(0,0,0,0.03)]"><div class="h-16 w-full px-pad-lg flex items-center justify-between gap-pad-md"><div class="flex items-center gap-pad-md min-w-0 flex-1"><img alt="Pargolai Luxury Resort OS Logo" class="h-8 w-auto object-contain shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1Uf2-1LAwzcgD8mih3JkI9CCkMf0PXQ03mq2f9GzxeTAdi5Y_4JzhKTM84-M__ROrASzaONhtOvg6LB7rda_MDQiP1nHFYe3IXE3Hn87ub__xhghBU7ChoxvzUHX2R5yJEtAQZLq_oHz3W5IQ_W3vKqULHSQpMcE-xwTCS4SYZQY6XXj-_xFN0juKa4purwSx4P-fsiAqkqcZgvKpL-qaXv-FdMqzR3noTu3jF6OSeJwXDcRZdmLkLPxHqN"/><div class="hidden xl:flex items-center gap-pad-xs bg-linen-100 border border-champagne px-pad-sm py-1.5 rounded-full shrink-0"><span class="w-2 h-2 rounded-full bg-forest-700 animate-pulse"></span><span class="font-label-sm text-label-sm text-forest-900 font-medium">Dock Status: Operational • Bay 1-4 Active</span></div><div class="hidden lg:flex items-center gap-1.5 bg-linen-100/70 border border-champagne/60 px-pad-sm py-1.5 rounded-full shrink-0"><span class="material-symbols-outlined text-brass-600 text-[16px]">wb_sunny</span><span class="font-label-sm text-label-sm text-on-surface-variant">09:42 AM • 28°C Sunny</span></div><div class="relative flex-1 max-w-md"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-brass-700/60 text-[18px]">search</span><input class="w-full pl-9 pr-pad-md py-1.5 bg-white border border-champagne focus:border-brass-500 rounded-full font-body-sm text-body-sm text-on-surface placeholder:text-outline/70 focus:outline-none focus:ring-1 focus:ring-brass-500 transition-all shadow-[0_1px_3px_rgba(0,0,0,0.02)]" placeholder="Search shipments, purchase orders, PO#, bins..." type="text"/></div></div><div class="flex items-center gap-pad-sm shrink-0"><button class="flex items-center gap-1.5 bg-forest-900 hover:bg-forest-800 text-brass-300 hover:text-linen-50 border border-brass-500/50 font-label-md text-label-md px-pad-md py-2 rounded-full shadow-sm transition-all" type="button"><span class="material-symbols-outlined text-[18px] text-brass-400">add</span><span>Record Arrival</span></button><button class="relative w-9 h-9 rounded-full bg-linen-100 border border-champagne hover:border-brass-400 flex items-center justify-center text-forest-900 transition-colors shadow-sm" type="button"><span class="material-symbols-outlined text-[19px]">notifications</span><span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brass-600"></span></button><div class="flex items-center gap-pad-xs pl-pad-xs"><img alt="Profile" class="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-brass-500/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtUJjrEyghsT0dQIGpWksQSW92iB_psJKTc3fVUPNGAZD7UcLm4pJ9AYPWG-G6Tjkp4SaPWgOip7QG45ctATptgqquLy_tjgi7r3nBAXaYLR9mjFxg4j8vG5_e6QWC4-8QVs6uImFh3ooe211QvTWFTpT3LP7mC0oeKRXLmrXCMb4xA19HjsXLeQUZ88qouS12k9BUOfWRhX_-h2SXKZUTpgCBjXm0QFuHDLK9srVj3F8tRy8k0Ia2Uw"/><div class="hidden md:flex flex-col text-left"><span class="font-label-md text-label-md text-forest-950 font-semibold leading-none">Elena Vance</span><span class="font-label-sm text-label-sm text-brass-700 leading-tight mt-0.5">Director of Hospitality Supply</span></div></div></div></div></header><main class="w-full pt-16 bg-surface flex-1"><div class="w-full max-w-[1380px] mx-auto px-pad-lg py-pad-lg"><div class="flex flex-col w-full gap-pad-lg">
+<!-- Top Header & Live Telemetry Bar -->
+<div class="flex flex-col lg:flex-row lg:items-end justify-between gap-pad-md">
+<div class="flex flex-col">
+<div class="flex items-center gap-pad-xs mb-1.5">
+<span class="w-2 h-2 rounded-full bg-brass-600 animate-ping"></span>
+<span class="font-label-caps text-label-caps uppercase tracking-[0.14em] text-forest-800 font-bold">Live Staging Active</span>
+<span class="text-outline text-label-sm font-label-sm">• Dock T1 Staging Zone</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-forest-950 tracking-tight">Staging Area &amp; Bin Allocation</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mt-0.5">
+        Terminal 1 Logistics Center • Direct routing to Cold Rooms, Sommelier Wine Vaults, and Housekeeping Depots.
+      </p>
+</div>
+<!-- Quick Action / Facility Route Switcher -->
+<div class="flex items-center gap-pad-xs shrink-0 bg-linen-100 border border-champagne p-1 rounded-full shadow-sm">
+<button class="flex items-center gap-1.5 bg-forest-900 px-pad-md py-1.5 rounded-full font-label-md text-label-md text-brass-300 shadow-sm border border-brass-500/30" type="button">
+<span class="material-symbols-outlined text-[17px] text-brass-400">warehouse</span>
+<span>Terminal 1 Logistics</span>
+</button>
+<button class="flex items-center gap-1.5 px-pad-md py-1.5 rounded-full font-label-md text-label-md text-forest-800/80 hover:text-forest-950 hover:bg-white/60 transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px] text-brass-600">wine_bar</span>
+<span>Cellar Vault</span>
+</button>
+<button class="flex items-center gap-1.5 px-pad-md py-1.5 rounded-full font-label-md text-label-md text-forest-800/80 hover:text-forest-950 hover:bg-white/60 transition-colors" type="button">
+<span class="material-symbols-outlined text-[17px] text-forest-600">ac_unit</span>
+<span>Cold Rooms</span>
+</button>
+</div>
+</div>
+<!-- Metric Gauges & Staging Capacity Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-pad-md">
+<!-- Live Capacity Meter Card -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne flex flex-col justify-between relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">T1 Floor Utilization</span>
+<span class="w-8 h-8 rounded-full bg-brass-100 border border-champagne flex items-center justify-center text-brass-700">
+<span class="material-symbols-outlined text-[18px]">grid_view</span>
+</span>
+</div>
+<div class="my-pad-xs">
+<div class="flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-950">38%</span>
+<span class="font-label-md text-label-md text-forest-700 font-semibold">Staged</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">62% Available Dock Floor Capacity</p>
+</div>
+<div class="w-full bg-linen-100 rounded-full h-2 overflow-hidden flex border border-champagne/40">
+<div class="bg-forest-800 h-full rounded-full" style="width: 38%"></div>
+</div>
+</div>
+<!-- Total Pallets Waiting -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Pallets in Staging</span>
+<span class="w-8 h-8 rounded-full bg-forest-900 border border-brass-500/40 flex items-center justify-center text-brass-300">
+<span class="material-symbols-outlined text-[18px]">pallet</span>
+</span>
+</div>
+<div class="my-pad-xs">
+<div class="flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-900">06</span>
+<span class="font-label-md text-label-md text-brass-700 font-medium">batches queued</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">1 critical HACCP cold chain pending</p>
+</div>
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-forest-800 font-semibold">
+<span class="material-symbols-outlined text-[15px] text-brass-600">timer</span>
+<span>Avg. stow velocity: 7.2 mins</span>
+</div>
+</div>
+<!-- Active Handlers -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Active Handlers</span>
+<span class="w-8 h-8 rounded-full bg-brass-100 border border-champagne flex items-center justify-center text-brass-700">
+<span class="material-symbols-outlined text-[18px]">badge</span>
+</span>
+</div>
+<div class="my-pad-xs">
+<div class="flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-950">4 / 5</span>
+<span class="font-label-md text-label-md text-on-surface-variant">on floor</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Alex K., Devlin R., Maya S., Tara W.</p>
+</div>
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-forest-700">
+<span class="material-symbols-outlined text-[15px] text-brass-600">forklift</span>
+<span>2 Electric tuggers operational</span>
+</div>
+</div>
+<!-- Verification Rate -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Bin Scan Integrity</span>
+<span class="w-8 h-8 rounded-full bg-forest-900 border border-brass-500/30 flex items-center justify-center text-brass-300">
+<span class="material-symbols-outlined text-[18px]">qr_code_scanner</span>
+</span>
+</div>
+<div class="my-pad-xs">
+<div class="flex items-baseline gap-2">
+<span class="font-title-metric text-title-metric text-forest-950">100%</span>
+<span class="font-label-md text-label-md text-forest-700 font-semibold">Zero Discrepancy</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">18 Batches stowed today</p>
+</div>
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-forest-800">
+<span class="material-symbols-outlined text-[15px] text-brass-600">verified_user</span>
+<span>HACCP &amp; FSSAI compliant audit</span>
+</div>
+</div>
+</div>
+<!-- Interactive Storage Layout & Facility Blueprint Panel -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-lg shadow-sm border border-champagne">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-pad-sm pb-pad-md">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-forest-950 font-semibold">Interactive Facility Storage Schematic</span>
+<span class="px-2.5 py-0.5 rounded-full bg-forest-900 text-brass-300 border border-brass-500/30 font-label-caps text-label-caps uppercase">T1 Floor Map</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Real-time sensor network: monitored thermal, atmospheric, and bin occupancy metrics.
+        </p>
+</div>
+<div class="flex flex-wrap items-center gap-pad-xs">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-linen-100 hover:bg-linen-200 border border-champagne font-label-md text-label-md text-forest-950 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-brass-600">tune</span>
+<span>Zone Overlays</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-linen-100 hover:bg-linen-200 border border-champagne font-label-md text-label-md text-forest-950 transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px] text-forest-700">sensors</span>
+<span>IoT Sensors: 14 Live</span>
+</button>
+</div>
+</div>
+<!-- Visual schematic grid representation of Resort Depots -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-pad-sm pt-pad-xs">
+<!-- Cold Room 1 & 2 -->
+<div class="bg-linen-50 border border-champagne rounded-lg p-pad-sm flex flex-col justify-between transition-all hover:border-brass-400 hover:shadow-sm relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-forest-700 text-[18px]">ac_unit</span>
+<span class="font-label-md text-label-md text-forest-950 font-semibold">Cold Room 2</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-forest-900 text-brass-300 border border-brass-500/30 font-label-caps text-[10px] font-bold">-2°C to 0°C</span>
+</div>
+<div class="my-3 flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Occupancy</span>
+<span class="font-semibold text-forest-900">78% Full</span>
+</div>
+<div class="w-full bg-champagne rounded-full h-1.5 overflow-hidden">
+<div class="bg-forest-800 h-full rounded-full" style="width: 78%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Walk-in Chiller</span>
+<span class="text-brass-700 font-bold">Shelf B-04 Waiting</span>
+</div>
+</div>
+<!-- Sommelier Cellar Vault -->
+<div class="bg-linen-50 border border-champagne rounded-lg p-pad-sm flex flex-col justify-between transition-all hover:border-brass-400 hover:shadow-sm relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-brass-600 text-[18px]">wine_bar</span>
+<span class="font-label-md text-label-md text-forest-950 font-semibold">Cellar Vault</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-brass-100 text-brass-700 border border-champagne font-label-caps text-[10px] font-bold">12°C • 65% RH</span>
+</div>
+<div class="my-3 flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>High-Security Bay</span>
+<span class="font-semibold text-forest-900">42% Full</span>
+</div>
+<div class="w-full bg-champagne rounded-full h-1.5 overflow-hidden">
+<div class="bg-brass-500 h-full rounded-full" style="width: 42%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Bin VAULT-09</span>
+<span class="text-forest-800 font-bold">Keycard Secured</span>
+</div>
+</div>
+<!-- Dry Goods Warehouse Store A -->
+<div class="bg-linen-50 border border-champagne rounded-lg p-pad-sm flex flex-col justify-between transition-all hover:border-brass-400 hover:shadow-sm relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-forest-700 text-[18px]">inventory_2</span>
+<span class="font-label-md text-label-md text-forest-950 font-semibold">Dry Store A</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-linen-200 text-forest-900 border border-champagne font-label-caps text-[10px] font-bold">Ambient 21°C</span>
+</div>
+<div class="my-3 flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Pallet Racks</span>
+<span class="font-semibold text-forest-900">54% Full</span>
+</div>
+<div class="w-full bg-champagne rounded-full h-1.5 overflow-hidden">
+<div class="bg-forest-700 h-full rounded-full" style="width: 54%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Rack P-12 Available</span>
+<span class="text-forest-900 font-semibold">Forklift Zone</span>
+</div>
+</div>
+<!-- Housekeeping Central Staging -->
+<div class="bg-linen-50 border border-champagne rounded-lg p-pad-sm flex flex-col justify-between transition-all hover:border-brass-400 hover:shadow-sm relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-brass-700 text-[18px]">soap</span>
+<span class="font-label-md text-label-md text-forest-950 font-semibold">Housekeeping Depot</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-linen-200 text-forest-900 border border-champagne font-label-caps text-[10px] font-bold">Level 1 East</span>
+</div>
+<div class="my-3 flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Linen &amp; Amenities</span>
+<span class="font-semibold text-forest-900">31% Full</span>
+</div>
+<div class="w-full bg-champagne rounded-full h-1.5 overflow-hidden">
+<div class="bg-brass-500 h-full rounded-full" style="width: 31%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Rack HK-03 Open</span>
+<span class="text-forest-900 font-semibold">Tugger Direct</span>
+</div>
+</div>
+<!-- Deep Freezer Sub-Zero -->
+<div class="bg-linen-50 border border-champagne rounded-lg p-pad-sm flex flex-col justify-between transition-all hover:border-brass-400 hover:shadow-sm relative overflow-hidden group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-forest-800 text-[18px]">severe_cold</span>
+<span class="font-label-md text-label-md text-forest-950 font-semibold">Deep Freezer</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-forest-900 text-brass-300 border border-brass-500/30 font-label-caps text-[10px] font-bold">-18°C Stable</span>
+</div>
+<div class="my-3 flex flex-col gap-1">
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Frozen Cargo</span>
+<span class="font-semibold text-forest-900">63% Full</span>
+</div>
+<div class="w-full bg-champagne rounded-full h-1.5 overflow-hidden">
+<div class="bg-forest-800 h-full rounded-full" style="width: 63%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Gel Pack Ready</span>
+<span class="text-forest-800 font-semibold">Clear</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Smart Put-Away Task Queue Section -->
+<div class="flex flex-col gap-pad-md">
+<!-- Queue Header & Priority Filtering -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-pad-sm">
+<div class="flex items-center gap-pad-xs">
+<span class="material-symbols-outlined text-forest-800 text-[24px]">task_alt</span>
+<h2 class="font-headline-sm text-headline-sm text-forest-950 font-semibold">Smart Put-Away Task Queue</h2>
+<span class="px-2.5 py-0.5 rounded-full bg-brass-100 text-brass-700 border border-champagne font-label-caps text-label-caps font-bold">4 Active Tasks</span>
+</div>
+<!-- Quick Filter Pills -->
+<div class="flex flex-wrap items-center gap-1.5">
+<button class="px-3.5 py-1.5 rounded-full bg-forest-900 text-brass-300 font-label-md text-label-md shadow-sm border border-brass-500/40" type="button">
+          All Tasks (4)
+        </button>
+<button class="px-3.5 py-1.5 rounded-full bg-white hover:bg-linen-100 border border-champagne font-label-md text-label-md text-on-surface-variant hover:text-forest-950 transition-colors flex items-center gap-1.5" type="button">
+<span class="w-2 h-2 rounded-full bg-forest-700"></span>
+<span>Prioritize Cold Chain (FIFO)</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-full bg-white hover:bg-linen-100 border border-champagne font-label-md text-label-md text-on-surface-variant hover:text-forest-950 transition-colors flex items-center gap-1.5" type="button">
+<span class="w-2 h-2 rounded-full bg-brass-500"></span>
+<span>High-Value Vault</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-full bg-white hover:bg-linen-100 border border-champagne font-label-md text-label-md text-on-surface-variant hover:text-forest-950 transition-colors" type="button">
+          Bulky Goods
+        </button>
+</div>
+</div>
+<!-- Task Cards Stream -->
+<div class="space-y-pad-sm">
+<!-- Item 1: Urgent Cold Chain -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne transition-all hover:border-brass-400/80 hover:shadow-md flex flex-col xl:flex-row xl:items-center justify-between gap-pad-md relative overflow-hidden">
+<!-- Urgency accent strip on left -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-forest-900"></div>
+<div class="flex items-start gap-pad-md min-w-0 flex-1 pl-1">
+<div class="w-12 h-12 rounded-xl bg-forest-900 border border-brass-500/30 flex items-center justify-center text-brass-300 shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">set_meal</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-2 mb-1">
+<span class="px-2.5 py-0.5 rounded-full bg-forest-900 text-brass-300 border border-brass-500/30 font-label-caps text-label-caps font-bold">Urgent Cold Chain</span>
+<span class="px-2.5 py-0.5 rounded-full bg-brass-100 text-brass-700 border border-champagne font-label-caps text-label-caps font-semibold">FIFO Expiry Priority</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Docket #RCV-88219</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-forest-950 font-semibold truncate">Norwegian Salmon Fillets (60kg Fresh Whole)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+              Assigned Porter: <strong class="text-forest-950 font-semibold">Alex K.</strong> • Received 12 mins ago at Dock Bay 2 • Temp Verified at Dock: -1.2°C
+            </p>
+</div>
+</div>
+<!-- Destination & Storage Bin Info -->
+<div class="flex flex-wrap items-center gap-pad-md xl:gap-pad-lg shrink-0 bg-linen-50 border border-champagne px-pad-md py-pad-xs rounded-xl">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Destination</span>
+<span class="font-label-md text-label-md text-forest-950 font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-forest-700">kitchen</span>
+              Cold Room 2 (Walk-in Chiller)
+            </span>
+<span class="font-label-sm text-label-sm text-forest-800 font-semibold">Shelf B-04 • Temp: -2°C to 0°C</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Barcode</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest bg-linen-200 border border-champagne px-2 py-1 rounded text-forest-950">BIN-CR2-B04</span>
+</div>
+<button class="flex items-center gap-2 bg-brass-500 hover:bg-brass-600 text-forest-950 px-pad-md py-2.5 rounded-full font-label-md text-label-md shadow-sm transition-all shrink-0 font-bold border border-brass-600/30" type="button">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+<span>Confirm Bin Placement</span>
+</button>
+</div>
+</div>
+<!-- Item 2: High-Value Sommelier Reserve -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne transition-all hover:border-brass-400/80 hover:shadow-md flex flex-col xl:flex-row xl:items-center justify-between gap-pad-md relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-brass-500"></div>
+<div class="flex items-start gap-pad-md min-w-0 flex-1 pl-1">
+<div class="w-12 h-12 rounded-xl bg-brass-100 border border-champagne flex items-center justify-center text-brass-700 shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">wine_bar</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-2 mb-1">
+<span class="px-2.5 py-0.5 rounded-full bg-forest-900 text-brass-300 border border-brass-500/30 font-label-caps text-label-caps font-bold">High Value • Restricted</span>
+<span class="px-2.5 py-0.5 rounded-full bg-linen-200 text-forest-950 border border-champagne font-label-caps text-label-caps">Sommelier Custody</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Docket #RCV-88224</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-forest-950 font-semibold truncate">Dom Pérignon Vintage 2015 (24 Bottles / 4 Wood Cases)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+              Assigned Porter: <strong class="text-forest-950 font-semibold">Maya S.</strong> (Lead Cellar Master) • Requires dual keycard verification
+            </p>
+</div>
+</div>
+<!-- Destination & Storage Bin Info -->
+<div class="flex flex-wrap items-center gap-pad-md xl:gap-pad-lg shrink-0 bg-linen-50 border border-champagne px-pad-md py-pad-xs rounded-xl">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Destination</span>
+<span class="font-label-md text-label-md text-forest-950 font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-brass-600">lock</span>
+              Main Sommelier Cellar
+            </span>
+<span class="font-label-sm text-label-sm text-brass-700 font-semibold">Bin VAULT-09 • Security Lv. 4</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Barcode</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest bg-linen-200 border border-champagne px-2 py-1 rounded text-forest-950">BIN-VLT-09</span>
+</div>
+<button class="flex items-center gap-2 bg-linen-100 hover:bg-linen-200 text-forest-950 border border-champagne px-pad-md py-2.5 rounded-full font-label-md text-label-md shadow-sm transition-all shrink-0" type="button">
+<span class="material-symbols-outlined text-[18px] text-brass-600">barcode_scanner</span>
+<span>Scan Cellar Shelf</span>
+</button>
+</div>
+</div>
+<!-- Item 3: Bulk Kitchen Staples -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne transition-all hover:border-brass-400/80 hover:shadow-md flex flex-col xl:flex-row xl:items-center justify-between gap-pad-md relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-forest-700"></div>
+<div class="flex items-start gap-pad-md min-w-0 flex-1 pl-1">
+<div class="w-12 h-12 rounded-xl bg-linen-100 border border-champagne flex items-center justify-center text-forest-800 shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">rice_bowl</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-2 mb-1">
+<span class="px-2.5 py-0.5 rounded-full bg-forest-800 text-linen-50 font-label-caps text-label-caps font-bold">Bulk Goods</span>
+<span class="px-2.5 py-0.5 rounded-full bg-linen-200 text-forest-950 border border-champagne font-label-caps text-label-caps">Dry Grocery</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Docket #RCV-88220</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-forest-950 font-semibold truncate">Organic Basmati Rice &amp; Truffle Flour (12 Sacks / 300kg)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+              Assigned Porter: <strong class="text-forest-950 font-semibold">Devlin R.</strong> • Forklift Pallet Stacker Assigned • Pallet ID #PL-409
+            </p>
+</div>
+</div>
+<!-- Destination & Storage Bin Info -->
+<div class="flex flex-wrap items-center gap-pad-md xl:gap-pad-lg shrink-0 bg-linen-50 border border-champagne px-pad-md py-pad-xs rounded-xl">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Destination</span>
+<span class="font-label-md text-label-md text-forest-950 font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-forest-700">shelves</span>
+              Dry Store A (Main Pantry)
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Pallet Rack P-12 (Ground Tier)</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Barcode</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest bg-linen-200 border border-champagne px-2 py-1 rounded text-forest-950">BIN-DRY-P12</span>
+</div>
+<button class="flex items-center gap-2 bg-linen-100 hover:bg-linen-200 text-forest-950 border border-champagne px-pad-md py-2.5 rounded-full font-label-md text-label-md shadow-sm transition-all shrink-0" type="button">
+<span class="material-symbols-outlined text-[18px] text-brass-600">print</span>
+<span>Print Bin Label</span>
+</button>
+</div>
+</div>
+<!-- Item 4: Resort Amenities -->
+<div class="bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne transition-all hover:border-brass-400/80 hover:shadow-md flex flex-col xl:flex-row xl:items-center justify-between gap-pad-md relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-champagne"></div>
+<div class="flex items-start gap-pad-md min-w-0 flex-1 pl-1">
+<div class="w-12 h-12 rounded-xl bg-linen-100 border border-champagne flex items-center justify-center text-forest-900 shrink-0 shadow-sm">
+<span class="material-symbols-outlined text-[24px]">spa</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex flex-wrap items-center gap-2 mb-1">
+<span class="px-2.5 py-0.5 rounded-full bg-brass-100 text-brass-700 border border-champagne font-label-caps text-label-caps font-bold">Resort Amenities</span>
+<span class="px-2.5 py-0.5 rounded-full bg-linen-200 text-forest-950 border border-champagne font-label-caps text-label-caps">Villa Stock</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm">Docket #RCV-88225</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-forest-950 font-semibold truncate">Bergamot &amp; Sandalwood Bath Gel 500ml (200 Units / 8 Cartons)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+              Assigned Porter: <strong class="text-forest-950 font-semibold">Tara W.</strong> • Direct routing to Villa Turn-Down Inventory Depot
+            </p>
+</div>
+</div>
+<!-- Destination & Storage Bin Info -->
+<div class="flex flex-wrap items-center gap-pad-md xl:gap-pad-lg shrink-0 bg-linen-50 border border-champagne px-pad-md py-pad-xs rounded-xl">
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Destination</span>
+<span class="font-label-md text-label-md text-forest-950 font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-brass-700">inventory</span>
+              Housekeeping Central Staging
+            </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Rack HK-03 (Row B Mid-tier)</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-caps text-label-caps uppercase text-outline">Target Barcode</span>
+<span class="font-label-caps text-label-caps font-bold tracking-widest bg-linen-200 border border-champagne px-2 py-1 rounded text-forest-950">BIN-HKG-03</span>
+</div>
+<button class="flex items-center gap-2 bg-linen-100 hover:bg-linen-200 text-forest-950 border border-champagne px-pad-md py-2.5 rounded-full font-label-md text-label-md shadow-sm transition-all shrink-0" type="button">
+<span class="material-symbols-outlined text-[18px] text-brass-600">forward_to_inbox</span>
+<span>Acknowledge Transfer</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Operational Context Graphic & Visual Inspection Split -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-pad-lg">
+<!-- Visual Staging Context Card with Provided Image -->
+<div class="lg:col-span-5 bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne flex flex-col justify-between overflow-hidden">
+<div class="flex flex-col gap-1 mb-pad-sm">
+<span class="font-label-caps text-label-caps uppercase text-brass-700 font-bold tracking-wider">Visual Inspection &amp; Manifest Audit</span>
+<h3 class="font-headline-sm text-headline-sm text-forest-950 font-semibold">T1 Logistics Floor &amp; In-Store Layout</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Historical overview of staged allocations and storage racking configurations across property sectors.
+        </p>
+</div>
+<div class="relative rounded-lg overflow-hidden bg-linen-100 border border-champagne aspect-[1.41/1] w-full group">
+<img alt="Pargolai Put Away &amp; Storage Management System Architecture" class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-iT_lPl7bkILWAls-pSyhXbsVI8zFpLtgroyIbMR9XO6CAHoT2cd0LIGYvbfDEvDL05fFYEzc3wLqTAPiBIQL_y2EeUkEXBtwzsfdSkUVE85aGIi_K3-e69O9XWveUmVJbkVu2k1it700Emy7-IL35pA7VHz7oqN11_IVRJ8fRZEaRYezuPNEV4muzmS6DzwZ8_mD2xpLBF9t6ye7l1wgUtXQT7fsDR7nsWwuId2vvEwrpgVEVOOAp4WuXT81KzXmLvk"/>
+<div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-forest-950/20 to-transparent flex items-end p-pad-md">
+<div class="flex items-center justify-between w-full text-linen-50">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-brass-300">shelves</span>
+<span class="font-label-md text-label-md text-linen-50">Main Logistics Racking Node 04</span>
+</div>
+<span class="px-2 py-0.5 rounded bg-forest-900/80 border border-brass-500/40 backdrop-blur-md text-label-sm font-label-sm font-semibold text-brass-300">Monaco Synced</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Completed Log & Activity History -->
+<div class="lg:col-span-7 bg-surface-container-lowest rounded-xl p-pad-md shadow-sm border border-champagne flex flex-col justify-between">
+<div class="flex items-center justify-between pb-pad-xs border-b border-champagne/60">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-brass-600 text-[20px]">history_toggle_off</span>
+<h3 class="font-headline-sm text-headline-sm text-forest-950 font-semibold">Recently Stowed (Today)</h3>
+</div>
+<span class="font-label-caps text-label-caps text-forest-800 uppercase font-bold tracking-wider">18 Batches Put Away • 100% Verified</span>
+</div>
+<!-- Stow History Table -->
+<div class="overflow-x-auto my-pad-xs">
+<table class="w-full text-left">
+<thead>
+<tr class="font-label-caps text-label-caps text-outline uppercase border-b border-champagne/40">
+<th class="py-2.5">Time</th>
+<th class="py-2.5">Item Description</th>
+<th class="py-2.5">Assigned Bin</th>
+<th class="py-2.5">Handler</th>
+<th class="py-2.5 text-right">Integrity</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-forest-950 divide-y divide-champagne/30">
+<tr class="hover:bg-linen-50 transition-colors">
+<td class="py-3 text-on-surface-variant font-label-sm">09:14 AM</td>
+<td class="py-3 font-semibold text-forest-950">A5 Miyazaki Wagyu Ribeye (30kg)</td>
+<td class="py-3 font-label-sm text-forest-800 font-semibold">BIN-CR1-A02 (Meat Chiller)</td>
+<td class="py-3 text-on-surface-variant">Alex K.</td>
+<td class="py-3 text-right">
+<span class="inline-flex items-center gap-1 text-label-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                  Verified
+                </span>
+</td>
+</tr>
+<tr class="hover:bg-linen-50 transition-colors">
+<td class="py-3 text-on-surface-variant font-label-sm">08:52 AM</td>
+<td class="py-3 font-semibold text-forest-950">Belgian Dark Chocolate Callets (50kg)</td>
+<td class="py-3 font-label-sm font-semibold text-forest-800">BIN-PASTRY-C08</td>
+<td class="py-3 text-on-surface-variant">Devlin R.</td>
+<td class="py-3 text-right">
+<span class="inline-flex items-center gap-1 text-label-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                  Verified
+                </span>
+</td>
+</tr>
+<tr class="hover:bg-linen-50 transition-colors">
+<td class="py-3 text-on-surface-variant font-label-sm">08:26 AM</td>
+<td class="py-3 font-semibold text-forest-950">Egyptian Cotton Bath Sheets (400ct)</td>
+<td class="py-3 font-label-sm font-semibold text-forest-800">BIN-HK-L1-02</td>
+<td class="py-3 text-on-surface-variant">Tara W.</td>
+<td class="py-3 text-right">
+<span class="inline-flex items-center gap-1 text-label-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                  Verified
+                </span>
+</td>
+</tr>
+<tr class="hover:bg-linen-50 transition-colors">
+<td class="py-3 text-on-surface-variant font-label-sm">07:45 AM</td>
+<td class="py-3 font-semibold text-forest-950">Kavalan Solist Cask Strength (12 Btls)</td>
+<td class="py-3 font-label-sm text-brass-700 font-semibold">BIN-VLT-04</td>
+<td class="py-3 text-on-surface-variant">Maya S.</td>
+<td class="py-3 text-right">
+<span class="inline-flex items-center gap-1 text-label-sm font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                  Verified
+                </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Quick Scan Trigger Bar for Dock Crew -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-pad-sm bg-linen-100 border border-champagne p-pad-sm rounded-lg mt-pad-xs">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-brass-600 animate-pulse"></span>
+<span class="font-body-sm text-body-sm text-forest-950 font-medium">Handheld RF Scanner Sync: <strong>Datalogic Memor 11</strong> connected</span>
+</div>
+<div class="flex items-center gap-2 w-full sm:w-auto">
+<button class="w-full sm:w-auto px-pad-md py-2 rounded-full bg-forest-900 hover:bg-forest-800 text-brass-300 font-label-md text-label-md shadow-sm border border-brass-500/40 transition-all flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[16px] text-brass-400">qr_code_scanner</span>
+<span>Direct Scan Stow</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div></div></main></div></body></html>

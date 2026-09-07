@@ -145,7 +145,9 @@ export function Text({
           letterSpacing: token.letterSpacing,
           color: p[TONE_KEY[tone]],
           textTransform: token.textTransform,
-          ...font(weight ?? token.weight),
+          // The role decides the family as well as the size; `weight` may override the
+          // weight without dragging a screen's text out of its family.
+          ...font(weight ?? token.weight, token.family),
           ...(numeric ? tabular : {}),
           ...(align === undefined ? {} : { textAlign: align }),
         },
@@ -794,7 +796,10 @@ export function PrimaryButton({
     : shape === "solid"
       ? accentColour
       : shape === "outline"
-        ? p.surface
+        ? // Linen rather than white: the secondary action is a recessed tint that the
+          // press lifts to white, which is the inverse of the solid button and keeps the
+          // two from reading as the same control in two colours.
+          p.surfaceSunken
         : "transparent";
   const fg = inert ? p.textMuted : shape === "solid" ? p.onAccent : accentColour;
 
@@ -812,23 +817,27 @@ export function PrimaryButton({
           alignItems: "center",
           justifyContent: "center",
           minHeight: heightFor(density),
-          borderRadius: radius.md,
+          // Full-round, which the design system reserves for interactive actions —
+          // buttons, search bars, status chips — so that roundness itself signals
+          // "this does something" against the tailored 12/16px corners of everything else.
+          borderRadius: radius.pill,
           paddingHorizontal: space.xl,
-          backgroundColor: pressed && shape !== "solid" && !inert ? p.surfaceSunken : bg,
+          backgroundColor: pressed && shape !== "solid" && !inert ? p.surface : bg,
           // Press and hover still dip the whole control, because there the label and the
           // fill are both legible at either end of the range. Disabled does not.
           opacity: inert ? 1 : pressed ? 0.85 : hovered ? 0.94 : 1,
-          // The focus ring replaces the outline rather than stacking on it, so an
-          // outlined button does not gain a second border when tabbed to.
-          borderWidth: focused ? 2 : shape === "outline" || inert ? StyleSheet.hairlineWidth : 0,
-          // A solid button stands on its own fill, so the ring has to contrast with that
-          // rather than with the page. `p.focus` is 1.00:1 on terracotta; `onAccent` is
-          // 5.18:1. Outline and ghost buttons sit on the page and take the page's ring.
-          borderColor: focused
-            ? shape === "solid" && !inert
-              ? p.onAccent
-              : p.focus
-            : p.borderStrong,
+          // The focus ring replaces the resting edge rather than stacking on it, so a
+          // button does not gain a second border when tabbed to.
+          borderWidth: focused ? 2 : shape === "ghost" && !inert ? 0 : 1,
+          // One ring everywhere. Brass is the rare value that clears WCAG 2.4.11's 3:1
+          // on both ends of this palette — 3.99:1 on a card, 3.95:1 on the forest fill —
+          // which retires the previous palette's problem of a ring that was legible on
+          // white and invisible on the primary action.
+          //
+          // At rest the solid button carries a brass hairline, the secondary a champagne
+          // one: the metal edge is what makes forest read as a finished object rather
+          // than a dark rectangle.
+          borderColor: focused ? p.focus : shape === "solid" && !inert ? p.brassLine : p.border,
           cursor: inert ? "not-allowed" : "pointer",
         } as ViewStyle,
         shape === "solid" && !inert ? elevation(1, p) : {},
@@ -1123,6 +1132,12 @@ export function Field({
               minHeight: touch.desk,
               paddingHorizontal: space.md,
               fontSize: type.body,
+              // A TextInput takes no `role`, so it is one of the few places the family
+              // has to be named by hand. Without it the value a storekeeper types
+              // renders in the system face while its own label above it renders in
+              // Jakarta — the mismatch is subtle enough to survive review and obvious
+              // enough to look broken.
+              ...font("regular"),
               color: p.text,
               // Web only: the browser's own outline would sit outside our border.
               outlineStyle: "none",
@@ -1223,12 +1238,16 @@ export function SearchField({
         alignItems: "center",
         borderWidth: focused ? 2 : StyleSheet.hairlineWidth,
         borderColor: focused ? p.focus : p.border,
-        borderRadius: radius.md,
-        backgroundColor: p.surfaceSunken,
+        // A pill, unlike the rectangular data fields: the design system gives search
+        // and filter bars full-round geometry so that a bar you type *queries* into is
+        // shaped differently from a field you type *records* into. Focus lifts the linen
+        // ground to white, the same gesture as the secondary button.
+        borderRadius: radius.pill,
+        backgroundColor: focused ? p.surface : p.surfaceSunken,
         paddingHorizontal: space.md,
       }}
     >
-      <Ionicons name="search" size={17} color={p.textMuted} />
+      <Ionicons name="search" size={17} color={p.brassLine} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -1245,6 +1264,7 @@ export function SearchField({
             minHeight: touch.desk,
             paddingHorizontal: space.sm,
             fontSize: textStyles.body.fontSize,
+            ...font("regular"),
             color: p.text,
             outlineStyle: "none",
           } as never
@@ -1397,13 +1417,14 @@ export function CloseButton({ onPress }: { onPress: () => void }) {
 // ---------------------------------------------------------------------------
 
 /**
- * The dimmed ground behind an overlay. Warm, because every neutral in this palette is.
+ * The dimmed ground behind an overlay. Forest, because every dark in this palette is —
+ * a neutral black scrim over a linen page reads grey and dead where this reads deep.
  *
  * Exported so the shell's drawer and every dialog dim the page by the same amount — two
  * overlays that disagree about how dark "behind" is look like a bug the moment one opens
  * over the other.
  */
-export const SCRIM = "rgba(31, 27, 24, 0.55)";
+export const SCRIM = "rgba(6, 21, 16, 0.55)";
 
 /**
  * Something on top, sized to the screen it is on.
@@ -1810,14 +1831,19 @@ export function StatusPill({
 }: {
   icon?: IoniconName;
   label: string;
-  tone: "neutral" | "good" | "warn" | "bad";
+  /** `brass` is the design system's "active phase / staging" chip — in progress, not yet a verdict. */
+  tone: "neutral" | "good" | "warn" | "bad" | "brass";
 }) {
   const p = usePalette();
+  // Each chip is its ink on its own tint, edged with that ink at ~30% — the design
+  // system's badge recipe. The edge is what keeps a pale tint from dissolving into a
+  // white card; without it the sage and saffron chips are barely rectangles.
   const c = {
-    neutral: { fg: p.textMuted, bg: p.surfaceSunken },
-    good: { fg: p.success, bg: p.successSurface },
-    warn: { fg: p.warning, bg: p.warningSurface },
-    bad: { fg: p.danger, bg: p.dangerSurface },
+    neutral: { fg: p.textMuted, bg: p.surfaceSunken, line: p.border },
+    good: { fg: p.success, bg: p.successSurface, line: `${p.success}4D` },
+    warn: { fg: p.warning, bg: p.warningSurface, line: `${p.warning}4D` },
+    bad: { fg: p.danger, bg: p.dangerSurface, line: `${p.danger}4D` },
+    brass: { fg: p.brass, bg: p.brassSurface, line: p.brassLine },
   }[tone];
 
   return (
@@ -1827,7 +1853,9 @@ export function StatusPill({
         alignItems: "center",
         alignSelf: "flex-start",
         backgroundColor: c.bg,
-        borderRadius: radius.sm,
+        borderRadius: radius.pill,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: c.line,
         paddingHorizontal: space.sm,
         paddingVertical: 3,
       }}
