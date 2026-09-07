@@ -475,10 +475,20 @@ function IssuedPanel({
   onAgain: () => void;
   onDone: () => void;
 }) {
+  /*
+    A queued issue promises less than a queued receipt, and says so.
+
+    A receipt is an append: it will land. An issue takes stock, and by the time the
+    queue drains another storekeeper may have taken the same lot during the same
+    outage — the server will refuse it, and that refusal is the system working. So the
+    wording here stops at "recorded", and does not claim the stock has moved.
+  */
+  const queued = result.status === "QUEUED";
+
   return (
     <Result
-      eyebrow="Issued"
-      value={result.issueNo}
+      eyebrow={queued ? "Recorded on this device" : "Issued"}
+      value={queued ? "Waiting for a signal" : result.issueNo}
       caption={`${lineCount} line${lineCount === 1 ? "" : "s"} to ${department}, collected by ${receiver}`}
       actions={
         <>
@@ -493,7 +503,15 @@ function IssuedPanel({
         </>
       }
     >
-      {result.expiredLines > 0 ? (
+      {queued ? (
+        <Banner icon="cloud-offline" tone="warn">
+          This is on the device, not yet on the books. It goes out when the network returns. If
+          somebody else took the same batch while both of you were offline, the store will say so
+          then rather than let the ledger go negative.
+        </Banner>
+      ) : null}
+
+      {!queued && result.expiredLines > 0 ? (
         <Banner icon="alert-circle" tone="warn">
           {result.expiredLines} line{result.expiredLines === 1 ? " was" : "s were"} past date.
           Recorded on the issue with the days elapsed.

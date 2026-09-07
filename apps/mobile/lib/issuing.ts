@@ -1,5 +1,6 @@
-import type { IssueStockLine } from "@golai/db";
+import { serverAnswered, type IssueStockLine } from "@golai/db";
 import { sortByFefo, toQty } from "@golai/domain";
+import { notifyOutboxChanged, outbox } from "./outbox";
 import { requireSupabase } from "./supabase";
 
 /**
@@ -91,12 +92,24 @@ export interface DraftIssueLine {
   qty: number;
 }
 
-export interface IssuedResult {
-  issueId: string;
-  issueNo: string;
-  /** How many lines were past their date. Recorded, not refused. */
-  expiredLines: number;
-}
+/**
+ * What became of an issue.
+ *
+ * `QUEUED` carries a weaker promise than the receiving equivalent, and the wording on
+ * the screen has to match it. A receipt is an append and will land. An issue takes
+ * stock, and by the time the queue drains another device may have taken the same lot —
+ * so what is guaranteed offline is that the request is recorded and will be attempted,
+ * not that the stock has moved.
+ */
+export type IssuedResult =
+  | {
+      status: "RECORDED";
+      issueId: string;
+      issueNo: string;
+      /** How many lines were past their date. Recorded, not refused. */
+      expiredLines: number;
+    }
+  | { status: "QUEUED" };
 
 export async function issueStock(params: {
   propertyId: string;
@@ -112,21 +125,53 @@ export async function issueStock(params: {
     qty: l.qty,
   }));
 
-  const { data, error } = await requireSupabase().rpc("issue_stock", {
-    p_property_id: params.propertyId,
-    p_department_id: params.departmentId,
-    p_receiver_name: params.receiverName,
-    p_purpose: params.purpose,
-    p_idempotency_key: params.submissionId,
-    p_lines: payload,
-  });
+  const queue = async (): Promise<IssuedResult> => {
+    await outbox.enqueue({
+      type: "ISSUE_STOCK",
+      idempotencyKey: params.submissionId,
+      payload: {
+        propertyId: params.propertyId,
+        departmentId: params.departmentId,
+        receiverName: params.receiverName,
+        purpose: params.purpose,
+        lines: payload,
+      },
+    });
+    notifyOutboxChanged();
+    return { status: "QUEUED" };
+  };
 
-  if (error) throw new Error(friendly(error.code, error.message));
+  let data;
+  let error;
+  try {
+    ({ data, error } = await requireSupabase().rpc("issue_stock", {
+      p_property_id: params.propertyId,
+      p_department_id: params.departmentId,
+      p_receiver_name: params.receiverName,
+      p_purpose: params.purpose,
+      p_idempotency_key: params.submissionId,
+      p_lines: payload,
+    }));
+  } catch {
+    // Nothing answered, so there is no verdict to respect. See postReceipt.
+    return queue();
+  }
+
+  // A server that answered is obeyed, including when it refuses for want of stock.
+  if (error) {
+    if (serverAnswered(error)) throw new Error(friendly(error.code, error.message));
+    return queue();
+  }
 
   const row = (data ?? [])[0];
   if (!row) throw new Error("The issue did not record. Nothing left the store; try again.");
 
-  return { issueId: row.issue_id, issueNo: row.issue_no, expiredLines: row.expired_lines };
+  return {
+    status: "RECORDED",
+    issueId: row.issue_id,
+    issueNo: row.issue_no,
+    expiredLines: row.expired_lines,
+  };
 }
 
 function friendly(code: string | undefined, message: string): string {
