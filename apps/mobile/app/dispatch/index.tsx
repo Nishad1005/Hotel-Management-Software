@@ -56,7 +56,19 @@ export default function StageDispatch() {
   const [returnDate, setReturnDate] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [staged, setStaged] = useState<{ no: string; lines: number } | null>(null);
+  const [staged, setStaged] = useState<{ no: string; lines: number; queued: boolean } | null>(null);
+
+  /*
+    Minted once for this staging, not once per attempt.
+
+    It was `newSubmissionId()` inline at the call, which meant a retry after a lost
+    response carried a NEW key and could stage the same crates twice. That was survivable
+    while every attempt was an immediate round trip; it stops being survivable now the
+    call can queue, because a retry is exactly what the queue is for. Receiving and
+    issuing already mint per screen — this brings the third one in line. It is renewed
+    when the form is cleared for the next departure, which is a different staging.
+  */
+  const [submissionId, setSubmissionId] = useState(() => newSubmissionId());
 
   const propertyId = activeProperty?.propertyId ?? null;
 
@@ -108,9 +120,13 @@ export default function StageDispatch() {
         isReturnable: returnable,
         expectedReturnDate: returnable ? returnDate.trim() : null,
         lines,
-        submissionId: newSubmissionId(),
+        submissionId,
       });
-      setStaged({ no: result.dispatchNo, lines: lines.length });
+      setStaged(
+        result.status === "STAGED"
+          ? { no: result.dispatchNo, lines: lines.length, queued: false }
+          : { no: "Waiting for a signal", lines: lines.length, queued: true },
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -122,22 +138,33 @@ export default function StageDispatch() {
     return (
       <Result
         icon="albums-outline"
-        eyebrow="Staged at Terminal 2"
+        eyebrow={staged.queued ? "Staged on this device" : "Staged at Terminal 2"}
         value={staged.no}
         actions={
           <>
-            <PrimaryButton
-              label="Go to gate out"
-              icon="exit-outline"
-              density="field"
-              onPress={() => router.replace("/gate-out")}
-            />
-            <View style={{ height: space.md }} />
+            {/*
+              No route to gate-out from a staging the server has not seen yet. A gate
+              pass is what Security checks against a vehicle at the barrier, and it is
+              one of the two steps the PRD keeps online for exactly that reason — so
+              offering the button here would lead to a dead end at the worst moment.
+            */}
+            {staged.queued ? null : (
+              <>
+                <PrimaryButton
+                  label="Go to gate out"
+                  icon="exit-outline"
+                  density="field"
+                  onPress={() => router.replace("/gate-out")}
+                />
+                <View style={{ height: space.md }} />
+              </>
+            )}
             <PrimaryButton
               label="Stage something else"
               tone="neutral"
               onPress={() => {
                 setStaged(null);
+                setSubmissionId(newSubmissionId());
                 setLines([]);
                 setDispatchType(null);
                 setRecipientId("");

@@ -34,6 +34,7 @@ export function routeCapture(record: OutboxRecord): SyncTarget | null {
   if (record.type === "TEMPERATURE_READING") return routeTemperatureReading(record);
   if (record.type === "GRN_POST") return routeGrnPost(record);
   if (record.type === "ISSUE_STOCK") return routeIssueStock(record);
+  if (record.type === "DISPATCH_STAGE") return routeDispatchStage(record);
   if (record.type !== "GATE_ENTRY") return null;
 
   const p = record.payload as GateEntryPayload;
@@ -177,6 +178,47 @@ interface IssueStockPayload {
   departmentId?: string;
   receiverName?: string;
   purpose?: string | null;
+  lines?: unknown[];
+}
+
+/**
+ * Gate 9 — staging for Terminal 2, offline.
+ *
+ * The queue stops here, and the line is drawn deliberately. Gate 10 — `issue_gate_pass`
+ * — is never queued, because a gate pass is what Security checks against a vehicle
+ * standing at the barrier, and one issued from an unsynced device is a pass nobody at
+ * the gate can see. PRD §13 names put-away confirmation and gate-out as the two steps
+ * that must reach the server, and this is the second of them.
+ *
+ * Staging is the opposite case: it moves stock to Terminal 2 within the property, which
+ * is an internal movement like a put-away or an issue, and nothing outside the property
+ * depends on it having synced.
+ */
+function routeDispatchStage(record: OutboxRecord): SyncTarget {
+  const p = record.payload as DispatchStagePayload;
+
+  return {
+    fn: "stage_for_dispatch",
+    args: {
+      p_property_id: p.propertyId,
+      p_dispatch_type: p.dispatchType,
+      p_recipient_party_id: p.recipientPartyId ?? null,
+      p_reason_code: p.reasonCode ?? null,
+      p_is_returnable: p.isReturnable ?? false,
+      p_expected_return_date: p.expectedReturnDate ?? null,
+      p_idempotency_key: record.idempotencyKey,
+      p_lines: p.lines,
+    },
+  };
+}
+
+interface DispatchStagePayload {
+  propertyId?: string;
+  dispatchType?: string;
+  recipientPartyId?: string | null;
+  reasonCode?: string | null;
+  isReturnable?: boolean;
+  expectedReturnDate?: string | null;
   lines?: unknown[];
 }
 
