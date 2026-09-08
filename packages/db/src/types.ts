@@ -1635,6 +1635,13 @@ export type Database = {
         }[];
       };
       /** Arrivals with no receipt against them yet — the receiving worklist. */
+      /**
+       * Files an object, and points a person at their newest face.
+       *
+       * The PERSON/STAFF_PHOTO case also sets `person.photo_ref`, so the staff master the
+       * device caches carries the key — criterion 18 asks for the face with no network,
+       * and a lookup per scan would fail in exactly that condition.
+       */
       attach_document: {
         Args: {
           p_property_id: string;

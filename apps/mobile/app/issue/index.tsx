@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ScanMethod } from "@golai/db";
 import { isPersonCode } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Image, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Banner,
   Card,
@@ -28,6 +28,7 @@ import {
   type IssuedResult,
 } from "../../lib/issuing";
 import { ScanField } from "../../components/scan-field";
+import { photoUrl } from "../../lib/evidence";
 import { listPeople, type Person } from "../../lib/people";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
@@ -100,6 +101,29 @@ export default function IssueStock() {
   const [card, setCard] = useState<{ person: Person; method: ScanMethod } | null>(null);
   const [cardError, setCardError] = useState<string | null>(null);
   const [staffError, setStaffError] = useState<string | null>(null);
+  const [faceUrl, setFaceUrl] = useState<string | null>(null);
+
+  /*
+    The face is fetched when a card resolves, not with the master.
+
+    Signing a URL per person up front would mint dozens that expire unused; the scan is
+    the moment one is needed, and it is one round trip on a screen that has just done a
+    lookup with none.
+  */
+  useEffect(() => {
+    let alive = true;
+    const ref = card?.person.photoRef ?? null;
+    if (!ref) {
+      setFaceUrl(null);
+      return;
+    }
+    void photoUrl(ref).then((u) => {
+      if (alive) setFaceUrl(u);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [card]);
   const [overriding, setOverriding] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -309,7 +333,21 @@ export default function IssueStock() {
                     padding: space.md,
                   }}
                 >
-                  <Ionicons name="checkmark-circle" size={20} color={p.success} />
+                  {/*
+                    The face, criterion 18. It is the control: a borrowed card scans
+                    perfectly, and the only thing that catches it is the storekeeper
+                    looking at the photograph and then at the person.
+                  */}
+                  {faceUrl ? (
+                    <Image
+                      source={{ uri: faceUrl }}
+                      style={{ width: 48, height: 48, borderRadius: radius.sm }}
+                      resizeMode="cover"
+                      accessibilityLabel={`Photograph of ${card.person.fullName}`}
+                    />
+                  ) : (
+                    <Ionicons name="checkmark-circle" size={20} color={p.success} />
+                  )}
                   <View style={{ flex: 1, marginLeft: space.sm }}>
                     <Text weight="semibold">{card.person.fullName}</Text>
                     <Text role="caption" tone="muted">
@@ -330,9 +368,16 @@ export default function IssueStock() {
                   The control this build does not have, said where it is missing rather
                   than in a release note. A borrowed card scans perfectly.
                 */}
-                <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
-                  No photograph on file, so the card is not checked against the face.
-                </Text>
+                {/*
+                  Said only when it is true. A storekeeper who is told the check is
+                  missing will look harder; one who is told it every time, including when
+                  a face is on screen, stops reading the sentence.
+                */}
+                {faceUrl ? null : (
+                  <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
+                    No photograph on file, so the card is not checked against the face.
+                  </Text>
+                )}
               </View>
             ) : overriding ? (
               <>
