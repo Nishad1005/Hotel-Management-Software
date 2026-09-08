@@ -33,6 +33,12 @@ select
   (select id from public.property where code = 'PA') as prop,
   (select id from public.property where code = 'PB') as other;
 
+-- The suite's standing requirement, and the one I left out: `ctx` is created by the
+-- superuser, and every assertion below reads it after `set local role authenticated`,
+-- which owns nothing. Without this the file aborts on the first assertion that touches
+-- it — which is what CI reported, four tests in.
+grant select on ctx to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- The check digit, against the vectors packages/domain also asserts
 -- ---------------------------------------------------------------------------
@@ -161,9 +167,10 @@ select is(
   'the card is stopped'
 );
 
-select isnt(
-  (select deactivated_at from public.person where full_name = 'Bhaskar Das'),
-  null,
+-- `ok(... is not null)` rather than `isnt(..., null)`: pgTAP's isnt is polymorphic and
+-- an untyped NULL gives it nothing to resolve against.
+select ok(
+  (select deactivated_at from public.person where full_name = 'Bhaskar Das') is not null,
   'and the stop is dated, so it can be audited'
 );
 
