@@ -1,5 +1,11 @@
-import type { DispatchStageLine, DispatchType, StockState } from "@golai/db";
+import {
+  serverAnswered,
+  type DispatchStageLine,
+  type DispatchType,
+  type StockState,
+} from "@golai/db";
 import { toQty } from "@golai/domain";
+import { notifyOutboxChanged, outbox } from "./outbox";
 import { requireSupabase } from "./supabase";
 
 /**
@@ -86,6 +92,19 @@ export interface DraftDispatchLine {
   qty: number;
 }
 
+/**
+ * What became of a staging.
+ *
+ * Gate 9 queues; Gate 10 does not. The PRD puts gate-out among the two steps that must
+ * reach the server, because a gate pass is the thing Security checks against a vehicle
+ * that is about to leave, and a pass issued from an unsynced device is a pass nobody
+ * else can see. Staging is the opposite: it moves stock to Terminal 2 inside the
+ * property, which is an internal movement like any other and safe to record offline.
+ */
+export type StagedResult =
+  | { status: "STAGED"; dispatchId: string; dispatchNo: string }
+  | { status: "QUEUED" };
+
 export async function stageForDispatch(params: {
   propertyId: string;
   dispatchType: DispatchType;
@@ -95,7 +114,7 @@ export async function stageForDispatch(params: {
   expectedReturnDate: string | null;
   lines: DraftDispatchLine[];
   submissionId: string;
-}): Promise<{ dispatchId: string; dispatchNo: string }> {
+}): Promise<StagedResult> {
   const payload: DispatchStageLine[] = params.lines.map((l) => ({
     batch_id: l.lot.batchId,
     from_location_id: l.lot.locationId,
@@ -103,22 +122,51 @@ export async function stageForDispatch(params: {
     qty: l.qty,
   }));
 
-  const { data, error } = await requireSupabase().rpc("stage_for_dispatch", {
-    p_property_id: params.propertyId,
-    p_dispatch_type: params.dispatchType,
-    p_recipient_party_id: params.recipientPartyId,
-    p_reason_code: params.reasonCode,
-    p_is_returnable: params.isReturnable,
-    p_expected_return_date: params.expectedReturnDate,
-    p_idempotency_key: params.submissionId,
-    p_lines: payload,
-  });
+  const queue = async (): Promise<StagedResult> => {
+    await outbox.enqueue({
+      type: "DISPATCH_STAGE",
+      idempotencyKey: params.submissionId,
+      payload: {
+        propertyId: params.propertyId,
+        dispatchType: params.dispatchType,
+        recipientPartyId: params.recipientPartyId,
+        reasonCode: params.reasonCode,
+        isReturnable: params.isReturnable,
+        expectedReturnDate: params.expectedReturnDate,
+        lines: payload,
+      },
+    });
+    notifyOutboxChanged();
+    return { status: "QUEUED" };
+  };
 
-  if (error) throw new Error(friendly(error.code, error.message));
+  let data;
+  let error;
+  try {
+    ({ data, error } = await requireSupabase().rpc("stage_for_dispatch", {
+      p_property_id: params.propertyId,
+      p_dispatch_type: params.dispatchType,
+      p_recipient_party_id: params.recipientPartyId,
+      p_reason_code: params.reasonCode,
+      p_is_returnable: params.isReturnable,
+      p_expected_return_date: params.expectedReturnDate,
+      p_idempotency_key: params.submissionId,
+      p_lines: payload,
+    }));
+  } catch {
+    // Nothing answered, so there is no verdict to respect. See postReceipt.
+    return queue();
+  }
+
+  // A server that answered is obeyed, including when it refuses for want of stock.
+  if (error) {
+    if (serverAnswered(error)) throw new Error(friendly(error.code, error.message));
+    return queue();
+  }
 
   const row = (data ?? [])[0];
   if (!row) throw new Error("The dispatch did not stage. Nothing moved; try again.");
-  return { dispatchId: row.dispatch_id, dispatchNo: row.dispatch_no };
+  return { status: "STAGED", dispatchId: row.dispatch_id, dispatchNo: row.dispatch_no };
 }
 
 export interface StagedDispatch {

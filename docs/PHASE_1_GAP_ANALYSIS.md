@@ -47,27 +47,48 @@ Three different strengths of evidence appear below, and they are not interchange
 | 21  | Each inspection field independently visible/mandatory/blocking | **Not started** | Depends on 20                                                         |
 | 22  | Switching every optional check off leaves the floor            | Met             | The floor is what exists today                                        |
 | 23  | Editing a live template never alters a past record             | **Not started** | Depends on 20                                                         |
-| 24  | Full flow offline except put-away confirmation and gate-out    | **Partial**     | See below — the largest gap                                           |
+| 24  | Full flow offline except put-away confirmation and gate-out    | Met (flow)      | Verified with the network cut — see below                             |
 
-Roughly thirteen met, four present-but-unverified, seven not started.
+Roughly fourteen met, four present-but-unverified, six not started.
 
 ---
 
-## The four that are not started
+## Where the gaps are
 
-### Offline coverage (criterion 24) — the largest gap
+### Offline coverage (criterion 24) — closed for the flow gates
 
-The outbox is built, tested and working. What is missing is callers.
+**Was** the largest gap and is now the smallest. The outbox had been built and tested
+while only gate entries and temperature rounds ever called it — the two captures that
+happen to be single rows — so everything at the dock went straight to the server and
+simply failed without a network, at the place §13 identifies as the weakest network
+point on the property.
 
-Only **gate entry** and **temperature rounds** enqueue through it. Receiving, put-away,
-issue and dispatch all call the server directly, so they simply fail without a network.
-The PRD wants the inverse: everything offline _except_ put-away confirmation and gate-out,
-both of which legitimately require the server.
+The blocker was the transport, not the server: `post_grn`, `issue_stock` and
+`stage_for_dispatch` all already took a submission key and replayed safely. What the
+outbox could not do was carry anything that was not an insert. `SyncTarget` is now a
+union of a row to insert or a function to call, and the queue carries five capture
+types:
 
-This is the only gap that breaks work already built, and it breaks it at the gate and dock
-— which §13 identifies as the weakest network point on the property. `lib/sync.ts` already
-carries a comment noting that `enqueue` and `drain` were written and tested with nothing
-calling them.
+| Capture               | Gate | State                      |
+| --------------------- | ---- | -------------------------- |
+| `GATE_ENTRY`          | 0    | queues                     |
+| `GRN_POST`            | 1–5  | queues                     |
+| `ISSUE_STOCK`         | 8    | queues                     |
+| `DISPATCH_STAGE`      | 9    | queues                     |
+| `TEMPERATURE_READING` | —    | queues                     |
+| put-away confirmation | 6    | **online by design** (§13) |
+| `issue_gate_pass`     | 10   | **online by design** (§13) |
+
+Each was verified with the browser actually offline rather than by asking the code
+whether it would have queued, and confirmed by a change only the server could cause —
+the arrival leaving the receiving worklist, a lot going 2 KG to 1 KG, the count of notes
+awaiting a pass going up.
+
+**Scored "Met (flow)" rather than "Met", deliberately.** The gates are covered; two
+writes outside them were not taken offline and have not been assessed — receiving a
+returnable back, and amending a posted GRN. Neither is a gate in §4–§6, so whether
+criterion 24's "full flow" reaches them is a question for whoever settles the scope
+discrepancy below, not something to quietly assume either way.
 
 ### Evidence vault and photographs (criterion 8, §7.2)
 
@@ -126,8 +147,7 @@ before anyone calls Phase 1 complete.
 
 ## Suggested order
 
-1. **Offline coverage.** The only gap that breaks already-built work, at the weakest
-   network point on the property.
+1. ~~Offline coverage~~ — done for the flow gates.
 2. **Staff cards.** Three criteria, and until it lands the issue record asserts something
    the system cannot substantiate.
 3. **Inspection template engine.** Four criteria, self-contained, no dependency on the
