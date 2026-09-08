@@ -167,10 +167,16 @@ alter table public.person enable row level security;
  * so a card scans with no network (PRD "the staff master, with photographs, is cached on
  * the storekeeper's device"), and a policy that only administrators could read would put
  * the cache out of reach of the one role that needs it.
+ *
+ * `accessible_properties()` is the idiom every other read policy in this schema uses.
+ * The first draft invented a null role array to mean "any role", which reads plausibly
+ * and denies everyone: `has_property_role` ends in `m.role = any(allowed)`, and
+ * `= any(NULL)` is NULL, so the EXISTS is false for every member. Nothing errored — the
+ * table simply looked empty to its own owner.
  */
 create policy person_read on public.person
-  for select
-  using (app.has_property_role(property_id, null));
+  for select to authenticated
+  using (property_id in (select app.accessible_properties()));
 
 -- No insert, update or delete policy, and no table grants for them below. Every write
 -- goes through the functions in this migration, which is what makes deactivation
@@ -296,7 +302,11 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_found boolean;
+  -- A row count, not a flag. The first draft declared this boolean, so `get diagnostics`
+  -- assigned an integer to it and the comparison below put a boolean against one:
+  -- "no operator matches", raised from inside the function at the moment a card was
+  -- being stopped.
+  v_rows integer;
 begin
   perform app.require_module(p_property_id, 'MASTERS');
 
@@ -321,11 +331,11 @@ begin
    where property_id = p_property_id
      and id = p_person_id;
 
-  get diagnostics v_found = row_count;
+  get diagnostics v_rows = row_count;
 
   -- CLAUDE.md 4b: RLS refuses an update silently, so zero rows is a permission failure
   -- as often as it is a missing row, and both must be loud.
-  if v_found = 0 then
+  if v_rows = 0 then
     raise exception 'That person is not on this property''s staff master.'
       using errcode = '42501';
   end if;
@@ -373,7 +383,7 @@ as $$
     left join public.location l
       on l.property_id = p.property_id and l.id = p.department_id
    where p.property_id = p_property_id
-     and app.has_property_role(p_property_id, null)
+     and p_property_id in (select app.accessible_properties())
    order by p.person_seq;
 $$;
 
