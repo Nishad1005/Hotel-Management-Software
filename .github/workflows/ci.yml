@@ -35,6 +35,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Full history, because the feature-doc check compares against the merge base
+          # with main. On a shallow clone that comparison cannot be made, and a check
+          # that cannot look is worse than no check — the green tick would be read as
+          # "the map is current".
+          fetch-depth: 0
 
       # v6, not v4, and for two reasons. v5 moved the action onto Node 24 — v4 is one of
       # the two actions GitHub is currently force-migrating and will eventually stop
@@ -58,6 +64,12 @@ jobs:
       # a job earlier, no Docker.
       - name: pgTAP plan counts
         run: node scripts/check-test-plans.mjs
+
+      # A new migration or screen is a new feature, and docs/HOW_IT_WORKS.md is the map
+      # of what exists. Only fires on ADDED files: enforcing it on every edit would be
+      # noise, and a noisy check gets worked around until it protects nothing.
+      - name: New features are on the map
+        run: node scripts/check-feature-docs.mjs "origin/${{ github.base_ref || 'main' }}"
 
       - name: Typecheck
         run: pnpm typecheck
