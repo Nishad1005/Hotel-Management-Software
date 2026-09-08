@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { PhotoField } from "../../components/photo-field";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
@@ -194,7 +195,9 @@ export default function StaffCards() {
             <PersonRow
               key={x.id}
               person={x}
+              propertyId={propertyId}
               onStop={canEditMasters ? () => setStopping(x) : undefined}
+              onPhoto={() => void refresh()}
             />
           ))}
 
@@ -213,7 +216,7 @@ export default function StaffCards() {
                 register that hides it cannot answer "whose card stopped working".
               */}
               {stopped.map((x) => (
-                <PersonRow key={x.id} person={x} />
+                <PersonRow key={x.id} person={x} propertyId={propertyId} />
               ))}
             </>
           ) : null}
@@ -233,9 +236,17 @@ export default function StaffCards() {
   );
 }
 
-function PersonRow({ person, onStop }: { person: Person; onStop?: (() => void) | undefined }) {
-  const p = usePalette();
-
+function PersonRow({
+  person,
+  propertyId,
+  onStop,
+  onPhoto,
+}: {
+  person: Person;
+  propertyId: string | null;
+  onStop?: (() => void) | undefined;
+  onPhoto?: (() => void) | undefined;
+}) {
   return (
     <View style={{ marginBottom: space.sm, opacity: person.isActive ? 1 : 0.7 }}>
       <Card>
@@ -267,14 +278,23 @@ function PersonRow({ person, onStop }: { person: Person; onStop?: (() => void) |
         ) : null}
 
         {/*
-        Photographs are criterion 18 and need an image store this build does not have.
-        Said on screen rather than left as a blank space, so the absence reads as a known
-        gap rather than a card that failed to load one.
+        The face, criterion 18. Offered only while the card is live: photographing
+        somebody whose card has been stopped would add personal data carrying a retention
+        clock and no purpose left to serve.
       */}
-        {person.isActive && !person.photoRef ? (
-          <Text role="caption" tone="muted" style={{ marginTop: space.sm, color: p.textFaint }}>
-            No photograph yet — the storekeeper cannot check the face against the card.
-          </Text>
+        {person.isActive && propertyId ? (
+          <View style={{ marginTop: space.md }}>
+            <PhotoField
+              label="Photograph"
+              hint="Shown to the storekeeper when this card is scanned, so a borrowed card is caught."
+              propertyId={propertyId}
+              entityType="PERSON"
+              entityId={person.id}
+              kind="STAFF_PHOTO"
+              existingKey={person.photoRef}
+              onAttached={() => onPhoto?.()}
+            />
+          </View>
         ) : null}
       </Card>
     </View>
