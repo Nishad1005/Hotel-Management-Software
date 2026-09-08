@@ -1106,6 +1106,17 @@ export type Database = {
           p_purpose: string | null;
           p_idempotency_key: string;
           p_lines: IssueStockLine[];
+          /**
+           * The staff card that was scanned, or null when none was presented.
+           *
+           * Optional so a device on an older build still calls the six-argument form and
+           * still records a shift's work — CLAUDE.md rule 20.
+           */
+          p_receiver_person_id?: string | null;
+          /** Required whenever a card is given. A scan with no method is not a scan. */
+          p_scan_method?: ScanMethod | null;
+          /** Why there was no card. Refused alongside a scan, since they are alternatives. */
+          p_override_reason?: string | null;
         };
         Returns: { issue_id: string; issue_no: string; expired_lines: number }[];
       };
