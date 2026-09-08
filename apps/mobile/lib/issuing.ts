@@ -1,4 +1,4 @@
-import { serverAnswered, type IssueStockLine } from "@golai/db";
+import { serverAnswered, type IssueStockLine, type ScanMethod } from "@golai/db";
 import { sortByFefo, toQty } from "@golai/domain";
 import { notifyOutboxChanged, outbox } from "./outbox";
 import { requireSupabase } from "./supabase";
@@ -118,6 +118,17 @@ export async function issueStock(params: {
   purpose: string | null;
   lines: DraftIssueLine[];
   submissionId: string;
+  /**
+   * The card that was scanned, when one was.
+   *
+   * Null is still a legitimate call and still records an issue — no cards are printed
+   * yet, and PRD section 2 forbids pretending to enforce what the property cannot do.
+   * What null costs is `verified_by_scan`, which is the point: the gap is countable.
+   */
+  receiverPersonId?: string | null;
+  scanMethod?: ScanMethod | null;
+  /** Why there was no card. The supervisor is whoever is signed in. */
+  overrideReason?: string | null;
 }): Promise<IssuedResult> {
   const payload: IssueStockLine[] = params.lines.map((l) => ({
     batch_id: l.lot.batchId,
@@ -135,6 +146,12 @@ export async function issueStock(params: {
         receiverName: params.receiverName,
         purpose: params.purpose,
         lines: payload,
+        // The card travels with the queued capture. An issue scanned during an outage
+        // must still be a verified one when it lands, or the outage would quietly
+        // downgrade every acknowledgement taken during it.
+        receiverPersonId: params.receiverPersonId ?? null,
+        scanMethod: params.scanMethod ?? null,
+        overrideReason: params.overrideReason ?? null,
       },
     });
     notifyOutboxChanged();
@@ -151,6 +168,9 @@ export async function issueStock(params: {
       p_purpose: params.purpose,
       p_idempotency_key: params.submissionId,
       p_lines: payload,
+      p_receiver_person_id: params.receiverPersonId ?? null,
+      p_scan_method: params.scanMethod ?? null,
+      p_override_reason: params.overrideReason ?? null,
     }));
   } catch {
     // Nothing answered, so there is no verdict to respect. See postReceipt.

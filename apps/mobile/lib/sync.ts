@@ -169,6 +169,12 @@ function routeIssueStock(record: OutboxRecord): SyncTarget {
       p_purpose: p.purpose ?? null,
       p_idempotency_key: record.idempotencyKey,
       p_lines: p.lines,
+      // Carried through so an issue scanned during an outage lands verified. Dropping
+      // them here would mean the queue silently downgraded every acknowledgement taken
+      // while the network was gone.
+      p_receiver_person_id: p.receiverPersonId ?? null,
+      p_scan_method: p.scanMethod ?? null,
+      p_override_reason: p.overrideReason ?? null,
     },
   };
 }
@@ -179,6 +185,9 @@ interface IssueStockPayload {
   receiverName?: string;
   purpose?: string | null;
   lines?: unknown[];
+  receiverPersonId?: string | null;
+  scanMethod?: string | null;
+  overrideReason?: string | null;
 }
 
 /**
