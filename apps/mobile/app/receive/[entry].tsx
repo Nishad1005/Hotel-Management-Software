@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { DateField } from "../../components/date-field";
+import { PhotoField } from "../../components/photo-field";
 import {
   Card,
   ChoiceTile,
@@ -22,9 +23,11 @@ import {
   SummaryRow,
   Text,
 } from "../../components/ui";
+import { fileDocument, type UploadedPhoto } from "../../lib/evidence";
 import { listItems, type ItemListRow } from "../../lib/masters";
 import {
   listOpenArrivals,
+  listPostedLines,
   postReceipt,
   REJECT_REASONS,
   type DraftLine,
@@ -61,6 +64,7 @@ export default function ReceiveArrival() {
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const [posted, setPosted] = useState<PostedReceipt | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   // Minted once for the life of this screen, not once per attempt. That is the whole
   // mechanism: a retry after a dropped connection carries the same key and returns the
@@ -112,6 +116,50 @@ export default function ReceiveArrival() {
         submissionId,
       });
       setPosted(receipt);
+
+      /*
+        File the cold-chain photographs now the lines exist.
+
+        After the receipt, and deliberately not blocking it. The stock movement is the
+        thing that must not fail; a photograph that could not be filed is recoverable —
+        the bytes are already in the bucket under their own address — and refusing the
+        whole receipt because a signed request timed out would be the tail wagging the
+        dog at a dock with a driver waiting.
+
+        Matched on item and batch rather than position, and skipped rather than guessed
+        when two lines of one item both generated their own batch. A photograph filed
+        against the wrong batch is a false record; an unfiled one is a retake.
+      */
+      if (receipt.status === "POSTED" && propertyId) {
+        const held = lines.filter((l) => l.photo);
+        if (held.length > 0) {
+          try {
+            const posted = await listPostedLines(propertyId, receipt.grnId);
+            const taken = new Set<string>();
+            for (const draft of held) {
+              const match = posted.find(
+                (x) =>
+                  !taken.has(x.id) &&
+                  x.itemId === draft.itemId &&
+                  (draft.batchNo === null || draft.batchNo === x.batchNo),
+              );
+              if (!match) continue;
+              taken.add(match.id);
+              await fileDocument({
+                propertyId,
+                entityType: "GRN_LINE",
+                entityId: match.id,
+                kind: "COLD_CHAIN",
+                photo: draft.photo!,
+              });
+            }
+          } catch (e) {
+            // Said out loud on the posted panel rather than swallowed: the receipt stands,
+            // and somebody needs to know the evidence did not land with it.
+            setPhotoError(e instanceof Error ? e.message : String(e));
+          }
+        }
+      }
     } catch (e) {
       setPostError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -153,6 +201,7 @@ export default function ReceiveArrival() {
         accepted={totals.accepted}
         rejected={totals.rejected}
         lineCount={lines.length}
+        photoError={photoError}
         onDone={() => router.replace("/receive")}
       />
     );
@@ -255,6 +304,7 @@ export default function ReceiveArrival() {
           >
             <LineEditor
               items={items}
+              propertyId={propertyId}
               onAdd={(line) => {
                 setLines((prev) => [...prev, line]);
                 setPostError(null);
@@ -316,7 +366,16 @@ const DECISIONS: {
   { id: "REJECT", label: "Reject it all", icon: "close-circle" },
 ];
 
-function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: DraftLine) => void }) {
+function LineEditor({
+  items,
+  propertyId,
+  onAdd,
+}: {
+  items: ItemListRow[];
+  /** Needed for the cold-chain photograph, which uploads before the line exists. */
+  propertyId: string | null;
+  onAdd: (line: DraftLine) => void;
+}) {
   const [itemId, setItemId] = useState("");
   const [qtyChallan, setQtyChallan] = useState("");
   const [qtyPhysical, setQtyPhysical] = useState("");
@@ -326,6 +385,7 @@ function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: Draf
   const [batchNo, setBatchNo] = useState("");
   const [bestBefore, setBestBefore] = useState("");
   const [temp, setTemp] = useState("");
+  const [photo, setPhoto] = useState<UploadedPhoto | null>(null);
   const [touched, setTouched] = useState(false);
 
   const item = items.find((i) => i.id === itemId) ?? null;
@@ -405,6 +465,7 @@ function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: Draf
     setBatchNo("");
     setBestBefore("");
     setTemp("");
+    setPhoto(null);
     setTouched(false);
   }
 
@@ -430,6 +491,7 @@ function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: Draf
       batchNo: batchNo.trim() || null,
       bestBefore: bestBefore.trim() || null,
       receiptTempC: probe !== null && Number.isFinite(probe) ? probe : null,
+      photo,
     });
     reset();
   }
@@ -566,6 +628,26 @@ function LineEditor({ items, onAdd }: { items: ItemListRow[]; onAdd: (line: Draf
               />
             </View>
           ) : null}
+
+          {/*
+            Criterion 8's other half, next to the reading it evidences rather than on a
+            separate screen — the probe is in the fish and the phone is in the other hand,
+            and a photograph asked for later is a photograph of the loading bay.
+
+            Deferred: the bytes go up now, and the line they belong to does not exist
+            until the receipt posts.
+          */}
+          {item?.isColdChain && propertyId ? (
+            <PhotoField
+              label="Photograph of the reading"
+              hint="Taken at the vehicle, with the probe in shot. Filed against this line when the receipt posts."
+              propertyId={propertyId}
+              entityType="GRN_LINE"
+              entityId={null}
+              kind="COLD_CHAIN"
+              onUploaded={setPhoto}
+            />
+          ) : null}
         </>
       ) : null}
 
@@ -698,12 +780,15 @@ function PostedPanel({
   accepted,
   rejected,
   lineCount,
+  photoError,
   onDone,
 }: {
   receipt: PostedReceipt;
   accepted: number;
   rejected: number;
   lineCount: number;
+  /** Set when the receipt posted but its photographs did not file. */
+  photoError: string | null;
   onDone: () => void;
 }) {
   /*
@@ -736,6 +821,19 @@ function PostedPanel({
         </>
       }
     >
+      {/*
+        The receipt stands and the evidence did not land. Said here rather than swallowed,
+        because the person who can retake the photograph is the one reading this screen,
+        and they are about to walk away from the vehicle.
+      */}
+      {photoError ? (
+        <View style={{ marginBottom: space.md }}>
+          <FieldError
+            message={`The receipt posted, but a photograph was not filed: ${photoError}`}
+          />
+        </View>
+      ) : null}
+
       <SummaryLine label={`${lineCount} line${lineCount === 1 ? "" : "s"}`} value="" />
       <SummaryLine
         label="Into quarantine at Terminal 1"

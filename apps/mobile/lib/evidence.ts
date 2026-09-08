@@ -24,6 +24,71 @@ export interface StoredPhoto {
   storageKey: string;
 }
 
+/** Bytes in the bucket, not yet filed against anything. */
+export interface UploadedPhoto {
+  sha256: string;
+  storageKey: string;
+  byteSize: number;
+  mimeType: "image/jpeg";
+}
+
+/**
+ * Compresses and uploads, without filing.
+ *
+ * Split out because a cold-chain photograph is taken while the probe is still in the
+ * fish, and the GRN line it belongs to does not exist until the receipt posts. Getting
+ * the bytes into the bucket at the moment they are taken means a receipt that fails to
+ * post has not also lost the photograph — the object is content-addressed, so filing it
+ * afterwards is exact rather than a guess about which upload was which.
+ */
+export async function uploadPhoto(propertyId: string, file: Blob): Promise<UploadedPhoto> {
+  const prepared = await preparePhoto(file);
+
+  // `{property_id}/{sha256}` — the shape the storage policies check, first segment being
+  // the property a member must belong to.
+  const storageKey = `${propertyId}/${prepared.sha256}`;
+
+  const { error } = await requireSupabase().storage.from(BUCKET).upload(storageKey, prepared.blob, {
+    contentType: prepared.mimeType,
+    // The same bytes produce the same key, so an overwrite is a retry writing identical
+    // content. Refusing it would turn a dropped connection into a permanent failure.
+    upsert: true,
+  });
+
+  if (error) throw new Error(friendlyUpload(error.message));
+
+  return {
+    sha256: prepared.sha256,
+    storageKey,
+    byteSize: prepared.byteSize,
+    mimeType: prepared.mimeType,
+  };
+}
+
+/** Files bytes already in the bucket against a subject that now exists. */
+export async function fileDocument(input: {
+  propertyId: string;
+  entityType: DocumentEntity;
+  entityId: string;
+  kind: DocumentKind;
+  photo: UploadedPhoto;
+}): Promise<string> {
+  const { data, error } = await requireSupabase().rpc("attach_document", {
+    p_property_id: input.propertyId,
+    p_entity_type: input.entityType,
+    p_entity_id: input.entityId,
+    p_kind: input.kind,
+    p_sha256: input.photo.sha256,
+    p_mime_type: input.photo.mimeType,
+    p_byte_size: input.photo.byteSize,
+  });
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("The photograph uploaded but was not filed. Try attaching it again.");
+  return data as string;
+}
+
+/** Both halves, for the subjects that already exist when the shutter goes. */
 export async function attachPhoto(input: {
   propertyId: string;
   entityType: DocumentEntity;
@@ -31,36 +96,15 @@ export async function attachPhoto(input: {
   kind: DocumentKind;
   file: Blob;
 }): Promise<StoredPhoto> {
-  const client = requireSupabase();
-  const prepared = await preparePhoto(input.file);
-
-  // `{property_id}/{sha256}` — the shape the storage policies check, first segment being
-  // the property a member must belong to.
-  const key = `${input.propertyId}/${prepared.sha256}`;
-
-  const { error: uploadError } = await client.storage.from(BUCKET).upload(key, prepared.blob, {
-    contentType: prepared.mimeType,
-    // The same bytes produce the same key, so an overwrite is a retry writing identical
-    // content. Refusing it would turn a dropped connection into a permanent failure.
-    upsert: true,
+  const photo = await uploadPhoto(input.propertyId, input.file);
+  const documentId = await fileDocument({
+    propertyId: input.propertyId,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    kind: input.kind,
+    photo,
   });
-
-  if (uploadError) throw new Error(friendlyUpload(uploadError.message));
-
-  const { data, error } = await client.rpc("attach_document", {
-    p_property_id: input.propertyId,
-    p_entity_type: input.entityType,
-    p_entity_id: input.entityId,
-    p_kind: input.kind,
-    p_sha256: prepared.sha256,
-    p_mime_type: prepared.mimeType,
-    p_byte_size: prepared.byteSize,
-  });
-
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("The photograph uploaded but was not filed. Try attaching it again.");
-
-  return { documentId: data as string, storageKey: key };
+  return { documentId, storageKey: photo.storageKey };
 }
 
 export interface VaultDocument {

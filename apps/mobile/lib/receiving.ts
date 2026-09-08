@@ -4,6 +4,7 @@ import {
   type PostGrnLine,
   type RejectReason,
 } from "@golai/db";
+import type { UploadedPhoto } from "./evidence";
 import { notifyOutboxChanged, outbox } from "./outbox";
 import { requireSupabase } from "./supabase";
 
@@ -86,6 +87,15 @@ export interface DraftLine {
   batchNo: string | null;
   bestBefore: string | null;
   receiptTempC: number | null;
+
+  /**
+   * A cold-chain photograph, already in the bucket but not yet filed.
+   *
+   * Criterion 8 wants it on the line, and the line does not exist until the receipt
+   * posts. The bytes go up when the shutter goes so a failed post does not lose them;
+   * this carries the address until there is a line to file it against.
+   */
+  photo?: UploadedPhoto | null;
 }
 
 /** The six reasons at P1, with the words a storekeeper would use (PRD section 4 Gate 4). */
@@ -197,6 +207,36 @@ export async function postReceipt(params: {
  * actually arrived" — so almost nothing here rewrites a message. What it handles is the
  * failures that never reach the function body.
  */
+export interface PostedLine {
+  id: string;
+  itemId: string;
+  batchNo: string | null;
+}
+
+/**
+ * The lines a receipt created, so a held photograph can find the one it belongs to.
+ *
+ * Matched on item and batch rather than position: `created_at` is transaction-stable, so
+ * every line of one receipt shares a timestamp and any order is arbitrary. A generated
+ * batch number carries the submission index and a vendor-supplied one is what was sent,
+ * which resolves every case except two lines of the same item both left to generate their
+ * own batch — and the caller says so rather than guessing, because an unattached
+ * photograph can be retaken and one filed against the wrong batch is a false record.
+ *
+ * Reads `list_receipt_lines`, which the amendment flow already needed and which returns
+ * exactly this. A second function alongside it was written and then deleted: two ways to
+ * ask the same question drift, and the typechecker caught the duplicate before it shipped.
+ */
+export async function listPostedLines(propertyId: string, grnId: string): Promise<PostedLine[]> {
+  const { data, error } = await requireSupabase().rpc("list_receipt_lines", {
+    p_property_id: propertyId,
+    p_grn_id: grnId,
+  });
+
+  if (error) throw new Error(friendly(error.code, error.message));
+  return (data ?? []).map((r) => ({ id: r.line_id, itemId: r.item_id, batchNo: r.batch_no }));
+}
+
 function friendly(code: string | undefined, message: string): string {
   if (code === "42501" && !message.includes("Line "))
     return "You do not have permission to receive goods at this property.";
