@@ -93,6 +93,25 @@ select lives_ok(
   'a person at the other property'
 );
 
+/*
+  That person's id, captured out of band.
+
+  The first version looked it up inline while acting as SC's storekeeper, and RLS on
+  `person` correctly returned nothing — so a NULL was passed as the card, the call took
+  the no-card path, and the issue succeeded. The test then failed twice: once because no
+  exception was raised, and once because the extra unverified acknowledgement pushed the
+  count in the last assertion from two to three.
+
+  Which is worth stating plainly: a storekeeper cannot reach another property's card
+  through the API at all. The check inside issue_stock is defence in depth behind that,
+  and the only way to exercise it is to hand it an id RLS would never have surrendered.
+*/
+reset role;
+create temporary table neighbour as
+  select id from public.person where full_name = 'Neighbour''s Steward';
+grant select on neighbour to authenticated;
+set local role authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Issuing against a card
 -- ---------------------------------------------------------------------------
@@ -169,7 +188,7 @@ select throws_ok(
         'batch_id', '00000000-0000-0000-0000-0000000fe011',
         'from_location_id', '00000000-0000-0000-0000-0000000fe101',
         'qty', 5)),
-      (select id from public.person where full_name = 'Neighbour''s Steward'),
+      (select id from neighbour),
       'CAMERA'::public.scan_method,
       null)
   $q$,
