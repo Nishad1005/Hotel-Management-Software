@@ -22,36 +22,78 @@ Three different strengths of evidence appear below, and they are not interchange
 
 ## Scoreboard
 
-| #   | Criterion                                                      | State           | Evidence                                                              |
-| --- | -------------------------------------------------------------- | --------------- | --------------------------------------------------------------------- |
-| 1   | Nothing enters without a Gate Entry Number                     | Met             | Verified — `TW-GE-000608`                                             |
-| 2   | Nothing leaves without a Gate Pass, no exception path          | Present         | `gate_pass`, `gate-out/index.tsx`; untested                           |
-| 3   | Every Gate Entry resolves to a GRN or raises an alert          | Partial         | `list_open_gate_entries` gives the worklist; no aged escalation found |
-| 4   | Every Gate Pass resolves to a Dispatch Note or raises an alert | Partial         | `dispatch_note` present; the alerting half not confirmed              |
-| 5   | Stock at T1 cannot be issued                                   | Met             | Verified — T1 lots count as "not issuable yet"                        |
-| 6   | Issuable only after a destination bin label is scanned         | Met             | Verified — put-away into `TW-DRY-A1`                                  |
-| 7   | In-transit stock issuable at neither end                       | Partial         | State exists in the enum; Gate 7 itself is V2                         |
-| 8   | Perishable expiry, cold-chain probe **and photograph**         | Partial         | Expiry and probe verified; **photograph absent**                      |
-| 9   | No-bill unregistered vendor received in under four minutes     | Met             | Verified — the flow test does exactly this                            |
-| 10  | Posted GRN cannot be edited, only amended with a trail         | Met             | `amend_grn` present with its trail                                    |
-| 11  | Batch records for every batch-controlled line                  | Met             | Verified — `SYS-TW-GRN-000003-01` generated                           |
-| 12  | Inward check and waste registers, zero extra entry             | Met             | Registers screen reads from the flow                                  |
-| 13  | Forward and backward trace from any batch                      | Met             | `registers/trace/[batch].tsx`                                         |
-| 14  | Rejected stock cannot reach a zone                             | Met             | State machine forbids the transition                                  |
-| 15  | Returnable dispatch on an aged outstanding register            | Present         | `returnable_item` + screen; untested                                  |
-| 16  | Scannable system-generated party ID                            | **Not started** | See below                                                             |
-| 17  | No custody change without a card scan                          | **Not started** | See below                                                             |
-| 18  | Receiver's photograph from cache, no network                   | **Not started** | Depends on 17                                                         |
-| 19  | Deactivated card stops working server-side                     | **Not started** | Depends on 17                                                         |
-| 20  | Admin builds/edits/versions/disables inspection templates      | **Not started** | See below                                                             |
-| 21  | Each inspection field independently visible/mandatory/blocking | **Not started** | Depends on 20                                                         |
-| 22  | Switching every optional check off leaves the floor            | Met             | The floor is what exists today                                        |
-| 23  | Editing a live template never alters a past record             | **Not started** | Depends on 20                                                         |
-| 24  | Full flow offline except put-away confirmation and gate-out    | Met (flow)      | Verified with the network cut — see below                             |
+| #   | Criterion                                                      | State           | Evidence                                                                |
+| --- | -------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------- |
+| 1   | Nothing enters without a Gate Entry Number                     | Met             | Verified — `TW-GE-000608`                                               |
+| 2   | Nothing leaves without a Gate Pass, no exception path          | Met             | Verified — UI blocks the stager AND the server refuses a bypassed call  |
+| 3   | Every Gate Entry resolves to a GRN or raises an alert          | Met             | Verified — worklist plus a >=4h alert on the dashboard and the worklist |
+| 4   | Every Gate Pass resolves to a Dispatch Note or raises an alert | Met             | One creation path, which requires a note; `authenticated` has no INSERT |
+| 5   | Stock at T1 cannot be issued                                   | Met             | Verified — T1 lots count as "not issuable yet"                          |
+| 6   | Issuable only after a destination bin label is scanned         | Met             | Verified — put-away into `TW-DRY-A1`                                    |
+| 7   | In-transit stock issuable at neither end                       | Partial         | The state exists and is excluded from issuable; untestable until Gate 7 |
+| 8   | Perishable expiry, cold-chain probe **and photograph**         | Partial         | Expiry and probe verified; **photograph absent** — needs building       |
+| 9   | No-bill unregistered vendor received in under four minutes     | Met             | Verified — the flow test does exactly this                              |
+| 10  | Posted GRN cannot be edited, only amended with a trail         | Met             | `amend_grn` present with its trail                                      |
+| 11  | Batch records for every batch-controlled line                  | Met             | Verified — `SYS-TW-GRN-000003-01` generated                             |
+| 12  | Inward check and waste registers, zero extra entry             | Met             | Registers screen reads from the flow                                    |
+| 13  | Forward and backward trace from any batch                      | Met             | `registers/trace/[batch].tsx`                                           |
+| 14  | Rejected stock cannot reach a zone                             | Met             | State machine forbids the transition                                    |
+| 15  | Returnable dispatch on an aged outstanding register            | Met             | Verified — aged register, then the return clears it                     |
+| 16  | Scannable system-generated party ID                            | **Not started** | See below                                                               |
+| 17  | No custody change without a card scan                          | **Not started** | See below                                                               |
+| 18  | Receiver's photograph from cache, no network                   | **Not started** | Depends on 17                                                           |
+| 19  | Deactivated card stops working server-side                     | **Not started** | Depends on 17                                                           |
+| 20  | Admin builds/edits/versions/disables inspection templates      | **Not started** | See below                                                               |
+| 21  | Each inspection field independently visible/mandatory/blocking | **Not started** | Depends on 20                                                           |
+| 22  | Switching every optional check off leaves the floor            | Met             | The floor is what exists today                                          |
+| 23  | Editing a live template never alters a past record             | **Not started** | Depends on 20                                                           |
+| 24  | Full flow offline except put-away confirmation and gate-out    | Met (flow)      | Verified with the network cut — see below                               |
 
-Roughly fourteen met, four present-but-unverified, six not started.
+Fifteen met, two partial, seven not started.
+
+An earlier revision of this file said "four present-but-unverified", which was an
+arithmetic error on my part: it conflated the two _Present_ rows with the four _Partial_
+ones. Corrected here rather than quietly restated, because the count is the thing anyone
+reads first.
 
 ---
+
+## What was verified to close the Present rows
+
+Criteria 2 and 15 were built but had never been run. Both are now exercised end to end
+against production.
+
+**Criterion 2 — nothing leaves without a gate pass, no exception path.** The teeth are in
+the second clause, and the control carrying it is segregation of duties: whoever stages a
+consignment at Terminal 2 may not verify it out at the gate. Checked at both layers,
+because a disabled button is a courtesy rather than a control —
+
+- the UI refuses the stager and says why
+- the **server** refuses the identical call made with the page's own session, bypassing
+  the UI entirely: `403 42501 — "You staged TW-DN-000001. Someone else has to verify it
+out, that separation is the check."`
+
+A second person holding the Security role then issued `TW-GP-000001`, and the consignment
+left the gate list. Worth recording that `issue_gate_pass` is the _only_ insert path into
+`gate_pass` and `authenticated` holds no INSERT on that table, so the control cannot be
+walked around by writing the row directly.
+
+**Criterion 15 — returnables on an aged outstanding register.** The dispatch appeared
+under "Still out" against its due date and named the note it came from; recording the
+return cleared it to "Nothing outstanding / All 2 back", carrying the partial-return
+history and the condition note. The return dialog pre-fills the outstanding count and
+refuses more than is owed — "Only 1 still out on this dispatch."
+
+**Criterion 3** was scored Partial for want of the "or raises an alert" half. It exists:
+arrivals over four hours are counted and called out on both the receiving worklist and the
+dashboard, and it was seen live reading "4 arrivals to receive · 1 waiting over four
+hours".
+
+**Criterion 4** is structural rather than alerted, which is stronger. A gate pass has
+exactly one creation path, it requires a dispatch note id and validates it, and
+`authenticated` cannot insert the row itself. The `dispatch_note_id` column is nullable,
+which is looseness worth tightening one day — the guarantee is currently procedural where
+it could be declarative — but no reachable path produces an orphan pass.
 
 ## Where the gaps are
 
@@ -148,11 +190,12 @@ before anyone calls Phase 1 complete.
 ## Suggested order
 
 1. ~~Offline coverage~~ — done for the flow gates.
-2. **Staff cards.** Three criteria, and until it lands the issue record asserts something
+2. ~~The two Present rows~~ — criteria 2 and 15 verified.
+3. **Staff cards.** Three criteria, and until it lands the issue record asserts something
    the system cannot substantiate.
-3. **Inspection template engine.** Four criteria, self-contained, no dependency on the
+4. **Inspection template engine.** Four criteria, self-contained, no dependency on the
    above.
-4. **Photographs and the vendor QR.** Both self-contained and can follow in either order.
+5. **Photographs and the vendor QR.** Both self-contained and can follow in either order.
 
 Testing Gates 9 and 10 and the returnable register belongs wherever the scope question
 above lands.
