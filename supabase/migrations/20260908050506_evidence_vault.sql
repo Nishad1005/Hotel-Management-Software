@@ -285,10 +285,27 @@ begin
     (p_property_id, p_entity_type, p_entity_id, p_kind, lower(trim(p_sha256)),
      p_property_id::text || '/' || lower(trim(p_sha256)),
      p_mime_type, p_byte_size, (select auth.uid()), v_until)
-  -- The same bytes against the same subject is the retry case, not a second photograph.
-  on conflict (property_id, entity_type, entity_id, sha256) do update
-    set sha256 = excluded.sha256
+  /*
+    The retry case: the same bytes against the same subject, filed twice.
+
+    `do nothing` rather than `do update`, and the difference is not stylistic. An upsert
+    fires a BEFORE UPDATE, and the immutability trigger on this table refuses those —
+    absolutely, on purpose, so that no statement anywhere can edit evidence. My own
+    upsert was the first thing it caught. That is the guarantee behaving correctly, and
+    the fix is for the retry to stop trying to write at all.
+  */
+  on conflict (property_id, entity_type, entity_id, sha256) do nothing
   returning id into v_id;
+
+  -- `do nothing` returns no row when it collided, so the existing document is the answer.
+  if v_id is null then
+    select d.id into v_id
+      from public.document d
+     where d.property_id = p_property_id
+       and d.entity_type = p_entity_type
+       and d.entity_id = p_entity_id
+       and d.sha256 = lower(trim(p_sha256));
+  end if;
 
   return v_id;
 end;
