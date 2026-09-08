@@ -37,12 +37,18 @@ select
 
 grant select on ctx to authenticated;
 
-insert into public.gate_entry (id, property_id, gate_entry_no, bill, package_count)
-select '00000000-0000-0000-0000-0000000ff020', prop, 'EV-GE-000001', 'NONE', 4 from ctx;
+-- An unregistered vendor rather than a party fixture: `gate_entry_has_a_vendor` requires
+-- one or the other, and a name is the shorter road to an arrival worth photographing.
+insert into public.gate_entry
+  (id, property_id, gate_entry_no, unregistered_vendor_name, bill, package_count)
+select '00000000-0000-0000-0000-0000000ff020', prop, 'EV-GE-000001',
+       'Bhaskar Fish Supply', 'NONE', 4 from ctx;
 
 -- The neighbour's arrival, which must not be attachable from here.
-insert into public.gate_entry (id, property_id, gate_entry_no, bill, package_count)
-select '00000000-0000-0000-0000-0000000ff021', other, 'EW-GE-000001', 'NONE', 1 from ctx;
+insert into public.gate_entry
+  (id, property_id, gate_entry_no, unregistered_vendor_name, bill, package_count)
+select '00000000-0000-0000-0000-0000000ff021', other, 'EW-GE-000001',
+       'Someone Else''s Vendor', 'NONE', 1 from ctx;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000ff02"}', true);
