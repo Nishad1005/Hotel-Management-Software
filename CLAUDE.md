@@ -140,6 +140,18 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
   (pglast over the extracted `$q$` blocks), not just the file.
 - Tables and columns `snake_case`; TypeScript `camelCase`; the boundary is `packages/db`.
 - **Relative imports are extensionless.** Never write `./thing.js`. Everything here is bundled — Metro, Turbopack, Vite — and Metro does not rewrite `.js` to `.ts` the way `tsc` under NodeNext does, so such an import typechecks, passes tests, and then fails to bundle. `moduleResolution` is `bundler` repo-wide for this reason.
+- **A feature change updates [`docs/HOW_IT_WORKS.md`](docs/HOW_IT_WORKS.md) in the same
+  commit.** That file is the map of what exists and what each part is for, and it is only
+  worth reading if it is true — one stale entry costs a reader their trust in the other
+  forty, and they then check the code for everything, which is the situation the file
+  exists to end. Record intent and the rule being enforced, not implementation: how a
+  thing works belongs in the code, where it cannot drift from itself. Say what a feature
+  deliberately does NOT do, because a reader who assumes a control exists is worse off
+  than one who knows it does not. CI fails a new migration or a new screen that arrives
+  without touching it — `scripts/check-feature-docs.mjs`, which is a floor and not the
+  standard: an entry can go stale without a file being added, and only a person notices
+  that.
+
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
 - **A scripted edit must assert before it writes.** Bulk edits here are usually a
   search-and-replace over a set of files, and a search string that no longer matches
