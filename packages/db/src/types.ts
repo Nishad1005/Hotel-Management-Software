@@ -269,6 +269,22 @@ export type MovementReason =
  */
 export type ScanMethod = "CAMERA" | "HARDWARE" | "TYPED";
 
+/** What a document can be filed against. Polymorphic, per the PRD's DocumentAttachment. */
+export type DocumentEntity =
+  | "GATE_ENTRY"
+  | "GRN_LINE"
+  | "PERSON"
+  | "TEMPERATURE_READING"
+  | "DISPATCH_NOTE"
+  | "RECEIPT_ACK";
+
+export type DocumentKind =
+  | "BILL"
+  | "COLD_CHAIN"
+  | "STAFF_PHOTO"
+  | "CONDITION"
+  | "COLLECTION_RECEIPT";
+
 export type BatchSource = "OPENING_STOCK" | "GRN";
 export type ArrivalType =
   | "PO_DELIVERY"
@@ -580,6 +596,31 @@ export type PersonRow = {
   deactivated_reason: string | null;
   created_at: string;
   created_by: string | null;
+};
+
+/**
+ * The evidence vault — one store for cold-chain photographs, staff faces and bills.
+ *
+ * Content-addressed and immutable: `storage_key` is `{property_id}/{sha256}`, and there
+ * is no update or delete path at any level. PRD section 7.2.
+ */
+export type DocumentRow = {
+  id: string;
+  property_id: string;
+  entity_type: DocumentEntity;
+  entity_id: string;
+  kind: DocumentKind;
+  /** SHA-256 of the bytes, lowercase hex. The address, not a checksum beside one. */
+  sha256: string;
+  storage_key: string;
+  mime_type: string;
+  /** Capped at 409600 by a check constraint, so PRD section 13 is a server rule too. */
+  byte_size: number;
+  captured_at: string;
+  captured_by: string | null;
+  /** Required. A photograph with no end date is a decision nobody made. */
+  retention_until: string;
+  created_at: string;
 };
 
 export type StockMovementRow = {
@@ -1001,6 +1042,14 @@ export type Database = {
       };
       member_module: {
         Row: MemberModuleRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      document: {
+        Row: DocumentRow;
+        // Filed through attach_document, which checks the subject belongs to the
+        // property. Never updated or deleted: evidence that can be edited is not.
         Insert: never;
         Update: never;
         Relationships: [];
@@ -1586,6 +1635,37 @@ export type Database = {
         }[];
       };
       /** Arrivals with no receipt against them yet — the receiving worklist. */
+      attach_document: {
+        Args: {
+          p_property_id: string;
+          p_entity_type: DocumentEntity;
+          p_entity_id: string;
+          p_kind: DocumentKind;
+          p_sha256: string;
+          p_mime_type: string;
+          p_byte_size: number;
+          /** Defaults by kind: a year for a face, two for flow evidence. */
+          p_retention_until?: string | null;
+        };
+        Returns: string;
+      };
+      list_documents: {
+        Args: {
+          p_property_id: string;
+          p_entity_type: DocumentEntity;
+          p_entity_id: string;
+        };
+        Returns: {
+          id: string;
+          kind: DocumentKind;
+          /** A key, not a URL: signed URLs expire and a record outlives several. */
+          storage_key: string;
+          mime_type: string;
+          byte_size: number;
+          captured_at: string;
+          retention_until: string;
+        }[];
+      };
       create_person: {
         Args: {
           p_property_id: string;
@@ -1642,6 +1722,8 @@ export type Database = {
       location_kind: LocationKind;
       enforcement_mode: EnforcementMode;
       scan_method: ScanMethod;
+      document_entity: DocumentEntity;
+      document_kind: DocumentKind;
     };
     CompositeTypes: Record<never, never>;
   };
