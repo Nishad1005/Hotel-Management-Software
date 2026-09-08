@@ -2,7 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import type { DocumentEntity, DocumentKind } from "@golai/db";
 import { useEffect, useState } from "react";
 import { Image, Pressable, View } from "react-native";
-import { attachPhoto, photoCaptureAvailable, photoUrl } from "../lib/evidence";
+import {
+  attachPhoto,
+  photoCaptureAvailable,
+  photoUrl,
+  uploadPhoto,
+  type UploadedPhoto,
+} from "../lib/evidence";
 import { imagePicker } from "../lib/image-pick";
 import { radius, space, touch, usePalette } from "../theme";
 import { FieldError, Text } from "./ui";
@@ -30,16 +36,26 @@ export function PhotoField({
   /** An existing storage key, when the subject already has one. */
   existingKey,
   onAttached,
+  onUploaded,
   disabled,
 }: {
   label: string;
   hint?: string;
   propertyId: string;
   entityType: DocumentEntity;
-  entityId: string;
+  /**
+   * Null when the subject does not exist yet.
+   *
+   * A cold-chain photograph is taken with the probe still in the fish, and its GRN line
+   * is not created until the receipt posts. In that case the bytes are uploaded — so a
+   * receipt that fails to post has not also lost the photograph — and handed back through
+   * `onUploaded` for the caller to file once it has a line to file against.
+   */
+  entityId: string | null;
   kind: DocumentKind;
   existingKey?: string | null;
   onAttached?: (storageKey: string) => void;
+  onUploaded?: (photo: UploadedPhoto) => void;
   disabled?: boolean;
 }) {
   const p = usePalette();
@@ -76,9 +92,16 @@ export function PhotoField({
       if (!file) return;
 
       setBusy(true);
-      const stored = await attachPhoto({ propertyId, entityType, entityId, kind, file });
-      setKey(stored.storageKey);
-      onAttached?.(stored.storageKey);
+      if (entityId === null) {
+        // Deferred: the bytes go up now, the filing waits for a subject to exist.
+        const photo = await uploadPhoto(propertyId, file);
+        setKey(photo.storageKey);
+        onUploaded?.(photo);
+      } else {
+        const stored = await attachPhoto({ propertyId, entityType, entityId, kind, file });
+        setKey(stored.storageKey);
+        onAttached?.(stored.storageKey);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
