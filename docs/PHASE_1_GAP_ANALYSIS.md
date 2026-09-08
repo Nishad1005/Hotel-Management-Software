@@ -22,34 +22,34 @@ Three different strengths of evidence appear below, and they are not interchange
 
 ## Scoreboard
 
-| #   | Criterion                                                      | State           | Evidence                                                                |
-| --- | -------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------- |
-| 1   | Nothing enters without a Gate Entry Number                     | Met             | Verified — `TW-GE-000608`                                               |
-| 2   | Nothing leaves without a Gate Pass, no exception path          | Met             | Verified — UI blocks the stager AND the server refuses a bypassed call  |
-| 3   | Every Gate Entry resolves to a GRN or raises an alert          | Met             | Verified — worklist plus a >=4h alert on the dashboard and the worklist |
-| 4   | Every Gate Pass resolves to a Dispatch Note or raises an alert | Met             | One creation path, which requires a note; `authenticated` has no INSERT |
-| 5   | Stock at T1 cannot be issued                                   | Met             | Verified — T1 lots count as "not issuable yet"                          |
-| 6   | Issuable only after a destination bin label is scanned         | Met             | Verified — put-away into `TW-DRY-A1`                                    |
-| 7   | In-transit stock issuable at neither end                       | Partial         | The state exists and is excluded from issuable; untestable until Gate 7 |
-| 8   | Perishable expiry, cold-chain probe **and photograph**         | Partial         | Expiry and probe verified; **photograph absent** — needs building       |
-| 9   | No-bill unregistered vendor received in under four minutes     | Met             | Verified — the flow test does exactly this                              |
-| 10  | Posted GRN cannot be edited, only amended with a trail         | Met             | `amend_grn` present with its trail                                      |
-| 11  | Batch records for every batch-controlled line                  | Met             | Verified — `SYS-TW-GRN-000003-01` generated                             |
-| 12  | Inward check and waste registers, zero extra entry             | Met             | Registers screen reads from the flow                                    |
-| 13  | Forward and backward trace from any batch                      | Met             | `registers/trace/[batch].tsx`                                           |
-| 14  | Rejected stock cannot reach a zone                             | Met             | State machine forbids the transition                                    |
-| 15  | Returnable dispatch on an aged outstanding register            | Met             | Verified — aged register, then the return clears it                     |
-| 16  | Scannable system-generated party ID                            | **Not started** | See below                                                               |
-| 17  | No custody change without a card scan                          | **Not started** | See below                                                               |
-| 18  | Receiver's photograph from cache, no network                   | **Not started** | Depends on 17                                                           |
-| 19  | Deactivated card stops working server-side                     | **Not started** | Depends on 17                                                           |
-| 20  | Admin builds/edits/versions/disables inspection templates      | **Not started** | See below                                                               |
-| 21  | Each inspection field independently visible/mandatory/blocking | **Not started** | Depends on 20                                                           |
-| 22  | Switching every optional check off leaves the floor            | Met             | The floor is what exists today                                          |
-| 23  | Editing a live template never alters a past record             | **Not started** | Depends on 20                                                           |
-| 24  | Full flow offline except put-away confirmation and gate-out    | Met (flow)      | Verified with the network cut — see below                               |
+| #   | Criterion                                                      | State           | Evidence                                                                            |
+| --- | -------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------- |
+| 1   | Nothing enters without a Gate Entry Number                     | Met             | Verified — `TW-GE-000608`                                                           |
+| 2   | Nothing leaves without a Gate Pass, no exception path          | Met             | Verified — UI blocks the stager AND the server refuses a bypassed call              |
+| 3   | Every Gate Entry resolves to a GRN or raises an alert          | Met             | Verified — worklist plus a >=4h alert on the dashboard and the worklist             |
+| 4   | Every Gate Pass resolves to a Dispatch Note or raises an alert | Met             | One creation path, which requires a note; `authenticated` has no INSERT             |
+| 5   | Stock at T1 cannot be issued                                   | Met             | Verified — T1 lots count as "not issuable yet"                                      |
+| 6   | Issuable only after a destination bin label is scanned         | Met             | Verified — put-away into `TW-DRY-A1`                                                |
+| 7   | In-transit stock issuable at neither end                       | Partial         | The state exists and is excluded from issuable; untestable until Gate 7             |
+| 8   | Perishable expiry, cold-chain probe **and photograph**         | Met             | Probe verified; the photograph is captured beside the reading and filed on the line |
+| 9   | No-bill unregistered vendor received in under four minutes     | Met             | Verified — the flow test does exactly this                                          |
+| 10  | Posted GRN cannot be edited, only amended with a trail         | Met             | `amend_grn` present with its trail                                                  |
+| 11  | Batch records for every batch-controlled line                  | Met             | Verified — `SYS-TW-GRN-000003-01` generated                                         |
+| 12  | Inward check and waste registers, zero extra entry             | Met             | Registers screen reads from the flow                                                |
+| 13  | Forward and backward trace from any batch                      | Met             | `registers/trace/[batch].tsx`                                                       |
+| 14  | Rejected stock cannot reach a zone                             | Met             | State machine forbids the transition                                                |
+| 15  | Returnable dispatch on an aged outstanding register            | Met             | Verified — aged register, then the return clears it                                 |
+| 16  | Scannable system-generated party ID                            | **Not started** | See below                                                                           |
+| 17  | No custody change without a card scan                          | Met             | The scan is the acknowledgement; `verified_by_scan` can be true and is              |
+| 18  | Receiver's photograph from cache, no network                   | Met             | `person.photo_ref` rides the cached master, so a face shows with no network         |
+| 19  | Deactivated card stops working server-side                     | Met             | Server-side, checked at the moment of custody — a stopped card is refused there     |
+| 20  | Admin builds/edits/versions/disables inspection templates      | **Not started** | See below                                                                           |
+| 21  | Each inspection field independently visible/mandatory/blocking | **Not started** | Depends on 20                                                                       |
+| 22  | Switching every optional check off leaves the floor            | Met             | The floor is what exists today                                                      |
+| 23  | Editing a live template never alters a past record             | **Not started** | Depends on 20                                                                       |
+| 24  | Full flow offline except put-away confirmation and gate-out    | Met (flow)      | Verified with the network cut — see below                                           |
 
-Fifteen met, two partial, seven not started.
+Nineteen met, one partial, four not started.
 
 An earlier revision of this file said "four present-but-unverified", which was an
 arithmetic error on my part: it conflated the two _Present_ rows with the four _Partial_
@@ -94,6 +94,30 @@ exactly one creation path, it requires a dispatch note id and validates it, and
 `authenticated` cannot insert the row itself. The `dispatch_note_id` column is nullable,
 which is looseness worth tightening one day — the guarantee is currently procedural where
 it could be declarative — but no reachable path produces an orphan pass.
+
+## Closed since this was written
+
+**Criteria 17, 18 and 19 — the staff card.** A `person` master whose card number carries a
+Damm check digit; `issue_stock` takes the scanned card, refuses one that has been stopped,
+and records a supervisor's override where no card was presented; `attach_document` points
+`person.photo_ref` at the newest face so the cached staff master carries it and a scan
+shows a photograph with no network.
+
+It records rather than blocks, and that is the design rather than a shortfall. No cards
+are printed yet, and PRD section 2 forbids pretending to enforce what the property cannot
+do — an unenforceable rule produces click-through, and a click-through record asserts
+something false instead of leaving a visible hole. What changed is that the hole is now
+countable: `verified_by_scan` means something, and the property can see how often material
+changed hands anonymously. Turning it into a block is a `rule_config` decision once cards
+are in hands, not a code change.
+
+**Criterion 8 — the cold-chain photograph.** Taken beside the probe reading, uploaded when
+the shutter goes so a failed receipt does not lose it, and filed against its GRN line once
+the lines exist. It never blocks the receipt: the stock movement is what must not fail.
+
+**The evidence vault** underneath all of it — content-addressed, immutable in two layers,
+400 KB enforced by the server as well as the client, with a required retention date.
+Capture needs no dependency on web, which is the platform that ships (ADR 0014).
 
 ## Where the gaps are
 
@@ -191,11 +215,13 @@ before anyone calls Phase 1 complete.
 
 1. ~~Offline coverage~~ — done for the flow gates.
 2. ~~The two Present rows~~ — criteria 2 and 15 verified.
-3. **Staff cards.** Three criteria, and until it lands the issue record asserts something
+3. ~~Staff cards~~ — criteria 17, 18 and 19 done, recording rather than blocking.
+4. ~~Photographs~~ — the vault, criterion 8, and criterion 18's face.
+5. **Inspection template engine.** Three criteria, and until it lands the issue record asserts something
    the system cannot substantiate.
-4. **Inspection template engine.** Four criteria, self-contained, no dependency on the
+6. **Inspection template engine.** Four criteria, self-contained, no dependency on the
    above.
-5. **Photographs and the vendor QR.** Both self-contained and can follow in either order.
+7. **Photographs and the vendor QR.** Both self-contained and can follow in either order.
 
 Testing Gates 9 and 10 and the returnable register belongs wherever the scope question
 above lands.
