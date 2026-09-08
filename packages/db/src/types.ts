@@ -555,6 +555,33 @@ export type TemperatureReadingRow = {
   created_at: string;
 };
 
+/**
+ * The staff master — a card identifies a person, it does not sign them in.
+ *
+ * `user_id` is the link to a login where one exists, and is null for most people:
+ * stewards, commis and housekeeping attendants take custody of material every day and
+ * will never hold app credentials. PRD section 4 Gate 8.
+ */
+export type PersonRow = {
+  id: string;
+  property_id: string;
+  /** The printed card number, e.g. `TW-EMP-00013`. Immutable once issued. */
+  person_code: string;
+  person_seq: number;
+  full_name: string;
+  /** A location of kind DEPARTMENT, or null for staff on no departmental chart. */
+  department_id: string | null;
+  /** Null until an image store exists; criterion 18 needs it, criterion 17 does not. */
+  photo_ref: string | null;
+  user_id: string | null;
+  is_active: boolean;
+  deactivated_at: string | null;
+  deactivated_by: string | null;
+  deactivated_reason: string | null;
+  created_at: string;
+  created_by: string | null;
+};
+
 export type StockMovementRow = {
   id: string;
   property_id: string;
@@ -974,6 +1001,15 @@ export type Database = {
       };
       member_module: {
         Row: MemberModuleRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      person: {
+        Row: PersonRow;
+        // No client writes at all. Adding somebody and stopping a card both go through
+        // functions, which is what makes criterion 19's "server-side and immediate"
+        // something a client cannot undo by writing the row.
         Insert: never;
         Update: never;
         Relationships: [];
@@ -1539,6 +1575,38 @@ export type Database = {
         }[];
       };
       /** Arrivals with no receipt against them yet — the receiving worklist. */
+      create_person: {
+        Args: {
+          p_property_id: string;
+          p_full_name: string;
+          p_department_id?: string | null;
+          p_user_id?: string | null;
+        };
+        Returns: { person_id: string; person_code: string }[];
+      };
+      set_person_active: {
+        Args: {
+          p_property_id: string;
+          p_person_id: string;
+          p_active: boolean;
+          p_reason?: string | null;
+        };
+        Returns: undefined;
+      };
+      list_people: {
+        Args: { p_property_id: string };
+        Returns: {
+          id: string;
+          person_code: string;
+          full_name: string;
+          department_id: string | null;
+          department_name: string | null;
+          photo_ref: string | null;
+          has_login: boolean;
+          is_active: boolean;
+          deactivated_at: string | null;
+        }[];
+      };
       list_open_gate_entries: {
         Args: { p_property_id: string };
         Returns: {
