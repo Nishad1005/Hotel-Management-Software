@@ -65,6 +65,19 @@ const ENTRIES: SetupEntry[] = [
     label: "People",
     value: "Who works here, and what they may do",
   },
+  /*
+    Beneath People, and gated on masters rather than users, because the two answer
+    different questions. People is about logins — who signs in and what they may do.
+    This is about identity — who may be handed a sack of rice and be on the record for
+    it. Most of the property appears here and never there.
+  */
+  {
+    href: "/admin/cards",
+    capability: "masters.edit",
+    icon: "card-outline",
+    label: "Staff cards",
+    value: "Who may take custody of material",
+  },
 ];
 
 export default function Setup() {

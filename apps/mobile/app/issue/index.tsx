@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { ScanMethod } from "@golai/db";
+import { isPersonCode } from "@golai/domain";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
@@ -25,6 +27,8 @@ import {
   type IssuableLot,
   type IssuedResult,
 } from "../../lib/issuing";
+import { ScanField } from "../../components/scan-field";
+import { listPeople, type Person } from "../../lib/people";
 import { useSession } from "../../lib/session";
 import { newSubmissionId } from "../../lib/stock";
 import { radius, space, usePalette } from "../../theme";
@@ -37,15 +41,50 @@ import { radius, space, usePalette } from "../../theme";
  * goes out. A storekeeper choosing by what is nearest to the door is how a store ends up
  * writing off the back of a shelf every month.
  *
- * ## The gap, said out loud
+ * ## The scan, and the gap that remains
  *
- * The receiver's name is typed. Criterion 17 wants a card scanned and a photograph on
- * screen; there is no staff master yet, so what this records is the storekeeper's
- * assertion. The screen says that in words rather than implying a control it does not
- * have — a user who believes custody is verified is worse off than one who knows it is
- * not.
+ * The receiver presents a card and the storekeeper scans it here. That scan is the
+ * acknowledgement (PRD section 4 Gate 8): it identifies a person at a timestamp against
+ * a specific batch from a specific bin, which a typed name never could.
+ *
+ * Two honest gaps remain and are said on screen rather than implied away. There is no
+ * photograph yet — criterion 18 needs an image store — so the storekeeper cannot check
+ * the face against the card, and a borrowed card still works. And an issue with no card
+ * is still allowed, because no cards are printed: it records as unverified and carries a
+ * supervisor's reason. Blocking it while the property has no cards would produce
+ * click-through, and a click-through record asserts something false rather than leaving
+ * a visible hole (PRD section 2).
  */
+/**
+ * What a scanned code means here.
+ *
+ * Resolved against the cached staff master rather than by asking the server, because the
+ * dock is where the network is worst and a scan that needs a round trip is a scan that
+ * fails in the cold room. The check digit is checked first: a misread that lands on
+ * another real person's number is the failure worth engineering against, and refusing a
+ * malformed code before any lookup is what stops it.
+ *
+ * A stopped card is told apart from an unknown one deliberately. "No such card" reads as
+ * damage and invites a retry; "this card was stopped" ends the conversation at the
+ * counter. The server checks again regardless — this cache can be hours old, and
+ * criterion 19 is a claim about the server.
+ */
+function resolveCard(code: string, people: Person[]): { person: Person | null; why: string } {
+  if (!isPersonCode(code)) {
+    return { person: null, why: "That is not a staff card from this property." };
+  }
+  const match = people.find((x) => x.personCode.toUpperCase() === code.trim().toUpperCase());
+  if (!match) {
+    return { person: null, why: "That card is not on this property's staff master." };
+  }
+  if (!match.isActive) {
+    return { person: null, why: `${match.fullName}'s card was stopped. It cannot take custody.` };
+  }
+  return { person: match, why: "" };
+}
+
 export default function IssueStock() {
+  const p = usePalette();
   const router = useRouter();
   const { activeProperty } = useSession();
 
@@ -57,6 +96,12 @@ export default function IssueStock() {
   const [lines, setLines] = useState<DraftIssueLine[]>([]);
   const [departmentId, setDepartmentId] = useState("");
   const [receiver, setReceiver] = useState("");
+  const [people, setPeople] = useState<Person[]>([]);
+  const [card, setCard] = useState<{ person: Person; method: ScanMethod } | null>(null);
+  const [cardError, setCardError] = useState<string | null>(null);
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [overriding, setOverriding] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
   const [purpose, setPurpose] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +115,26 @@ export default function IssueStock() {
       const [stock, depts] = await Promise.all([listIssuableStock(propertyId), listDepartments()]);
       setLots(stock);
       setDepartments(depts);
+
+      /*
+        The staff master is fetched separately, and its failure is survivable.
+
+        It was in the Promise.all above for one build, and that was wrong in a way worth
+        recording: when the staff master could not be read the whole screen showed "could
+        not load the store" and no stock could be issued at all. The dock cannot stop
+        because a supplementary list is unavailable — losing it costs the scan, not the
+        shift, and the override path is exactly the road that stays open.
+
+        PRD section 4 Gate 8 wants this cached on the device so a card resolves with no
+        network; this is the fetch that fills that cache.
+      */
+      try {
+        setPeople(await listPeople(propertyId));
+        setStaffError(null);
+      } catch (e) {
+        setPeople([]);
+        setStaffError(e instanceof Error ? e.message : String(e));
+      }
       setLoadError(null);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
@@ -94,7 +159,18 @@ export default function IssueStock() {
   const problems: string[] = [];
   if (lines.length === 0) problems.push("Add at least one line.");
   if (!departmentId) problems.push("Choose who it is going to.");
-  if (!receiver.trim()) problems.push("Say who is taking it.");
+  /*
+    A card, or an override that says why there was none.
+
+    Not "a name", which is what this asked for before. A typed name is what the override
+    path records alongside the supervisor's reason; on its own it is an assertion nobody
+    can check, and asking for it as though it were sufficient is what made criterion 17
+    look satisfied when it was not.
+  */
+  if (!card && !overriding) problems.push("Scan the receiver's card.");
+  if (overriding && !receiver.trim()) problems.push("Say who is taking it.");
+  if (overriding && !overrideReason.trim())
+    problems.push("Say why they have no card. The override carries your name.");
 
   async function send() {
     if (!propertyId || problems.length > 0) return;
@@ -104,10 +180,13 @@ export default function IssueStock() {
       const result = await issueStock({
         propertyId,
         departmentId,
-        receiverName: receiver.trim(),
+        receiverName: card ? card.person.fullName : receiver.trim(),
         purpose: purpose.trim() || null,
         lines,
         submissionId: newSubmissionId(),
+        receiverPersonId: card ? card.person.id : null,
+        scanMethod: card ? card.method : null,
+        overrideReason: overriding ? overrideReason.trim() : null,
       });
       setIssued(result);
     } catch (e) {
@@ -207,14 +286,125 @@ export default function IssueStock() {
               onSelect={setDepartmentId}
             />
 
-            <Field
-              label="Received by"
-              value={receiver}
-              onChangeText={setReceiver}
-              placeholder="The name of the person taking it"
-              autoCapitalize="words"
-              hint="Typed, not scanned. Staff cards are not built yet, so this records who the storekeeper says collected it rather than proving who did."
-            />
+            {/*
+              The scan, or the override. Never both, and never neither without saying so.
+
+              The storekeeper holds the device and scans the card the receiver presents —
+              the receiver does not operate the app (PRD section 4 Gate 8). One device,
+              one scan.
+            */}
+            {card ? (
+              <View style={{ marginBottom: space.lg }}>
+                <Text role="label" weight="semibold" style={{ marginBottom: space.xs }}>
+                  Received by
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: p.border,
+                    borderRadius: radius.md,
+                    backgroundColor: p.successSurface,
+                    padding: space.md,
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={20} color={p.success} />
+                  <View style={{ flex: 1, marginLeft: space.sm }}>
+                    <Text weight="semibold">{card.person.fullName}</Text>
+                    <Text role="caption" tone="muted">
+                      {card.person.personCode}
+                      {card.person.departmentName ? ` · ${card.person.departmentName}` : ""}
+                    </Text>
+                  </View>
+                  <PrimaryButton
+                    label="Not them"
+                    tone="neutral"
+                    onPress={() => {
+                      setCard(null);
+                      setCardError(null);
+                    }}
+                  />
+                </View>
+                {/*
+                  The control this build does not have, said where it is missing rather
+                  than in a release note. A borrowed card scans perfectly.
+                */}
+                <Text role="caption" tone="muted" style={{ marginTop: space.xs }}>
+                  No photograph on file, so the card is not checked against the face.
+                </Text>
+              </View>
+            ) : overriding ? (
+              <>
+                <Field
+                  label="Received by"
+                  value={receiver}
+                  onChangeText={setReceiver}
+                  placeholder="The name of the person taking it"
+                  autoCapitalize="words"
+                  density="field"
+                />
+                <Field
+                  label="Why they have no card"
+                  value={overrideReason}
+                  onChangeText={setOverrideReason}
+                  placeholder="Left it at home, new starter, card lost"
+                  autoCapitalize="sentences"
+                  hint="This is recorded against your name, not theirs. Repeated overrides are what the exception report is for."
+                  density="field"
+                />
+                <View style={{ marginBottom: space.lg }}>
+                  <PrimaryButton
+                    label="They do have a card"
+                    icon="qr-code-outline"
+                    tone="neutral"
+                    onPress={() => {
+                      setOverriding(false);
+                      setOverrideReason("");
+                    }}
+                  />
+                </View>
+              </>
+            ) : (
+              <View style={{ marginBottom: space.lg }}>
+                {/*
+                  When the master is unreachable there is nothing to scan against, and
+                  saying so is better than a field that rejects every card it is given.
+                */}
+                {staffError ? (
+                  <Banner icon="cloud-offline" tone="warn">
+                    The staff master could not be read, so a card cannot be checked. Record who
+                    collected it and why there was no scan.
+                  </Banner>
+                ) : null}
+                <ScanField
+                  label="Scan the receiver's card"
+                  placeholder="Their card number"
+                  hint="The receiver presents the card; you scan it. Typing is counted."
+                  autoFocus={false}
+                  onScan={(code, method) => {
+                    const found = resolveCard(code, people);
+                    if (found.person) {
+                      setCard({ person: found.person, method });
+                      setCardError(null);
+                    } else {
+                      setCard(null);
+                      setCardError(found.why);
+                    }
+                  }}
+                />
+                {cardError ? <FieldError message={cardError} /> : null}
+                <PrimaryButton
+                  label="No card"
+                  icon="help-circle-outline"
+                  tone="neutral"
+                  onPress={() => {
+                    setOverriding(true);
+                    setCardError(null);
+                  }}
+                />
+              </View>
+            )}
 
             <Field
               label="What for"
