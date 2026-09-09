@@ -165,6 +165,9 @@ undefined` was false for every rung, and a 12-megapixel photograph that compress
   Shared runtime values go in a module with no platform variants, as `lib/photo-limits.ts`
   now does.
 
+- **Living Floor Plan feature: see [`docs/ui-redesign/living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md`](docs/ui-redesign/living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md)**, with the data model in [ADR 0017](docs/decisions/0017-living-floor-plan-as-spatial-engine.md). The ADR is authoritative where it and the spec differ.
+- **Stage only files you intentionally changed — never `git add -A`.** It has swept the user's own untracked work into a commit twice. Name the paths.
+
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
 - **A scripted edit must assert before it writes.** Bulk edits here are usually a
   search-and-replace over a set of files, and a search string that no longer matches

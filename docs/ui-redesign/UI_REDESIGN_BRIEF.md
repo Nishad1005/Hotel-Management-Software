@@ -94,9 +94,11 @@ Walk every remaining screen under `app/`: fix any hard-coded old colors, dead to
 
 ## 6. Asset strategy
 
+> **The facility schematic below is SUPERSEDED — see Amendment D.** It is replaced by the Living Floor Plan, which draws the property's own rooms and locations instead of a generic illustration. Do not build it. The paragraph is kept because Amendment D inherits its real-data pin rule, and a deleted paragraph cannot be inherited from. `login-hero.png` below is unaffected and still stands.
+
 Create `apps/mobile/assets/illustrations/`.
 
-**`facility-schematic.svg` (dashboard).** Bespoke 2.5D isometric vector of a generic back-of-house in the theme palette: security gate → receiving bay → cold rooms (walk-in chiller, deep freeze) → dry store → wine/beverage store, on a linen ground with forest/brass detailing. Requirements: (a) it is ONE file, swapped later for a property-accurate version with zero code changes; (b) pin anchor positions are defined in a single exported constant (percentage coordinates), so the real-data overlays (RN Views absolutely positioned over the image) survive an asset swap by editing that one constant; (c) pins show real data only — e.g. latest temperature-round reading per zone with time + recorder, count of open gate entries at the gate pin, staging dwell at the bay pin. If a data source is empty, the pin shows a neutral "no reading yet" state — never invented values. Render via `react-native-svg` or as a pre-rendered PNG @1x/@2x if SVG complexity fights RN — implementer's choice, but the swappability contract holds either way.
+**`facility-schematic.svg` (dashboard).** ~~Superseded — see Amendment D.~~ Bespoke 2.5D isometric vector of a generic back-of-house in the theme palette: security gate → receiving bay → cold rooms (walk-in chiller, deep freeze) → dry store → wine/beverage store, on a linen ground with forest/brass detailing. Requirements: (a) it is ONE file, swapped later for a property-accurate version with zero code changes; (b) pin anchor positions are defined in a single exported constant (percentage coordinates), so the real-data overlays (RN Views absolutely positioned over the image) survive an asset swap by editing that one constant; (c) pins show real data only — e.g. latest temperature-round reading per zone with time + recorder, count of open gate entries at the gate pin, staging dwell at the bay pin. If a data source is empty, the pin shows a neutral "no reading yet" state — never invented values. Render via `react-native-svg` or as a pre-rendered PNG @1x/@2x if SVG complexity fights RN — implementer's choice, but the swappability contract holds either way.
 
 **`login-hero.png` (sign-in).** Until the client supplies a real photograph of the property, ship a designed placeholder: deep forest-950→900 gradient composition with subtle brass linework and the wordmark — intentional, not missing-image. Same swappability rule: one file, no code changes to replace.
 
@@ -110,7 +112,9 @@ Create `apps/mobile/assets/illustrations/`.
 
 ## 8. Amendments
 
-Three instructions in §4 were changed during Phase 1 and did not survive contact with the code. **The shipped `theme.ts` is authoritative; where §4 and this section disagree, this section wins.** Recorded here because later phases read this brief fresh and would otherwise re-introduce what Phase 1 deliberately removed.
+Instructions in this brief that were changed after it was written. **Where the body of the brief and this section disagree, this section wins.** Recorded here because later phases read this brief fresh and would otherwise re-introduce what was deliberately removed.
+
+A–C are §4 token decisions that did not survive contact with the code during Phase 1; the shipped `theme.ts` is authoritative for those. D supersedes §6 outright.
 
 **A. Brass is three tokens, not one — and it is never text at its brand values.**
 §4 lists brass as a single accent ramp. Measured against the surfaces it actually lands on, `brass500 #C5A059` is 2.46:1 on white and `brass300 #DCB879` is 1.88:1 — so a brass label, a brass button or a brass-on-linen icon is illegible, and "active nav / key icons" only works on the dark rail. The palette therefore carries:
@@ -129,3 +133,13 @@ Consequence for Phase 2: the rail's active indicator and icon tint use **`brassO
 
 **C. `overline` IS the label-caps role. There is no `labelCaps` token.**
 §4 says add one new role. Doing so would have produced two uppercase 11px sans roles separated by 0.4 of tracking and one weight step — the exact near-duplicate the ramp was collapsed from eight sizes to five to eliminate, with no way for a later author to choose between them. `overline` was retuned instead (11px / 1.3 tracking / semibold / uppercase). **Where this brief says `labelCaps` — including Phase 2's nav section headers and Phase 3's stage headers and metric-card headers — write `role="overline"`.**
+
+**D. §6's facility schematic is superseded by the Living Floor Plan.**
+
+> Amendment (LFP): §6's static facility-schematic asset is superseded by the Living Floor Plan — a data-driven interactive isometric map spec'd in [docs/ui-redesign/living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md](living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md) with reference implementation `living-floor-plan-demo-v7.html`. The `facility-schematic.svg` asset and `pins.json` contract are retired. Phase 3's dashboard screen embeds the Living Floor Plan (phase LFP-5) in place of the schematic block.
+
+What §6 got right is worth keeping in view, because the replacement inherits it rather than discarding it: **pins show real data only, and an empty source renders a neutral "no reading yet" rather than an invented value.** That rule survives verbatim into the LFP spec (§2), and it is the reason the swap is an upgrade rather than a restyle — the schematic could only ever have been a picture of a generic back-of-house with real numbers laid over it, whereas the LFP is drawn from the property's own rooms and locations, so the thing a pin sits on is the thing the pin is about.
+
+The data model is [ADR 0017](../decisions/0017-living-floor-plan-as-spatial-engine.md), which departs from the LFP spec's literal §2 in three respects; the ADR is authoritative over the spec where they differ.
+
+The existing `facility-schematic.png` asset stays in the tree for now — it is untracked working-directory work, and deleting it is a separate decision from retiring the approach.
