@@ -225,7 +225,9 @@ export default function IssueStock() {
       <IssuedPanel
         result={issued}
         department={departments.find((d) => d.id === departmentId)?.name ?? "the department"}
-        receiver={receiver.trim()}
+        receiver={card ? card.person.fullName : receiver.trim()}
+        scanned={Boolean(card)}
+        hadFace={Boolean(card && card.person.photoRef)}
         lineCount={lines.length}
         onAgain={() => {
           setIssued(null);
@@ -699,6 +701,8 @@ function IssuedPanel({
   result,
   department,
   receiver,
+  scanned,
+  hadFace,
   lineCount,
   onAgain,
   onDone,
@@ -706,6 +710,10 @@ function IssuedPanel({
   result: IssuedResult;
   department: string;
   receiver: string;
+  /** Whether a card was scanned, as opposed to a name being typed under an override. */
+  scanned: boolean;
+  /** Whether that card carried a photograph, which is a different claim again. */
+  hadFace: boolean;
   lineCount: number;
   onAgain: () => void;
   onDone: () => void;
@@ -755,11 +763,21 @@ function IssuedPanel({
 
       {/*
         Stated on the success screen, not only in a hint on the form. This is the claim the
-        property will repeat to an auditor, and it has to be the accurate one.
+        property will repeat to an auditor, and it has to be the accurate one — which means
+        it has to change when what happened changes.
+
+        It said "the receiver's name was typed, not scanned from a card" on every issue,
+        including scanned ones, for as long as scanning has existed. A panel that describes
+        the weaker control while the stronger one was used is worse than no panel: it is
+        the record asserting something false about itself, which is the failure this whole
+        screen is built to avoid.
       */}
       <Text role="caption" tone="muted">
-        The receiver&apos;s name was typed, not scanned from a card, so this records who the
-        storekeeper says collected it. Card scanning arrives with the staff master.
+        {!scanned
+          ? "The receiver's name was typed under a supervisor's override, not scanned from a card, so this records who the storekeeper says collected it."
+          : hadFace
+            ? "Identified by their card, and their photograph was on screen when it was scanned."
+            : "Identified by their card. There is no photograph on file for them, so the card was not checked against the face."}
       </Text>
     </Result>
   );
