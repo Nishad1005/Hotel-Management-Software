@@ -454,6 +454,19 @@ and says nothing about whether a real user is permitted.
 **Domain unit tests** cover state transitions, check digits and shelf-life maths — the
 highest-value tests in the repo.
 
+**Schema sweeps** ask a question of the catalogue rather than of today's rows, so they can
+fail for an object nobody has written yet. There are three: every table has RLS
+([`001`](../supabase/tests/001-rls-sweep.test.sql)), `anon` holds nothing and a table born
+inside the transaction confirms the default privilege is real
+([`030`](../supabase/tests/030-privilege-matrix.test.sql)), and no foreign key would null a
+`not null` column when its parent row is deleted
+([`036`](../supabase/tests/036-on-delete-set-null.test.sql)). The last exists because
+`on delete set null` nulls _every_ column in a composite key, and CLAUDE.md 4 makes nearly
+every key here composite over a `not null` `property_id` — so the natural clause is an
+instruction to erase a row's tenant. It shipped twice. Each sweep carries a canary that
+plants a violation and asserts the sweep sees it, because a check that can only return the
+answer you expect is not a check.
+
 **Before pushing:** `pnpm typecheck && pnpm test && pnpm build && pnpm format:check`, plus
 `node scripts/check-test-plans.mjs` when a pgTAP file changed. Green types are not evidence
 it ships; `pnpm build` is.

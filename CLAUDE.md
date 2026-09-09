@@ -177,10 +177,13 @@ undefined` was false for every rung, and a 12-megapixel photograph that compress
   `Failing row contains (a26a2d9d…, null, FA-CHILL, Cold room, ZONE, …)`. Postgres 15 can
   name the column — `on delete set null (facility_room_id)` — but prefer `on delete
 restrict` and an explicit `update … set x_id = null` in the function that does the
-  deleting: it says what happens where a reader looks for it, and a stray `DELETE` from a
-  psql session then fails loudly instead of quietly mangling tenancy. **`item`'s
-  `default_location_id` still carries the unfixed form** (`20260812102424`, line 72);
-  it is only unreachable because nothing ever deletes a `location` row.
+  deleting **where one exists** — it says what happens where a reader looks for it, and a
+  stray `DELETE` from a psql session then fails loudly instead of quietly mangling
+  tenancy. Where nothing deletes the parent, there is no function to put that update in
+  and `restrict` only turns a silent failure into a refusal, so name the column instead:
+  `item.default_location_id` is the worked example (`20260909040717`). **`036` sweeps
+  `pg_constraint` for the whole class**, so the next one fails in CI rather than a year
+  later.
 
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
 - **A scripted edit must assert before it writes.** Bulk edits here are usually a
