@@ -3,12 +3,14 @@
 -- The interesting claims here are all about what the plan is NOT allowed to be. It is a
 -- view of `public.location`, so the tests that matter prove the seam holds: a room cannot
 -- be borrowed across a tenant boundary, a storekeeper cannot redraw the property, the plan
--- columns are nullable so an older client can still write a location, and deleting a room
+-- columns are nullable so an older client can still write a location, and removing a room
 -- ungroups its zones without touching a single stock record.
 --
--- The last one is the one worth having. `on delete set null` is easy to write and easy to
--- get backwards, and getting it backwards — `cascade` — would delete storage locations,
--- and with them a composite FK's worth of movements, because somebody renamed a room.
+-- That last one is the reason this file exists. The first version of the migration wrote
+-- `on delete set null` on the composite FK, which nulls EVERY column in the key —
+-- `property_id` included — so deleting a room failed on a not-null violation against a row
+-- whose tenant had just been erased. Nothing about the clause looks wrong; only running it
+-- says so.
 
 begin;
 select plan(14);
@@ -23,14 +25,25 @@ select system.provision_property('admin.fa@plan.test', 'Group FA', 'FA', 'Floor 
 select system.provision_property('admin.fb@plan.test', 'Group FB', 'FB', 'Floor Plan B');
 select system.grant_property_role('store.fa@plan.test', 'FA', 'STOREKEEPER');
 
+-- Seeded here rather than by the first assertion, so that `ctx` can carry its id. The
+-- cross-tenant test below needs FA's room id while acting as FB's administrator, and FB
+-- cannot SELECT it — that is the point of the policy. Reading it from a fixture table both
+-- roles may read is the only way to hand FB an id it could never have found, which is
+-- exactly the attack the composite FK is there to refuse.
+insert into public.facility_room (property_id, name, sort_order)
+select id, 'Main Kitchen Store', 0 from public.property where code = 'FA';
+
 create temporary table ctx as
 select
   (select id from public.property where code = 'FA')                                as prop,
   (select id from public.property where code = 'FB')                                as other,
+  (select id from public.facility_room where name = 'Main Kitchen Store')           as fa_room,
   (select l.id from public.location l join public.property p on p.id = l.property_id
      where p.code = 'FA' and l.code = 'FA-CHILL')                                   as chill,
   (select l.id from public.location l join public.property p on p.id = l.property_id
-     where p.code = 'FA' and l.code = 'FA-DRY')                                     as dry;
+     where p.code = 'FA' and l.code = 'FA-DRY')                                     as dry,
+  (select l.id from public.location l join public.property p on p.id = l.property_id
+     where p.code = 'FB' and l.code = 'FB-CHILL')                                   as fb_chill;
 
 grant select on ctx to authenticated;
 
@@ -43,18 +56,18 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000fb01","r
 
 select lives_ok(
   $q$ insert into public.facility_room (property_id, name, sort_order)
-      select prop, 'Main Kitchen Store', 0 from ctx $q$,
+      select prop, 'Beverage Cellar', 1 from ctx $q$,
   'the administrator adds a room'
 );
 
 select lives_ok(
   $q$ update public.location
-         set facility_room_id = (select id from public.facility_room where name = 'Main Kitchen Store'),
+         set facility_room_id = (select fa_room from ctx),
              plan_visual_type = 'chiller',
              plan_data_behavior = 'TEMPERATURE',
              plan_size = 'M'
        where id = (select chill from ctx) $q$,
-  'and puts the cold room in it, drawn as a chiller reading temperatures'
+  'and puts the cold room in one, drawn as a chiller reading temperatures'
 );
 
 -- The point of the string column. A visual nobody has heard of must be storable, because
@@ -86,24 +99,35 @@ select is(
 -- The tenant boundary
 -- ---------------------------------------------------------------------------
 
--- CLAUDE.md 4. The composite FK is the whole defence: without it this succeeds, and one
--- property's floor plan quietly contains another's room.
+set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000fb03","role":"authenticated"}';
+
+/*
+  Written from FB's side deliberately.
+
+  The first version ran this as FA's administrator against FB's location and asserted a
+  foreign-key violation. It failed, and for the reason CLAUDE.md 4b exists: FA cannot SEE
+  FB's location, so the row was invisible, the UPDATE matched nothing, and the statement
+  succeeded having changed nothing at all. A cross-tenant write that quietly does nothing
+  is a pass, not a failure — but it proves the RLS policy and says nothing whatever about
+  the constraint, which was the thing under test.
+
+  So this is the harder case: a real administrator, over a row they genuinely own, using
+  an id from another property that RLS never showed them. Policies cannot help here — both
+  sides of the row are FB's. Only the composite FK refuses it.
+*/
 select throws_ok(
   $q$ update public.location
-         set facility_room_id = (select id from public.facility_room where name = 'Main Kitchen Store')
-       where id = (select l.id from public.location l join public.property p on p.id = l.property_id
-                    where p.code = 'FB' and l.code = 'FB-CHILL') $q$,
+         set facility_room_id = (select fa_room from ctx)
+       where id = (select fb_chill from ctx) $q$,
   '23503',
   null,
-  'a location cannot be put in another property''s room'
+  'a location cannot be put in another property''s room, even by its own administrator'
 );
-
-set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000fb03","role":"authenticated"}';
 
 select is(
   (select count(*)::int from public.facility_room),
   0,
-  'the other property cannot see this one''s rooms at all'
+  'and the other property cannot see this one''s rooms at all'
 );
 
 -- ---------------------------------------------------------------------------
@@ -114,7 +138,7 @@ set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000fb02","r
 
 select is(
   (select count(*)::int from public.facility_room),
-  1,
+  2,
   'the storekeeper reads the rooms — the plan is their dashboard, not just an admin screen'
 );
 
@@ -140,7 +164,7 @@ select is(
 );
 
 select throws_ok(
-  $q$ select public.delete_facility_room(prop, (select id from public.facility_room limit 1)) from ctx $q$,
+  $q$ select public.delete_facility_room(prop, fa_room) from ctx $q$,
   '42501',
   null,
   'and the delete function refuses them out loud rather than quietly'
@@ -153,18 +177,21 @@ select throws_ok(
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-00000000fb01","role":"authenticated"}';
 
 select lives_ok(
-  $q$ select public.delete_facility_room(prop, (select id from public.facility_room where name = 'Main Kitchen Store'))
-      from ctx $q$,
+  $q$ select public.delete_facility_room(prop, fa_room) from ctx $q$,
   'the administrator removes the room'
 );
 
--- The assertion this file exists for. `on delete cascade` here would have taken the cold
--- room with it, and every stock movement that references it.
+-- The assertion this file exists for, and the one that caught the set-null bug. The row
+-- must survive whole: ungrouped, still drawn as a chiller, and — the part that failed —
+-- still belonging to its property.
 select is(
   (select count(*)::int from public.location
-    where id = (select chill from ctx) and facility_room_id is null and plan_visual_type = 'chiller'),
+    where id = (select chill from ctx)
+      and facility_room_id is null
+      and plan_visual_type = 'chiller'
+      and property_id = (select prop from ctx)),
   1,
-  'the cold room survives, ungrouped, still drawn as a chiller'
+  'the cold room survives, ungrouped, still drawn as a chiller, still its property''s'
 );
 
 select finish();

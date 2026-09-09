@@ -105,9 +105,24 @@ alter table public.location
   -- Null means M.
   add column plan_size public.plan_size,
 
+  /*
+    `restrict`, and the ungrouping is done explicitly by `delete_facility_room` below.
+
+    The obvious clause here is `on delete set null`, and it is wrong in a way that is
+    invisible until you delete a room. This is a COMPOSITE key, and set-null nulls every
+    column in it — `property_id` included. That column is `not null`, so the delete failed
+    with a not-null violation on a row whose tenant had just been erased:
+
+      Failing row contains (a26a2d9d…, null, FA-CHILL, Cold room, ZONE, …)
+
+    Postgres 15 can say `on delete set null (facility_room_id)` to name the column, which
+    would work. It is still not used, because an explicit two-statement function says what
+    is happening where a reader will look for it, and because `restrict` means a stray
+    DELETE from a psql session fails loudly instead of quietly mangling tenancy.
+  */
   add constraint location_facility_room_same_property
     foreign key (property_id, facility_room_id)
-    references public.facility_room (property_id, id) on delete set null;
+    references public.facility_room (property_id, id) on delete restrict;
 
 comment on column public.location.plan_visual_type is
   'How this location is drawn on the floor plan. Presentation only — never a storage rule. Null derives from kind and regime. ADR 0017.';
@@ -149,18 +164,20 @@ grant select, insert, update, delete on public.facility_room to authenticated;
 -- Retiring a room
 -- ---------------------------------------------------------------------------
 --
--- A plain DELETE is permitted and safe here in a way it never is for a location: a room
--- holds no stock and nothing references it but the `facility_room_id` above, which is
--- `on delete set null` — so deleting a room ungroups its zones and loses nothing. The
--- zones themselves are untouched and keep every movement ever recorded against them.
+-- A real DELETE is right here in a way it never is for a location: a room holds no stock
+-- and records nothing that happened. Everything else in this schema describes an event,
+-- and you cannot un-happen an event. A room is a statement about the present layout, and
+-- a property that reorganises its store is entitled to withdraw it.
 --
--- This is the one place in the schema where delete is the right verb, and it is worth
--- saying why out loud: everything else here describes something that happened, and you
--- cannot un-happen it. A room is a statement about the present layout.
+-- Two statements, not one, and the order matters. The locations are ungrouped first,
+-- explicitly; only then is the room removed. Leaving that to `on delete set null` on the
+-- composite FK would have nulled `property_id` along with the room — see the constraint
+-- above — and this way the intent is legible at the place someone reads to find out what
+-- deleting a room does to the things inside it.
 --
--- The function exists anyway, rather than leaving clients to DELETE directly, because
--- RLS denies DELETE silently (CLAUDE.md 4b) — a storekeeper's attempt would report
--- success having removed nothing.
+-- The function exists at all, rather than leaving clients to DELETE directly, because RLS
+-- denies DELETE silently (CLAUDE.md 4b): a storekeeper's attempt would report success
+-- having removed nothing.
 create or replace function public.delete_facility_room(
   p_property_id uuid,
   p_room_id     uuid
@@ -189,6 +206,12 @@ begin
   if v_name is null then
     raise exception 'That room does not belong to this property.' using errcode = '42501';
   end if;
+
+  -- Ungroup first. Zero rows is the ordinary case — an empty room — so unlike almost
+  -- every other write in this schema it is deliberately not treated as a failure.
+  update public.location
+     set facility_room_id = null
+   where facility_room_id = p_room_id and property_id = p_property_id;
 
   delete from public.facility_room
    where id = p_room_id and property_id = p_property_id;

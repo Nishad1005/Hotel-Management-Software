@@ -168,6 +168,20 @@ undefined` was false for every rung, and a 12-megapixel photograph that compress
 - **Living Floor Plan feature: see [`docs/ui-redesign/living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md`](docs/ui-redesign/living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md)**, with the data model in [ADR 0017](docs/decisions/0017-living-floor-plan-as-spatial-engine.md). The ADR is authoritative where it and the spec differ.
 - **Stage only files you intentionally changed — never `git add -A`.** It has swept the user's own untracked work into a commit twice. Name the paths.
 
+- **`on delete set null` on a composite FK nulls the tenant column too.** Rule 4 makes
+  almost every foreign key here composite — `(property_id, x_id)` — and set-null nulls
+  **every column in the key**, not the one you meant. `property_id` is `not null` on every
+  domain table, so the delete fails with a not-null violation against a row whose tenant
+  has just been erased, and the error names the child table rather than the parent you
+  deleted. It shipped in `20260909032805` and CI's pgTAP found it:
+  `Failing row contains (a26a2d9d…, null, FA-CHILL, Cold room, ZONE, …)`. Postgres 15 can
+  name the column — `on delete set null (facility_room_id)` — but prefer `on delete
+restrict` and an explicit `update … set x_id = null` in the function that does the
+  deleting: it says what happens where a reader looks for it, and a stray `DELETE` from a
+  psql session then fails loudly instead of quietly mangling tenancy. **`item`'s
+  `default_location_id` still carries the unfixed form** (`20260812102424`, line 72);
+  it is only unreachable because nothing ever deletes a `location` row.
+
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
 - **A scripted edit must assert before it writes.** Bulk edits here are usually a
   search-and-replace over a set of files, and a search string that no longer matches
