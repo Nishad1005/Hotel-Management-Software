@@ -30,7 +30,11 @@ public.location  += facility_room_id      composite FK (property_id, facility_ro
                  += plan_size             enum,  nullable  (S | M | L)
 ```
 
-**A location appears on the plan when `plan_visual_type` is set.** No extra flag: the attribute that says how to draw something is also the statement that it is drawn. Bins never carry one, so a property's two hundred shelves cannot flood the map.
+**What appears on the plan is decided by `kind`, not by any plan column.** An active location whose kind is `ZONE` is drawn inside a room; `SECURITY`, `RECEIVING` and `DISPATCH` are drawn as the fixed scenery the spec calls gate, dock and staging. `BIN`, `RACK` and `DEPARTMENT` are never drawn, which is what stops a property's two hundred shelves flooding the map.
+
+Keying on `kind` rather than on `plan_visual_type` is deliberate and was got wrong once while writing this ADR. Membership by "has a visual set" reads tidier — the attribute saying how to draw a thing is also the statement that it is drawn — but it makes the plan empty until somebody opens the setup screen, which contradicts the derivation rule below and would have shipped a blank hero to every property on day one. `kind` is an enum that already carries rules, so it is the honest place for a question about what a location _is_. The plan columns only ever affect how a drawn thing looks.
+
+**A zone with no `facility_room_id` is still drawn**, gathered into a single implicit room. Rooms are a grouping a property may add, not a precondition for having a plan.
 
 **No pixel coordinates are stored, ever.** Layout is derived at render time by the spec's `layoutAll()` — rooms as bays off a corridor, locations filling two lanes within a room. This is what lets a property add a room without a migration and without anyone re-drawing anything. `plan_size` is a layout _input_ (the S .78 / M 1 / L 1.22 footprint factor), not a coordinate.
 

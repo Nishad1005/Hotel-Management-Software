@@ -83,6 +83,7 @@ export const ROUTE_CAPABILITY: Record<string, Capability> = {
   // long as it has had no consumer. The sidebar is its first, which is how the gap
   // surfaced.
   "admin/locations": "masters.edit",
+  "admin/floor-plan": "masters.edit",
   "admin/users": "users.manage",
   // The hub. It shows when any of the four screens behind it does, which `NavItem.covers`
   // works out — this entry is the floor, so the route itself is never open to nobody.
@@ -124,6 +125,7 @@ export const ROUTE_MODULE: Record<string, ModuleKey> = {
   "registers/trace/[batch]": "REGISTERS",
   items: "MASTERS",
   "admin/locations": "MASTERS",
+  "admin/floor-plan": "MASTERS",
   vendors: "MASTERS",
   setup: "MASTERS",
   "admin/users": "USERS",

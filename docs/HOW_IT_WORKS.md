@@ -322,14 +322,15 @@ food-handler medical and FoSTaC tracking, banquet retained samples, CAPA. All `[
 
 ## Masters and administration
 
-| Screen        | What it holds                                                       | Code                                                            |
-| ------------- | ------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Items         | What the property buys, how each is counted, shelf life, cold chain | [`items/`](../apps/mobile/app/items)                            |
-| Zones & bins  | The location tree and the printed bin labels                        | [`admin/locations.tsx`](../apps/mobile/app/admin/locations.tsx) |
-| Vendors       | Every counterparty — suppliers, laundry, waste and UCO aggregators  | [`vendors/index.tsx`](../apps/mobile/app/vendors/index.tsx)     |
-| People        | Logins and role grants                                              | [`admin/users.tsx`](../apps/mobile/app/admin/users.tsx)         |
-| Staff cards   | Who may take custody of material                                    | [`admin/cards.tsx`](../apps/mobile/app/admin/cards.tsx)         |
-| Opening stock | The first count, before any flow exists                             | [`stock/opening.tsx`](../apps/mobile/app/stock/opening.tsx)     |
+| Screen        | What it holds                                                       | Code                                                              |
+| ------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Items         | What the property buys, how each is counted, shelf life, cold chain | [`items/`](../apps/mobile/app/items)                              |
+| Zones & bins  | The location tree and the printed bin labels                        | [`admin/locations.tsx`](../apps/mobile/app/admin/locations.tsx)   |
+| Floor plan    | The same locations grouped into rooms, and how each is drawn        | [`admin/floor-plan.tsx`](../apps/mobile/app/admin/floor-plan.tsx) |
+| Vendors       | Every counterparty — suppliers, laundry, waste and UCO aggregators  | [`vendors/index.tsx`](../apps/mobile/app/vendors/index.tsx)       |
+| People        | Logins and role grants                                              | [`admin/users.tsx`](../apps/mobile/app/admin/users.tsx)           |
+| Staff cards   | Who may take custody of material                                    | [`admin/cards.tsx`](../apps/mobile/app/admin/cards.tsx)           |
+| Opening stock | The first count, before any flow exists                             | [`stock/opening.tsx`](../apps/mobile/app/stock/opening.tsx)       |
 
 **People and Staff cards are separate on purpose.** People is about logins — who signs in
 and what they may do. Staff cards is about identity — who may be handed a sack of rice and
@@ -347,6 +348,56 @@ one is how a shared account gets invented.
 
 **Known gap.** `revokeRole` exists in `lib/users.ts` with no caller — the app can add
 people but not remove them.
+
+### The floor plan
+
+A property's back-of-house, drawn from the locations it already has. It is a **view of
+`location`, not a second model of the property** — a location on the plan IS a storage
+zone, so nothing is described twice and there is no link between the two to go stale.
+[ADR 0017](decisions/0017-living-floor-plan-as-spatial-engine.md), specced in
+[`LIVING_FLOOR_PLAN_SPEC.md`](ui-redesign/living-floor-plan/LIVING_FLOOR_PLAN_SPEC.md).
+
+**What is stored.** One table, `facility_room` — the grouping a property adds over its
+zones, "Main Kitchen Store" over a chiller, a freezer and a dry store. Everything else is
+four nullable columns on `location`: which room it is in, how it is drawn, where its pin's
+number comes from, and how big it is on the plan.
+
+**No position is ever stored.** Where a room and a location sit is computed at render time
+by [`layoutFloorPlan`](../packages/domain/src/floorplan/layout.ts) — rooms as bays off a
+corridor, locations packed into two lanes. That is what lets a property add a room and see
+the plan reassemble with no migration and nobody redrawing anything.
+
+**What is drawn is decided by `kind`.** An active `ZONE` is drawn in a room; `SECURITY`,
+`RECEIVING` and `DISPATCH` are the fixed scenery; bins, racks and departments are never
+drawn. Keying on `kind` rather than on "has somebody set a picture" is what makes the plan
+work on day one: a property that has never opened the setup screen still sees the seven
+locations provisioning gave it, because the cold room draws as a chiller from its
+**regime**.
+
+**Presentation never implies a rule.** `storage_regime` decides what may be stored where
+and whether a cold chain applies. `plan_visual_type` decides only what the box looks like,
+and nothing may read it to answer an operational question. A property may draw an ambient
+room as a chiller — a cheese cave is a real place — and the setup screen says so quietly
+rather than refusing, because the regime is the part that carries the consequence.
+
+**Pins show real data or nothing.** Where the number comes from is
+`plan_data_behavior`, never the picture, so a chiller-shaped box can legitimately report a
+stock count. An empty source renders "No reading yet". There is no placeholder value and
+no fallback to another location's reading — an empty pin is information, and a Food Safety
+Officer needs to see that this chiller has not been read today.
+
+**The setup screen creates zones**, through the same OWNER/ADMIN policy the zones screen
+uses, because a property typing its store in and watching the plan assemble is the point
+of the step. **It never creates bins** — those are scanned put-away destinations under
+hard rule 13, and a drawing screen must not become a way to conjure somewhere stock can be
+dumped without a label.
+
+**Deliberately not built yet.** Only LFP-1 exists: the data, the CRUD and the setup screen.
+The preview there is a flat, top-down reading of the real layout — not the isometric scene,
+which needs `react-native-svg` and lands in LFP-2 along with the eight location visuals and
+the day/night environment. Nothing is on the dashboard yet, no pin reads live data yet, and
+there is no pan, zoom or drill-down. The plan caps at 4 rooms and 10 locations, enforced in
+the UI and not in the database, because raising it is layout work rather than a migration.
 
 ---
 

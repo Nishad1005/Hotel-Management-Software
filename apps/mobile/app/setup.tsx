@@ -51,6 +51,19 @@ const ENTRIES: SetupEntry[] = [
     label: "Zones & bins",
     value: "Build the bin tree and print the labels",
   },
+  /*
+    Beneath Zones & bins, and gated the same way, because it is the same data seen from
+    the other side: a location on the plan is a storage zone (ADR 0017). Zones & bins is
+    where a store gets built and labelled; this is where it gets described well enough to
+    draw. Either screen can create a zone; only that one creates bins.
+  */
+  {
+    href: "/admin/floor-plan",
+    capability: "masters.edit",
+    icon: "grid-outline",
+    label: "Floor plan",
+    value: "Group the store into rooms, and draw the property",
+  },
   {
     href: "/vendors",
     capability: "parties.edit",
