@@ -1,6 +1,6 @@
 # Living Floor Plan — Implementation Spec (LFP)
 
-**Status:** Approved. This supersedes §6 (facility schematic) of `UI_REDESIGN_BRIEF.md` — the static SVG asset approach is retired. Append the amendment at the bottom of this file to the brief.
+**Status:** Approved. This supersedes §6 (facility schematic) of `UI_REDESIGN_BRIEF.md` — the static SVG asset approach is retired. ~~Append the amendment at the bottom of this file to the brief.~~ **Done** — it is Amendment D there; do not append it a second time. The data model is [ADR 0017](../../decisions/0017-living-floor-plan-as-spatial-engine.md), which is authoritative over §2 of this file.
 **Reference implementation:** `living-floor-plan-demo-v7.html` in this folder. It is a working single-file demo of the exact target behavior. Open it in a browser and interact with it before writing any code. Port its logic; do not invent alternatives to decisions it embodies.
 
 ## 1. What this is
@@ -9,10 +9,18 @@ A data-driven, interactive isometric map of the property's back-of-house, render
 
 ## 2. Data model
 
+> **Superseded in part by [ADR 0017](../../decisions/0017-living-floor-plan-as-spatial-engine.md), which is authoritative where this section differs.** The app already had the locations — provisioning seeds seven per property and `storage_regime` already distinguishes them — so this section's instruction to "extend, do not fork" was followed further than its own table names went. Three specific changes, all live as of LFP-1:
+>
+> 1. **`facility_room` is the only new table.** The drawn location IS the existing `public.location` row; its plan attributes are `plan_`-prefixed columns on that table (`facility_room_id`, `plan_visual_type`, `plan_data_behavior`, `plan_size`), all nullable.
+> 2. **`stock_location_code` is REMOVED**, and with it **the type-level fallback for unlinked locations** described below. There is no link to maintain, so nothing can come unlinked and no pin can ever show another location's reading.
+> 3. **`plan_visual_type` is presentation only and never implies a storage rule.** `storage_regime` is operational truth. Where `plan_visual_type` is null the visual derives from `storage_regime` (FROZEN → freezer, CHILLED → chiller, AMBIENT → dry) and `location.kind` (SECURITY → gate, RECEIVING/DISPATCH → dock and staging). The derivation runs one way only.
+>
+> The rest of this section — the string-not-enum rule, the behaviour enum, no stored coordinates, real data only — stands unchanged and is why the model works.
+
 Extend (do not fork) the existing location hierarchy. If the app already has rooms/areas containing storage locations, map onto it; add only what's missing:
 
-- `facility_rooms`: id, site_id, name, sort_order.
-- `facility_locations`: id, room_id, name, visual_type (string; one of the built-in renderers: chiller | freezer | dry | wine | kegs | linen | store | staging — but stored as a string, NOT a DB enum, so new types never need migration), data_behavior (enum: temperature | count | dwell | returnable — defaults derived from visual_type but independently settable), size (S|M|L), stock_location_code (nullable — links to the existing stock location entity when set).
+- ~~`facility_rooms`: id, site_id, name, sort_order.~~ → `facility_room` (id, property_id, name, sort_order); tenancy is `property_id`, never a `site_id` (ADR 0002).
+- ~~`facility_locations`~~ → columns on `public.location`: name (exists), visual_type → `plan_visual_type` (string; one of the built-in renderers: chiller | freezer | dry | wine | kegs | linen | store | staging — but stored as a string, NOT a DB enum, so new types never need migration), data_behavior → `plan_data_behavior` (enum: temperature | count | dwell | returnable — defaults derived from visual_type but independently settable, **and nullable**: null means derive at render time), size → `plan_size` (S|M|L), ~~stock_location_code~~ **removed — the location is the stock location**.
 - No pixel coordinates are stored. Layout is derived at render time (see §4). This is deliberate: layouts must survive room additions without migration.
 
 Pin data sources (REAL data only — this rule is absolute):
@@ -24,7 +32,7 @@ Pin data sources (REAL data only — this rule is absolute):
 - gate → count of open gate entries. dock → active bay state.
 - Pin source is decided by `data_behavior`, never by visual_type: temperature → HACCP rounds; count → stock lines; dwell → staging timestamps; returnable → returnables count. A custom "Cheese Cave" with visual_type=chiller and data_behavior=temperature gets real HACCP pins with zero code.
 - Any source empty → the pin renders a neutral "No reading yet". Never a placeholder value, never invented telemetry.
-- Unlinked locations (no stock_location_code) fall back to type-level data for the site; link resolution beats type fallback when present.
+- ~~Unlinked locations (no stock_location_code) fall back to type-level data for the site; link resolution beats type fallback when present.~~ **Removed (ADR 0017).** There are no unlinked locations, because the drawn location is the stock location. The fallback would have shown _a_ chiller's reading in place of _this_ chiller's, which is the invented telemetry the line above forbids.
 
 Tap behavior: tapping a location in detail mode navigates to that location's stock screen (or the location detail screen if one exists). Tapping gate/dock pins → gate log / receiving. This drill-down is the point of the whole feature — do not ship the map without it.
 
@@ -69,7 +77,12 @@ The scene follows the device clock: day palette 06:00–17:59, night otherwise, 
 
 ## 7. Setup experience
 
-A "Floor Plan" step in property setup mirroring the demo's left panel: rooms as cards (serif name header on forest), locations nested inside with name / type / size / optional stock-location link (a picker over existing stock locations, not free text, in the real app), reorder and delete, with the live plan rendering beside/below and updating on every keystroke. Selecting a location card flies the preview to its room. This screen is desk density.
+A "Floor Plan" step in property setup mirroring the demo's left panel: rooms as cards (serif name header on forest), locations nested inside with name / type / size / ~~optional stock-location link (a picker over existing stock locations, not free text, in the real app)~~ **storage regime**, reorder and delete, with the live plan rendering beside/below and updating on every keystroke. Selecting a location card flies the preview to its room. This screen is desk density.
+
+Per ADR 0017 there is no link picker, because a location on the plan is a storage location. Two consequences for this screen:
+
+- **It creates storage zones, not just plan entries.** A property typing its rooms and locations here is building its store layout, and the plan assembling as they type is the point of the step. Writes go to `public.location` through the ordinary OWNER/ADMIN policy. It never creates bins — those are scanned put-away destinations (hard rule 13) and belong to the location admin screen.
+- **Regime is a real field on this screen, and it is not the visual.** Regime decides the rules; the visual is pre-filled from it and can be overridden for a "Cheese Cave" without changing what the cold chain does. The screen should make that relationship visible rather than hiding one behind the other.
 
 ## 8. Phases
 

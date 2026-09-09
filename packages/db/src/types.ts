@@ -187,6 +187,34 @@ export type LocationRow = {
   grid_col: number | null;
   /** Explicit walking order within a parent; null falls back to code order. */
   sort_key: number | null;
+  /**
+   * Floor plan (ADR 0017). All nullable, all presentation, none of them a rule.
+   * `plan_visual_type` in particular must never be read to decide anything operational —
+   * that is `regime`. Null means derive: from the regime for the visual, from the visual
+   * for the behaviour, M for the size.
+   */
+  facility_room_id: string | null;
+  plan_visual_type: string | null;
+  plan_data_behavior: PlanDataBehavior | null;
+  plan_size: PlanSize | null;
+  created_at: string;
+};
+
+/** Where a floor-plan pin's number comes from. Mirrored in `@golai/domain`. */
+export type PlanDataBehavior = "TEMPERATURE" | "COUNT" | "DWELL" | "RETURNABLE";
+
+/** A location's footprint multiplier on the floor plan. */
+export type PlanSize = "S" | "M" | "L";
+
+/**
+ * A physical grouping of storage locations — "Main Kitchen Store" over a chiller, a
+ * freezer and a dry store. Display only; nothing keys a rule on it.
+ */
+export type FacilityRoomRow = {
+  id: string;
+  property_id: string;
+  name: string;
+  sort_order: number | null;
   created_at: string;
 };
 
@@ -806,8 +834,18 @@ export type Database = {
           | "grid_row"
           | "grid_col"
           | "sort_key"
+          | "facility_room_id"
+          | "plan_visual_type"
+          | "plan_data_behavior"
+          | "plan_size"
         >;
         Update: Partial<LocationRow>;
+        Relationships: [];
+      };
+      facility_room: {
+        Row: FacilityRoomRow;
+        Insert: InsertOf<FacilityRoomRow, "sort_order">;
+        Update: Partial<FacilityRoomRow>;
         Relationships: [];
       };
       item: {
@@ -1083,6 +1121,10 @@ export type Database = {
     Functions: {
       deactivate_location: {
         Args: { p_property_id: string; p_location_id: string };
+        Returns: undefined;
+      };
+      delete_facility_room: {
+        Args: { p_property_id: string; p_room_id: string };
         Returns: undefined;
       };
       list_team: {

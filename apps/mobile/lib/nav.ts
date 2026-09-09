@@ -158,7 +158,7 @@ const GROUPS: NavGroup[] = [
       {
         href: "/setup",
         segment: "setup",
-        covers: ["items", "admin/locations", "vendors", "admin/users"],
+        covers: ["items", "admin/locations", "admin/floor-plan", "vendors", "admin/users"],
         label: "Setup",
         icon: "settings-outline",
       },
