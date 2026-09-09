@@ -1,3 +1,5 @@
+import { PhotoUnsupportedError, type PreparedPhoto } from "./photo-limits";
+
 /**
  * Preparing a photograph for the evidence vault — the port, and the native fallback.
  *
@@ -20,37 +22,12 @@
  * comprehensibly.
  */
 
-/** PRD section 13. The server enforces the same number, so this is not the only guard. */
-export const MAX_PHOTO_BYTES = 400 * 1024;
-
-/**
- * The longest edge a stored photograph keeps.
- *
- * 1600 is enough to read a challan's handwriting and to recognise a face across a
- * counter, which are the two jobs. Beyond that the extra pixels cost sync time on the
- * weakest connection on the property and buy nothing anybody looks at.
- */
-export const MAX_PHOTO_EDGE = 1600;
-
-export interface PreparedPhoto {
-  /** The compressed bytes, ready to upload. */
-  blob: Blob;
-  /** Lowercase hex SHA-256 of exactly those bytes — the vault's address for them. */
-  sha256: string;
-  byteSize: number;
-  mimeType: "image/jpeg";
-  width: number;
-  height: number;
-}
-
-export class PhotoUnsupportedError extends Error {
-  constructor() {
-    super(
-      "Photographs are not built for this platform yet. Capture on the web app, or record the line without one.",
-    );
-    this.name = "PhotoUnsupportedError";
-  }
-}
+export {
+  MAX_PHOTO_BYTES,
+  MAX_PHOTO_EDGE,
+  PhotoUnsupportedError,
+  type PreparedPhoto,
+} from "./photo-limits";
 
 /**
  * Compresses to under the ceiling and returns the bytes with their content address.

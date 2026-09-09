@@ -150,7 +150,16 @@ refuses them again so a future migration cannot edit evidence either. The trigge
 the first upsert written against it — which is why the retry path reads rather than writes.
 
 **Gap.** Nothing is deleted yet. Retention is recorded and the sweep is unwritten, because
-it has to consider what the registers still reference.
+it has to consider what the registers still reference. There is deliberately no DELETE
+policy on the bucket for the same reason — when the sweep exists it runs with its own
+authority, not as a client holding a session.
+
+**Storage policies.** SELECT, INSERT and UPDATE, all scoped by the first path segment
+being a property the member belongs to. UPDATE matters and was missing at first: the key
+is the content address, so a retried upload lands on the same object and needs UPDATE
+rather than INSERT. Without it the _second_ attempt at one photograph was refused — the
+exact case the addressing exists to make safe. CI could not see it, because a stack
+replayed from empty never uploads the same object twice.
 
 **Platform.** Compression and hashing use canvas and `crypto.subtle` — no dependency, web
 only. Native refuses clearly and gets a driver in Phase 9.
@@ -375,6 +384,12 @@ one documented exception.
 outbox storage, session storage, printing, telemetry, barcode camera, file and image
 pickers, photo compression. TypeScript resolves the base file, so its signature is what
 proves the contract for drivers it never sees.
+
+**The trap in that arrangement.** A driver must not import _runtime values_ from its own
+base module: on web the bundler resolves `./photo` to `photo.web.ts`, so such an import is
+circular and the values are `undefined`, while tsc resolves the base file and typechecks
+it happily. Type-only imports are erased and therefore safe. Shared values live in a module
+with no variants — [`lib/photo-limits.ts`](../apps/mobile/lib/photo-limits.ts).
 
 ---
 

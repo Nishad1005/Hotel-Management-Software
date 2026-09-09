@@ -152,6 +152,19 @@ Repository: `https://github.com/Nishad1005/Hotel-Management-Software.git`
   standard: an entry can go stale without a file being added, and only a person notices
   that.
 
+- **A `.web.ts` or `.native.ts` driver must not import runtime values from its own base
+  module.** The bundler resolves `./photo` to `photo.web.ts` when building for web, so a
+  web driver importing values from `./photo` imports _itself_ — the constants are
+  `undefined` and nothing says so. TypeScript cannot see it: tsc has no platform
+  extensions and resolves the base file, where the values do exist, so it typechecks
+  perfectly. It shipped once: `MAX_PHOTO_BYTES` came back undefined, `blob.size <=
+undefined` was false for every rung, and a 12-megapixel photograph that compresses to
+  35 KB reported that it would not compress small enough to send. A correct compressor, an
+  honest message, and a false conclusion. A **type-only** import is safe because it is
+  erased before the bundler sees it — which is why the other four drivers do exactly that.
+  Shared runtime values go in a module with no platform variants, as `lib/photo-limits.ts`
+  now does.
+
 - **Bundling is a separate guarantee from typechecking.** Green types and green tests are not evidence the app can ship; `pnpm build` is. CI runs it.
 - **A scripted edit must assert before it writes.** Bulk edits here are usually a
   search-and-replace over a set of files, and a search string that no longer matches

@@ -1,9 +1,17 @@
+/*
+  From `./photo-limits`, never from `./photo`.
+
+  On web the bundler resolves `./photo` to this file, so importing runtime values that way
+  is a circular self-import and every one of them is `undefined`. That is not theoretical:
+  it shipped, and it made a 12 MP photograph that compresses to 35 KB report that it would
+  not compress small enough to send.
+*/
 import {
   MAX_PHOTO_BYTES,
   MAX_PHOTO_EDGE,
   PhotoUnsupportedError,
   type PreparedPhoto,
-} from "./photo";
+} from "./photo-limits";
 
 /**
  * The web half — canvas to compress, `crypto.subtle` to address (ADR 0014).

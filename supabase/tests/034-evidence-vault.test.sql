@@ -18,7 +18,7 @@
 -- Run as `authenticated` throughout, per the repo rule.
 
 begin;
-select plan(17);
+select plan(19);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -239,6 +239,30 @@ select is(
   (select public from storage.buckets where id = 'evidence'),
   false,
   'the bucket is private — a public one would publish every face by URL'
+);
+
+/*
+  The retry has to be permitted, and only a policy makes it so.
+
+  The key is the content address, so an interrupted upload retried lands on the same
+  object — which needs UPDATE, not INSERT. Without it the second attempt at one
+  photograph is refused with a row-level security error, and that is the exact case the
+  addressing exists to make safe. It shipped that way and was found against production,
+  because a stack replayed from empty never uploads the same object twice.
+*/
+select is(
+  (select count(*)::integer from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'evidence_update'),
+  1,
+  'an object can be re-uploaded, which is what a retry of the same bytes is'
+);
+
+select is(
+  (select count(*)::integer from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname like 'evidence_%'
+      and cmd = 'DELETE'),
+  0,
+  'and nothing deletes evidence — retention is a sweep with its own authority, not a client'
 );
 
 select * from finish();
