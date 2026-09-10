@@ -392,12 +392,31 @@ of the step. **It never creates bins** — those are scanned put-away destinatio
 hard rule 13, and a drawing screen must not become a way to conjure somewhere stock can be
 dumped without a label.
 
-**Deliberately not built yet.** Only LFP-1 exists: the data, the CRUD and the setup screen.
-The preview there is a flat, top-down reading of the real layout — not the isometric scene,
-which needs `react-native-svg` and lands in LFP-2 along with the eight location visuals and
-the day/night environment. Nothing is on the dashboard yet, no pin reads live data yet, and
-there is no pan, zoom or drill-down. The plan caps at 4 rooms and 10 locations, enforced in
-the UI and not in the database, because raising it is layout work rather than a migration.
+**How it is drawn.** The scene is isometric SVG in scene units, via `react-native-svg`,
+split three ways: [`iso.tsx`](../apps/mobile/components/floor-plan/iso.tsx) is the
+projection and the primitives every shape is built from,
+[`visuals.tsx`](../apps/mobile/components/floor-plan/visuals.tsx) holds the eight built-in
+location renderers, and [`scene.tsx`](../apps/mobile/components/floor-plan/scene.tsx)
+assembles the world — grounds, drive, pool, gatehouse, the reefer at the dock, the
+building shell, the rooms and the flora. There is no z-buffer, so **draw order is the
+drawing**: moving a block changes what stands in front of what.
+
+**Day and night.** The scene follows the device clock — day 06:00–17:59 — with a ☾/☀
+control that overrides it and then keeps the override. Every environment-dependent colour
+is enumerated for both modes in
+[`theme-floor-plan.ts`](../apps/mobile/theme-floor-plan.ts); no scene hex appears in a
+component. **The interior does not change between modes** — a store is a lit indoor room
+at any hour. What changes is outside: grounds, drive, pool, flora, and whether the path
+lamps are burning.
+
+**Deliberately not built yet.** LFP-1 and LFP-2 exist: the data, the CRUD, the setup
+screen and the world renderer. **Overlays do not** — room name plates and reading pins are
+LFP-3, and they belong in screen space so a label never scales with the world. Nothing in
+`scene.tsx` draws text, which is the mechanical form of that rule: if text appears there,
+it has been broken. There is also no pan, zoom, level-of-detail ladder, focus dimming or
+drill-down yet, nothing is on the dashboard, and no pin reads live data. The plan caps at
+4 rooms and 10 locations, enforced in the UI and not in the database, because raising it
+is layout work rather than a migration.
 
 ---
 
@@ -453,6 +472,19 @@ and says nothing about whether a real user is permitted.
 
 **Domain unit tests** cover state transitions, check digits and shelf-life maths — the
 highest-value tests in the repo.
+
+**Schema sweeps** ask a question of the catalogue rather than of today's rows, so they can
+fail for an object nobody has written yet. There are three: every table has RLS
+([`001`](../supabase/tests/001-rls-sweep.test.sql)), `anon` holds nothing and a table born
+inside the transaction confirms the default privilege is real
+([`030`](../supabase/tests/030-privilege-matrix.test.sql)), and no foreign key would null a
+`not null` column when its parent row is deleted
+([`036`](../supabase/tests/036-on-delete-set-null.test.sql)). The last exists because
+`on delete set null` nulls _every_ column in a composite key, and CLAUDE.md 4 makes nearly
+every key here composite over a `not null` `property_id` — so the natural clause is an
+instruction to erase a row's tenant. It shipped twice. Each sweep carries a canary that
+plants a violation and asserts the sweep sees it, because a check that can only return the
+answer you expect is not a check.
 
 **Before pushing:** `pnpm typecheck && pnpm test && pnpm build && pnpm format:check`, plus
 `node scripts/check-test-plans.mjs` when a pgTAP file changed. Green types are not evidence

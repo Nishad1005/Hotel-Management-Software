@@ -4,6 +4,7 @@ import {
   MAX_LOCATIONS,
   MAX_ROOMS,
   deriveVisual,
+  type LayoutRoomInput,
   locationType,
   resolveBehavior,
   visualContradictsRegime,
@@ -11,7 +12,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { FloorPlanPreview, type PreviewRoom } from "../../components/floor-plan-preview";
+import { FloorPlanView } from "../../components/floor-plan/view";
 import {
   Banner,
   Card,
@@ -147,29 +148,27 @@ export default function FloorPlanSetup() {
    * showing them is the difference between "here is your building" and "here is nothing,
    * start typing".
    */
-  const previewRooms: PreviewRoom[] = useMemo(() => {
+  const previewRooms: LayoutRoomInput[] = useMemo(() => {
     const toInput = (l: PlanLocation) => ({
       id: l.id,
       name: l.name,
       visual: l.visual ?? deriveVisual("ZONE", l.regime),
       size: l.size,
     });
-    const rooms: PreviewRoom[] = plan.rooms.map((r) => ({
+    const rooms: LayoutRoomInput[] = plan.rooms.map((r) => ({
       id: r.id,
       name: r.name,
       locations: r.locations.map(toInput),
-      highlight: r.locations.some((l) => l.id === selected),
     }));
     if (plan.ungrouped.length > 0) {
       rooms.push({
         id: "__ungrouped",
         name: "Not in a room yet",
         locations: plan.ungrouped.map(toInput),
-        highlight: plan.ungrouped.some((l) => l.id === selected),
       });
     }
     return rooms;
-  }, [plan, selected]);
+  }, [plan]);
 
   if (!canEditMasters) {
     return (
@@ -203,9 +202,9 @@ export default function FloorPlanSetup() {
 
       <Section
         title="Your property"
-        hint="This is the same drawing the dashboard shows. It redraws as you type."
+        hint="The same drawing the dashboard shows. It redraws as you type, and follows the clock — day until six, then night."
       >
-        <FloorPlanPreview rooms={previewRooms} selectedLocationId={selected} />
+        <FloorPlanView rooms={previewRooms} selectedLocationId={selected} height={430} />
       </Section>
 
       {loading ? (
