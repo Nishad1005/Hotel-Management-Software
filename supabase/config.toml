@@ -173,7 +173,22 @@ enable_refresh_token_rotation = true
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
 # Allow/disallow new user signups to your project.
-enable_signup = true
+#
+# FALSE, and it must stay false. Every Golai account is created by an administrator through
+# the admin API, which this setting does not touch; the anon key ships in the web bundle by
+# design, so open registration would let anyone mint an auth user. This file governs the
+# local and CI stack only — production is set by hand in the dashboard (docs/SETUP.md §A9) —
+# but this line is kept equal to it, so that nobody ever "repairs" production by pushing a
+# config that says otherwise. It maps to the API's `disable_signup`, inverted.
+#
+# Do NOT also flip `[auth.email] enable_signup` below. Despite the shared name it maps to
+# `external_email_enabled` — the email provider itself — and turning it off disables email
+# sign-in entirely. The CLI resolves the two independently, with no precedence between them.
+#
+# NEVER `supabase config push` this file. `[auth.sms] enable_signup` below is still false
+# here while production has the phone provider ON with placeholder SMS credentials (§A8);
+# a push would switch phone logins off and wipe those credentials in one step.
+enable_signup = false
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts

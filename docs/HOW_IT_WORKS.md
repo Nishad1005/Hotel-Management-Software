@@ -342,9 +342,17 @@ and merging them would push every steward through an account flow they cannot us
 life column. [`items/import.tsx`](../apps/mobile/app/items/import.tsx),
 [`packages/domain/src/items`](../packages/domain/src/items).
 
-**Creating a login** sends no email. The temporary password appears once on screen for the
-administrator to read out, because floor staff mostly have no email address and requiring
-one is how a shared account gets invented.
+**Creating a login** sends no email and no SMS. The identifier is an email address _or a
+mobile number_, and the temporary password appears once on screen for the administrator to
+read out, because floor staff mostly have no email address and requiring one is how a
+shared account gets invented. **No code path may depend on an SMS being delivered:** the
+Supabase phone provider is enabled with placeholder SMS credentials, on purpose and
+documented in [`SETUP.md` §A8](SETUP.md#a8-enable-the-phone-provider--with-placeholder-sms-credentials).
+A forgotten password is reset by an administrator, never by OTP. Verified on production
+2026-09-14: a phone login signs in, where the password grant used to return 422
+`phone_provider_disabled`. **Being able to create a phone login was never evidence it could
+sign in** — account creation goes through the admin API, which ignores the provider, so it
+succeeded for as long as sign-in was failing.
 
 **Known gap.** `revokeRole` exists in `lib/users.ts` with no caller — the app can add
 people but not remove them.

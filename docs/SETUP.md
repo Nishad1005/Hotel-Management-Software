@@ -108,6 +108,59 @@ minutes because it starts a full Postgres stack, so 2,000 minutes is on the orde
 Decide while the history is short. Making a repository private later does not un-index
 what search engines already crawled.
 
+### A8. Enable the Phone provider — with placeholder SMS credentials
+
+**Done 2026-09-14.** Recorded here because the next person to open the page will find a
+Twilio account that does not exist, and needs to know that is deliberate.
+
+1. Supabase → **Authentication → Sign In / Providers → Phone**
+2. **Enable Phone provider: ON**
+3. SMS provider: **Twilio**, with these values exactly:
+
+   | Field                      | Value                                |
+   | -------------------------- | ------------------------------------ |
+   | Twilio Account SID         | `AC00000000000000000000000000000000` |
+   | Twilio Auth Token          | `00000000000000000000000000000000`   |
+   | Twilio Message Service SID | `MG00000000000000000000000000000000` |
+
+**Why placeholders, and why that is honest.** Floor staff mostly have no email address, so
+a mobile number is a login identifier. Golai never sends an SMS: accounts are created
+pre-confirmed through the admin API, and sign-in is phone + password. The SMS provider is
+consulted only by the OTP endpoint and signup confirmation, neither of which this app
+calls. The dashboard requires the fields to be non-empty to save the toggle; it does not
+validate them. So the values above are obviously fake on purpose — a real-looking Twilio
+SID here would be a trap for whoever next wonders why OTP does not work.
+
+**The rule this creates:** no code path may ever depend on an SMS being delivered. A
+forgotten password is reset by an administrator, who reads the new one out in person. If
+that rule ever changes, the placeholders must become real credentials _and_ India's TRAI
+DLT registration becomes mandatory before a single message is sent.
+
+**Verify:** `GET https://dwnuxeeglkpsssissmuu.supabase.co/auth/v1/settings` (with the anon
+key as `apikey`) must return `"external": { "phone": true }`. Then **sign in** with a phone
+login — that is the call that returned 422 `phone_provider_disabled` before this was done,
+and the check is that the code is gone from it.
+
+**Creating the account proves nothing, and that is the trap.** `create-user` goes through
+the admin API, which does not consult the provider, so it succeeded the whole time the
+provider was off. A phone login could be created, handed its temporary password, and then
+never sign in — which is exactly what happened to the first one made here (`ZZ Module
+Test`, 2026-09-07), a week before the toggle. An earlier version of this section claimed
+both calls had failed; only the sign-in ever did.
+
+### A9. Turn off public sign-up
+
+Every Golai account is created by an administrator. With sign-ups open, anyone holding
+the anon key — which ships in the web bundle by design — can register an auth user
+through `/auth/v1/signup`. They get no membership, so RLS shows them nothing, but it is
+open registration on a product that has no reason to offer it.
+
+1. Supabase → **Authentication → Sign In / Providers** (or **Settings**, depending on
+   dashboard version) → **Allow new users to sign up: OFF**
+2. Verify: `/auth/v1/settings` returns `"disable_signup": true`
+
+The admin API used by `create-user` is unaffected — it bypasses this setting by design.
+
 ---
 
 ## Part B — Long lead time (start this week)
