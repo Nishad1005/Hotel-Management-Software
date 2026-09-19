@@ -137,9 +137,16 @@ that rule ever changes, the placeholders must become real credentials _and_ Indi
 DLT registration becomes mandatory before a single message is sent.
 
 **Verify:** `GET https://dwnuxeeglkpsssissmuu.supabase.co/auth/v1/settings` (with the anon
-key as `apikey`) must return `"external": { "phone": true }`. Then create a phone login via
-Setup → People and sign in with it — both calls returned 422 `phone_provider_disabled`
-before this was done, and the check is that the code is gone from both.
+key as `apikey`) must return `"external": { "phone": true }`. Then **sign in** with a phone
+login — that is the call that returned 422 `phone_provider_disabled` before this was done,
+and the check is that the code is gone from it.
+
+**Creating the account proves nothing, and that is the trap.** `create-user` goes through
+the admin API, which does not consult the provider, so it succeeded the whole time the
+provider was off. A phone login could be created, handed its temporary password, and then
+never sign in — which is exactly what happened to the first one made here (`ZZ Module
+Test`, 2026-09-07), a week before the toggle. An earlier version of this section claimed
+both calls had failed; only the sign-in ever did.
 
 ### A9. Turn off public sign-up
 

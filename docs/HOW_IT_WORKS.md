@@ -349,8 +349,10 @@ shared account gets invented. **No code path may depend on an SMS being delivere
 Supabase phone provider is enabled with placeholder SMS credentials, on purpose and
 documented in [`SETUP.md` §A8](SETUP.md#a8-enable-the-phone-provider--with-placeholder-sms-credentials).
 A forgotten password is reset by an administrator, never by OTP. Verified on production
-2026-09-14: a phone login created and signed in, with the 422 `phone_provider_disabled`
-gone from both calls.
+2026-09-14: a phone login signs in, where the password grant used to return 422
+`phone_provider_disabled`. **Being able to create a phone login was never evidence it could
+sign in** — account creation goes through the admin API, which ignores the provider, so it
+succeeded for as long as sign-in was failing.
 
 **Known gap.** `revokeRole` exists in `lib/users.ts` with no caller — the app can add
 people but not remove them.
