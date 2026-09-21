@@ -73,6 +73,9 @@ export interface ViewBoxEngine {
 
 const heightOf = (l: { visual: string | null }) => locationType(l.visual).pinZ;
 
+/** The longest gap between the two taps of a double-tap. See `doubleTap` for what it costs. */
+const DOUBLE_TAP_GAP_MS = 250;
+
 export function useViewBox(args: {
   base: Box;
   width: number;
@@ -372,6 +375,14 @@ export function useViewBox(args: {
     const doubleTap = Gesture.Tap()
       .numberOfTaps(2)
       .maxDuration(250)
+      // How long the second tap may take to arrive — and therefore how long EVERY single
+      // tap on the map waits before it is allowed to act, since a single tap cannot know it
+      // is not the first half of a double one. The library's default on web is 500 ms, and
+      // measured in a browser that is what it cost: 535 ms from lifting the finger off a
+      // room's floor to the view starting to move, against 25 ms for a plate. 250 ms is the
+      // usual touch double-tap gap; stated here so the three platforms agree rather than
+      // each bringing its own default.
+      .maxDelay(DOUBLE_TAP_GAP_MS)
       .onEnd((e, success) => {
         if (!success || !(viewW.value > 0) || !(viewH.value > 0)) return;
         stopAnimations();
