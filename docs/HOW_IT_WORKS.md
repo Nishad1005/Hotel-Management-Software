@@ -460,7 +460,10 @@ over the overview after "Whole property" until the next move. The view is locked
 container's aspect ratio, so its zoom thresholds are stated against the fitted width
 rather than the scene's. A drag engages five pixels in and tracks exactly from there,
 where the demo moves from the first pixel — the gesture library's behaviour on every
-platform, left alone. And the demo's full-screen button is not ported.
+platform, left alone. A single tap on the map waits 250 ms before it acts, because it
+cannot know it is not the first half of a double-tap; the demo acts on the first click
+and then zooms on the second as well. Plates do not wait — a plate is a button, and
+answers at once. And the demo's full-screen button is not ported.
 
 **Deliberately not built yet.** LFP-1 to LFP-3 exist: the data, the CRUD, the setup screen,
 the world, and moving around it. **No pin reads live data** and **tapping a pin goes
