@@ -42,6 +42,13 @@ export interface LocationTypeEntry {
   footprint: (size: PlanSize) => Footprint;
   /** Where its pin's number comes from, unless the property says otherwise. */
   defaultBehavior: PlanDataBehavior;
+  /**
+   * How far above the floor its pin stands, in scene units — just clear of the top of
+   * whatever is drawn, so the pin reads as belonging to it. The demo's `zTop`. It doubles
+   * as the height of the location's tappable outline, which is why it is a little
+   * generous: a finger aims at the thing, not at its exact silhouette.
+   */
+  pinZ: number;
 }
 
 /**
@@ -71,41 +78,49 @@ export const LOCATION_TYPES: Record<string, LocationTypeEntry> = {
     label: "Walk-in Chiller",
     footprint: (s) => ({ w: 4.0 * SIZE_FACTOR[s], d: 3.9 }),
     defaultBehavior: "TEMPERATURE",
+    pinZ: 3.5,
   },
   freezer: {
     label: "Deep Freeze",
     footprint: (s) => ({ w: 4.0 * SIZE_FACTOR[s], d: 3.9 }),
     defaultBehavior: "TEMPERATURE",
+    pinZ: 3.5,
   },
   wine: {
     label: "Wine & Beverage",
     footprint: (s) => ({ w: 4.6 * SIZE_FACTOR[s], d: 4.6 }),
     defaultBehavior: "TEMPERATURE",
+    pinZ: 3.5,
   },
   dry: {
     label: "Dry Store",
     footprint: (s) => ({ w: 3.6 + SIZE_FACTOR[s] * 1.2, d: 1.5 }),
     defaultBehavior: "COUNT",
+    pinZ: 2.8,
   },
   linen: {
     label: "Linen Store",
     footprint: (s) => ({ w: 3.6 + SIZE_FACTOR[s] * 1.2, d: 1.5 }),
     defaultBehavior: "COUNT",
+    pinZ: 2.8,
   },
   store: {
     label: "General Store",
     footprint: (s) => ({ w: 3.8 * SIZE_FACTOR[s], d: 3.9 }),
     defaultBehavior: "COUNT",
+    pinZ: 3.5,
   },
   kegs: {
     label: "Kegs & Returnables",
     footprint: (s) => ({ w: 3.0 * SIZE_FACTOR[s], d: 2.6 }),
     defaultBehavior: "RETURNABLE",
+    pinZ: 1.8,
   },
   staging: {
     label: "Staging",
     footprint: (s) => ({ w: 4.2 * SIZE_FACTOR[s], d: 3.8 }),
     defaultBehavior: "DWELL",
+    pinZ: 1.6,
   },
 };
 

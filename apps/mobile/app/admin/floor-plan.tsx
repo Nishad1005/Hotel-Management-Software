@@ -4,7 +4,6 @@ import {
   MAX_LOCATIONS,
   MAX_ROOMS,
   deriveVisual,
-  type LayoutRoomInput,
   locationType,
   resolveBehavior,
   visualContradictsRegime,
@@ -12,7 +11,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { FloorPlanView } from "../../components/floor-plan/view";
+import { FloorPlanView, type FloorPlanRoom } from "../../components/floor-plan/view";
 import {
   Banner,
   Card,
@@ -24,6 +23,7 @@ import {
   SelectRow,
   SkeletonList,
   Text,
+  Toggle,
   type Choice,
 } from "../../components/ui";
 import {
@@ -94,6 +94,7 @@ export default function FloorPlanSetup() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [showReadings, setShowReadings] = useState(true);
 
   // The add-a-location form, per room.
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -148,14 +149,17 @@ export default function FloorPlanSetup() {
    * showing them is the difference between "here is your building" and "here is nothing,
    * start typing".
    */
-  const previewRooms: LayoutRoomInput[] = useMemo(() => {
+  const previewRooms: FloorPlanRoom[] = useMemo(() => {
     const toInput = (l: PlanLocation) => ({
       id: l.id,
       name: l.name,
       visual: l.visual ?? deriveVisual("ZONE", l.regime),
       size: l.size,
+      // What the pin will report from. Null is passed through as null: the plan derives
+      // it from the visual, the same way the editor row below does.
+      behavior: l.behavior,
     });
-    const rooms: LayoutRoomInput[] = plan.rooms.map((r) => ({
+    const rooms: FloorPlanRoom[] = plan.rooms.map((r) => ({
       id: r.id,
       name: r.name,
       locations: r.locations.map(toInput),
@@ -169,6 +173,13 @@ export default function FloorPlanSetup() {
     }
     return rooms;
   }, [plan]);
+
+  // Selecting a location's card flies the preview to its room (spec §7). The room is looked
+  // up in what the preview actually draws, so an ungrouped zone flies to the implicit room.
+  const selectedRoomId = useMemo(
+    () => previewRooms.find((r) => r.locations.some((l) => l.id === selected))?.id ?? null,
+    [previewRooms, selected],
+  );
 
   if (!canEditMasters) {
     return (
@@ -204,7 +215,20 @@ export default function FloorPlanSetup() {
         title="Your property"
         hint="The same drawing the dashboard shows. It redraws as you type, and follows the clock — day until six, then night."
       >
-        <FloorPlanView rooms={previewRooms} selectedLocationId={selected} height={430} />
+        <FloorPlanView
+          rooms={previewRooms}
+          selectedLocationId={selected}
+          showReadings={showReadings}
+          flyToRoomId={selectedRoomId}
+          onSelectLocation={(id) => setSelected(id)}
+          height={430}
+        />
+        <Toggle
+          label="Show readings"
+          hint="Pins appear once you zoom into a room. They never show at the overview."
+          value={showReadings}
+          onValueChange={setShowReadings}
+        />
       </Section>
 
       {loading ? (

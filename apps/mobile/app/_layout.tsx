@@ -14,6 +14,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Platform, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppShell } from "../components/shell";
 import { SessionProvider, useSession } from "../lib/session";
@@ -56,12 +57,17 @@ export default function RootLayout() {
   });
 
   return (
-    <SafeAreaProvider>
-      <SessionProvider>
-        <StatusBar style="auto" />
-        <Guard fontsLoaded={fontsLoaded} />
-      </SessionProvider>
-    </SafeAreaProvider>
+    // Gesture-handler needs one root above anything that uses a GestureDetector — today
+    // that is the floor plan's pan and pinch. `flex: 1` because it is a real view on
+    // native; without it the whole app lays out at zero height.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <SessionProvider>
+          <StatusBar style="auto" />
+          <Guard fontsLoaded={fontsLoaded} />
+        </SessionProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

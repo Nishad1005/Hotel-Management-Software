@@ -46,7 +46,64 @@ export const SCENE = {
   shadow: "rgba(18,48,36,0.16)",
   water: "#8FD0B4",
   water2: "#3F7A61",
+  /** The floor of the room holding focus. Interior, so the same by day and by night. */
+  focusFloor: "#F7F3E8",
 } as const;
+
+/**
+ * The overlay layer — room plates, reading pins and the map's own controls.
+ *
+ * The plates and pins are the same in both modes, as they are in the demo: they are dark
+ * pills that read on a linen ground and on a night one alike, and a label that changed
+ * colour with the clock would be one more thing moving on a map that already moves. Only
+ * the controls follow the mode, because they sit on the frame rather than on the scene.
+ */
+export const OVERLAY = {
+  plateBg: SCENE.forest900,
+  plateBorder: SCENE.brass500,
+  plateDot: SCENE.brass400,
+  plateShadow: "rgba(6,21,16,0.25)",
+  pinBg: "rgba(8,28,21,0.94)",
+  pinBorder: SCENE.forest700,
+  /** The light ring that lifts a dark pin off a dark room at night. */
+  pinHalo: "rgba(250,249,245,0.85)",
+  pinStem: SCENE.forest900,
+  pinStemDotRing: SCENE.linen50,
+  /** A pin's tone dot when it has nothing to say yet — every pin, until LFP-4. */
+  toneNeutral: SCENE.linen200,
+  backPillBg: SCENE.forest800,
+  backPillBorder: SCENE.forest700,
+} as const;
+
+export interface FrameChrome {
+  ground: string;
+  border: string;
+  controlBg: string;
+  controlBorder: string;
+  controlInk: string;
+  hintBg: string;
+}
+
+/** The frame and its controls, which do follow the mode. */
+export function frameChrome(night: boolean): FrameChrome {
+  return night
+    ? {
+        ground: "#08130E",
+        border: "#16281F",
+        controlBg: "rgba(8,28,21,0.72)",
+        controlBorder: "#2E4A3A",
+        controlInk: SCENE.brass300,
+        hintBg: "rgba(8,28,21,0.72)",
+      }
+    : {
+        ground: "#F3EFE4",
+        border: SCENE.champagne,
+        controlBg: "rgba(255,255,255,0.92)",
+        controlBorder: SCENE.champagne,
+        controlInk: SCENE.forest700,
+        hintBg: "rgba(250,249,245,0.85)",
+      };
+}
 
 /**
  * Darkens (`f` < 1) or lightens (`f` > 1) a hex colour.

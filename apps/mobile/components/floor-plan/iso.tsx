@@ -1,3 +1,4 @@
+import { ISO_CX, ISO_CY, ISO_SCALE, iso, type Pt } from "@golai/domain";
 import type { ReactElement } from "react";
 import { Ellipse, Path, Polygon } from "react-native-svg";
 import { SCENE, shade } from "../../theme-floor-plan";
@@ -9,22 +10,20 @@ import { SCENE, shade } from "../../theme-floor-plan";
  * React elements instead, so every one needs a `k` (key) — the single mechanical cost of
  * the port, and the reason each helper takes one as its first field.
  *
- * The projection is a 2:1-ish dimetric: x and y both run diagonally, z is straight up.
- * `S` is scene-units-to-pixels; nothing else in the renderer may convert between the two,
- * so changing the scale here changes it everywhere and cannot leave one shape behind.
+ * The projection itself lives in `@golai/domain` (`floorplan/projection.ts`) since LFP-3:
+ * the gesture engine asks the same question — where does this room land on the drawing —
+ * for focus hulls, fly-to frames and hit-testing, and a second copy of three constants is
+ * how a tap ends up selecting the room next to the one under the finger. It is re-exported
+ * here so the renderers keep one import.
  */
 
-const CX = 0.866;
-const CY = 0.5;
+const CX = ISO_CX;
+const CY = ISO_CY;
 /** Scene units to SVG units. The demo's `S`. */
-export const S = 26;
+export const S = ISO_SCALE;
 
-export type Pt = readonly [number, number];
-
-export const iso = (x: number, y: number, z = 0): Pt => [
-  (x - y) * CX * S,
-  (x + y) * CY * S - z * S,
-];
+export { iso };
+export type { Pt };
 
 const pts = (a: readonly Pt[]) => a.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
 const n1 = (v: number) => v.toFixed(1);
