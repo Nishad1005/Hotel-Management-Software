@@ -390,9 +390,14 @@ rather than refusing, because the regime is the part that carries the consequenc
 
 **Pins show real data or nothing.** Where the number comes from is
 `plan_data_behavior`, never the picture, so a chiller-shaped box can legitimately report a
-stock count. An empty source renders "No reading yet". There is no placeholder value and
-no fallback to another location's reading — an empty pin is information, and a Food Safety
-Officer needs to see that this chiller has not been read today.
+stock count. There is no placeholder value and no fallback to another location's reading —
+an empty pin is information, and a Food Safety Officer needs to see that this chiller has
+not been read today. **No source is wired yet**, so today a pin carries the location's name
+and which source it is configured to report — temperature, stock lines, dwell time,
+returnables — and no value at all. Not "No reading yet" either, which is what an empty
+source will say once LFP-4 lands: with nothing wired, that sentence would be asserted over
+chillers that have in fact been read this morning. The source caption is configuration, and
+true; a reading would be telemetry, and there is none to show.
 
 **The setup screen creates zones**, through the same OWNER/ADMIN policy the zones screen
 uses, because a property typing its store in and watching the plan assemble is the point
@@ -417,14 +422,58 @@ component. **The interior does not change between modes** — a store is a lit i
 at any hour. What changes is outside: grounds, drive, pool, flora, and whether the path
 lamps are burning.
 
-**Deliberately not built yet.** LFP-1 and LFP-2 exist: the data, the CRUD, the setup
-screen and the world renderer. **Overlays do not** — room name plates and reading pins are
-LFP-3, and they belong in screen space so a label never scales with the world. Nothing in
-`scene.tsx` draws text, which is the mechanical form of that rule: if text appears there,
-it has been broken. There is also no pan, zoom, level-of-detail ladder, focus dimming or
-drill-down yet, nothing is on the dashboard, and no pin reads live data. The plan caps at
-4 rooms and 10 locations, enforced in the UI and not in the database, because raising it
-is layout work rather than a migration.
+**Moving around it.** Drag to pan, pinch or scroll to zoom, double-tap to zoom in — and
+`+`, `−` and `⌂` buttons, because nothing here may be reachable by gesture alone. Zoom is
+always anchored where the hand is: under the cursor, under the tap, between the fingers. It
+is clamped between 0.16 and 1.15 of the whole property's width, so nobody zooms into a
+single floor tile or out into empty ground and loses the building. The arithmetic —
+anchoring, clamps, the fly-to box, which shape a tap landed on — is pure, and lives with its
+tests in [`viewbox.ts`](../packages/domain/src/floorplan/viewbox.ts);
+[`use-viewbox.ts`](../apps/mobile/components/floor-plan/use-viewbox.ts) only feeds it
+gestures. The view is applied as a transform on one SVG group, so a pan re-renders nothing.
+
+**A label never scales with the world.** Room plates and pins are ordinary views in screen
+space ([`overlays.tsx`](../apps/mobile/components/floor-plan/overlays.tsx)), placed by
+projecting their anchors through the current view. The projection yields a position and
+nothing else, so a label is the same 11px at the overview and at maximum zoom — there is no
+scale for it to inherit. `scene.tsx` draws no text at all, which is the mechanical form of
+the rule: if text appears there, it has been broken.
+
+**What shows when.** At the overview: a name plate for every room, and no pins of any kind.
+Past 0.6 of the full width the plates give way to pins — only those in view, and only while
+"Show readings" is on. The room nearest the centre of the view takes **focus**: it stays
+lit, everything else dims, and focus follows the view from room to room as it pans. Zooming
+back out releases it. Pressing a plate, a room's floor, or a room's card on the setup screen
+flies there in 420 ms; pressing the dimmed area, `⌂` or "← Whole property" flies back.
+Someone who has asked their device for reduced motion gets the same moves without the
+flight.
+
+**One pointer system.** A plate is part of the map's gesture arbitration, not a button laid
+over it: its press fires on release, and the moment that touch becomes a drag, or a second
+finger lands, the map takes it. At the overview the plates are the largest things on a
+phone's screen, so a pan that starts on one has to pan. Pins answer no pointer at all in
+this phase.
+
+**Where it departs from the demo**, which is otherwise ported decision for decision.
+Focus is released on zooming out; the demo, checked in a browser, leaves the dim drawn
+over the overview after "Whole property" until the next move. The view is locked to the
+container's aspect ratio, so its zoom thresholds are stated against the fitted width
+rather than the scene's. A drag engages five pixels in and tracks exactly from there,
+where the demo moves from the first pixel — the gesture library's behaviour on every
+platform, left alone. And the demo's full-screen button is not ported.
+
+**Deliberately not built yet.** LFP-1 to LFP-3 exist: the data, the CRUD, the setup screen,
+the world, and moving around it. **No pin reads live data** and **tapping a pin goes
+nowhere** — both are LFP-4; tapping a location at detail zoom selects its card on the setup
+screen and does nothing else. **Nothing is on the dashboard** (LFP-5): the plan exists only
+as the setup screen's preview. **It has been verified in a browser, with a mouse and with
+synthetic touch, and has not yet run on a native build** — the gesture code is written
+against the library's cross-platform API, and the two places its web build surprised us
+(a pinch's focal point, and the order its callbacks arrive in) are handled in ways that do
+not depend on the platform, but no phone has held it. While the
+cursor is over the plan the wheel belongs to the plan and the page does not scroll, which
+is the demo's trade and is kept. The plan caps at 4 rooms and 10 locations, enforced in the
+UI and not in the database, because raising it is layout work rather than a migration.
 
 ---
 

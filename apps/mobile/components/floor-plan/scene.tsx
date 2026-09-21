@@ -3,6 +3,7 @@ import {
   layoutFloorPlan,
   locationType,
   type LayoutRoomInput,
+  type PlacedRoom,
   type PlanSize,
 } from "@golai/domain";
 import type { ReactElement } from "react";
@@ -23,8 +24,8 @@ import { FLOOR_Z, drawLocation, type Drawn } from "./visuals";
 /**
  * The world layer — the whole isometric scene, ported from the demo's `buildScene()`.
  *
- * **Overlays are not here.** Room name plates and reading pins live in screen space and
- * arrive in LFP-3; nothing in this file draws text, which is the mechanical form of the
+ * **Overlays are not here.** Room name plates and reading pins live in screen space, in
+ * `overlays.tsx`; nothing in this file draws text, which is the mechanical form of the
  * spec's rule that a label must never scale with the world. If text appears in this file
  * later, that rule has been broken.
  *
@@ -44,6 +45,10 @@ export interface SceneResult {
   elements: ReactElement[];
   /** The viewBox that frames the whole property, in SVG units. */
   base: { x: number; y: number; w: number; h: number };
+  /** The rooms as placed — what the gesture engine focuses on, flies to and hit-tests. */
+  rooms: PlacedRoom[];
+  /** Where the two fixed-scenery pins stand, in drawing units. The demo's `gp` and `dp`. */
+  anchors: { gate: Pt; dock: Pt };
 }
 
 function sceneDefs(env: SceneEnv): ReactElement {
@@ -200,6 +205,7 @@ export function buildScene(
   rooms: readonly LayoutRoomInput[],
   env: SceneEnv,
   selectedId?: string | null,
+  focusedRoomId?: string | null,
 ): SceneResult {
   const layout = layoutFloorPlan(rooms, (l) =>
     locationType(l.visual).footprint((l.size ?? DEFAULT_PLAN_SIZE) as PlanSize),
@@ -670,7 +676,12 @@ export function buildScene(
         r.y,
         r.w,
         r.d,
-        shade(SCENE.linen100, ROOM_TINTS[i % ROOM_TINTS.length]!),
+        // The demo's `tintRooms()`: the room holding focus gets a lit floor. It is chosen
+        // here, in the floor's own draw slot, because painting a highlight over the room
+        // afterwards would cover the feet of its low walls.
+        r.id === focusedRoomId
+          ? SCENE.focusFloor
+          : shade(SCENE.linen100, ROOM_TINTS[i % ROOM_TINTS.length]!),
         SCENE.champagne,
         0.8,
         FLOOR_Z + 0.015,
@@ -864,5 +875,7 @@ export function buildScene(
   return {
     elements: E,
     base: { x: minx, y: miny, w: Math.max(...xs) - minx + 16, h: Math.max(...ys) - miny + 10 },
+    rooms: layout.rooms,
+    anchors: { gate: iso(GX + 1.4, GY + 1.4, 4.4), dock: iso(dockX + 2.5, 1.8, 4.4) },
   };
 }
