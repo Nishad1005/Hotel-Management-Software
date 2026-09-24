@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
   Card,
   Notice,
+  PrimaryButton,
   Screen,
   SkeletonList,
   StatGrid,
@@ -60,7 +61,15 @@ export default function Registers() {
   const router = useRouter();
   const { activeProperty } = useSession();
 
-  const [tab, setTab] = useState<Tab>("INWARD");
+  // A pin on the floor plan lands here on the Storage tab, filtered to its location. Both
+  // are read once, on arrival; the tabs and the filter are then the reader's to change.
+  const params = useLocalSearchParams<{ tab?: string; location?: string }>();
+  const [tab, setTab] = useState<Tab>(() =>
+    TABS.some((t) => t.id === params.tab) ? (params.tab as Tab) : "INWARD",
+  );
+  const [locationFilter, setLocationFilter] = useState<string | null>(() =>
+    typeof params.location === "string" && params.location.trim() ? params.location.trim() : null,
+  );
   const [from] = useState(defaultFrom);
   const [inward, setInward] = useState<InwardRow[]>([]);
   const [waste, setWaste] = useState<WasteRow[]>([]);
@@ -105,6 +114,15 @@ export default function Registers() {
       void load();
     }, [load]),
   );
+
+  // The location filter matches the code the pin carried, and the codes of everything
+  // under it: bin codes are generated from their zone's code, so a zone's pin lands on
+  // the zone's own readings and its bins' together.
+  const storageShown = useMemo(() => {
+    if (!locationFilter) return storage;
+    const prefix = locationFilter.toUpperCase();
+    return storage.filter((r) => r.locationCode.toUpperCase().startsWith(prefix));
+  }, [storage, locationFilter]);
 
   const rows = useMemo(() => {
     if (tab === "TEMPERATURE") return inward.filter((r) => r.receiptTempC !== null);
@@ -197,6 +215,35 @@ export default function Registers() {
                 body={storageError}
                 tone="bad"
               />
+            ) : locationFilter ? (
+              <>
+                <Notice
+                  icon="location-outline"
+                  title={`Showing ${locationFilter} only`}
+                  body={
+                    storageShown.length === 0
+                      ? "No reading has been recorded against this location in the period. The floor plan sent you here because its pin had nothing to show."
+                      : `${storageShown.length} reading${storageShown.length === 1 ? "" : "s"} in the period, newest first.`
+                  }
+                  action={
+                    <PrimaryButton
+                      label="Show every location"
+                      tone="neutral"
+                      onPress={() => setLocationFilter(null)}
+                    />
+                  }
+                />
+                {storageShown.length > 0 ? (
+                  <>
+                    <View style={{ height: space.md }} />
+                    <Card padded={false}>
+                      {storageShown.map((r, i) => (
+                        <StorageRowView key={r.id} row={r} divider={i < storageShown.length - 1} />
+                      ))}
+                    </Card>
+                  </>
+                ) : null}
+              </>
             ) : storage.length === 0 ? (
               <Notice
                 icon="thermometer-outline"

@@ -61,7 +61,9 @@ export type TextTone =
   | "danger"
   | "onAccent"
   | "onBrand"
-  | "onBrandMuted";
+  | "onBrandMuted"
+  /** Brass on a dark rail — a figure on a pin, where the bright brass is finally legible. */
+  | "brassOnBrand";
 
 const TONE_KEY: Record<TextTone, keyof Palette> = {
   default: "text",
@@ -74,6 +76,7 @@ const TONE_KEY: Record<TextTone, keyof Palette> = {
   onAccent: "onAccent",
   onBrand: "onBrand",
   onBrandMuted: "onBrandMuted",
+  brassOnBrand: "brassOnBrand",
 };
 
 export interface TextOwnProps {

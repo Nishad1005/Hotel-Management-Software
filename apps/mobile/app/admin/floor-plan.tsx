@@ -30,10 +30,13 @@ import {
   createPlanLocation,
   createRoom,
   deleteRoom,
+  hrefFor,
   loadFloorPlan,
+  loadFloorPlanReadings,
   updateLocationPlan,
   updateRoom,
   type FloorPlan,
+  type FloorPlanReadings,
   type PlanLocation,
 } from "../../lib/floor-plan";
 import { deactivateLocation } from "../../lib/location-admin";
@@ -95,11 +98,15 @@ export default function FloorPlanSetup() {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [showReadings, setShowReadings] = useState(true);
+  const [readings, setReadings] = useState<FloorPlanReadings | null>(null);
+  const [readingsError, setReadingsError] = useState<string | null>(null);
 
   // The add-a-location form, per room.
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newRegime, setNewRegime] = useState<StorageRegime>("AMBIENT");
+
+  const propertyId = activeProperty?.propertyId ?? null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,7 +118,19 @@ export default function FloorPlanSetup() {
     } finally {
       setLoading(false);
     }
-  }, []);
+
+    // The pins' figures, failing alone. A database without the readings function must
+    // leave the plan drawable with every pin saying "No reading yet" and one honest line
+    // under it — not take the setup screen down for the sake of the pins.
+    if (!propertyId) return;
+    try {
+      setReadings(await loadFloorPlanReadings(propertyId));
+      setReadingsError(null);
+    } catch (e) {
+      setReadings(null);
+      setReadingsError(e instanceof Error ? e.message : String(e));
+    }
+  }, [propertyId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -152,6 +171,7 @@ export default function FloorPlanSetup() {
   const previewRooms: FloorPlanRoom[] = useMemo(() => {
     const toInput = (l: PlanLocation) => ({
       id: l.id,
+      code: l.code,
       name: l.name,
       visual: l.visual ?? deriveVisual("ZONE", l.regime),
       size: l.size,
@@ -193,7 +213,6 @@ export default function FloorPlanSetup() {
     );
   }
 
-  const propertyId = activeProperty?.propertyId ?? null;
   const propertyCode = activeProperty?.propertyCode ?? null;
   const roomsFull = plan.rooms.length >= MAX_ROOMS;
   const locationsFull = locationCount >= MAX_LOCATIONS;
@@ -221,14 +240,21 @@ export default function FloorPlanSetup() {
           showReadings={showReadings}
           flyToRoomId={selectedRoomId}
           onSelectLocation={(id) => setSelected(id)}
+          readings={readings}
+          onDrillDown={(target) => router.push(hrefFor(target))}
           height={430}
         />
         <Toggle
           label="Show readings"
-          hint="Pins appear once you zoom into a room. They never show at the overview."
+          hint="Pins appear once you zoom into a room. They never show at the overview. Press one to open the screen behind it."
           value={showReadings}
           onValueChange={setShowReadings}
         />
+        {readingsError ? (
+          <Banner icon="cloud-offline-outline" tone="bad">
+            {readingsError}
+          </Banner>
+        ) : null}
       </Section>
 
       {loading ? (

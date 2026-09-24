@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
@@ -45,8 +45,12 @@ export default function StockOnHand() {
   const router = useRouter();
   const { activeProperty } = useSession();
 
+  // A pin on the floor plan lands here with the zone's code as the search, so the screen
+  // opens on that zone's lots (bin codes are generated from their zone's code, so the
+  // prefix matches them too). A plain visit starts empty as before.
+  const { q } = useLocalSearchParams<{ q?: string }>();
   const [rows, setRows] = useState<StockRow[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(typeof q === "string" ? q : "");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openItem, setOpenItem] = useState<string | null>(null);
