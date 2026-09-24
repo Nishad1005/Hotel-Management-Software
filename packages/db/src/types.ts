@@ -1127,6 +1127,28 @@ export type Database = {
         Args: { p_property_id: string; p_room_id: string };
         Returns: undefined;
       };
+      /**
+       * Every figure the floor plan's pins show, in one read (LFP-4). `scope` tells the
+       * two row shapes apart: one LOCATION row per active zone, and exactly one PROPERTY
+       * row with `location_id` null. Numeric columns arrive as numbers, not strings —
+       * PostgREST serialises `numeric` as a JSON number.
+       */
+      floor_plan_readings: {
+        Args: { p_property_id: string };
+        Returns: {
+          scope: "LOCATION" | "PROPERTY";
+          location_id: string | null;
+          stock_lines: number | null;
+          latest_temp_c: number | null;
+          latest_temp_at: string | null;
+          temp_read_today: boolean | null;
+          dwell_minutes: number | null;
+          receiving_open: number | null;
+          quarantine_max_hours: number | null;
+          returnables_outstanding: number | null;
+          returnables_overdue: number | null;
+        }[];
+      };
       list_team: {
         Args: { p_property_id: string };
         Returns: {

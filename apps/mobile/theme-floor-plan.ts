@@ -69,8 +69,16 @@ export const OVERLAY = {
   pinHalo: "rgba(250,249,245,0.85)",
   pinStem: SCENE.forest900,
   pinStemDotRing: SCENE.linen50,
-  /** A pin's tone dot when it has nothing to say yet — every pin, until LFP-4. */
+  /** A pin's tone dot: the ordinary state. */
   toneNeutral: SCENE.linen200,
+  /**
+   * The one other tone. Attention, never alarm: it marks a state the rows can prove — a
+   * chiller not read today, a returnable past the date the property promised — and the
+   * pin's own words say which. It is never keyed to a threshold, because every threshold
+   * here ships RECORD_ONLY and a colour the property cannot turn off would be an
+   * enforcement by the back door.
+   */
+  toneAttention: SCENE.saffron500,
   backPillBg: SCENE.forest800,
   backPillBorder: SCENE.forest700,
 } as const;

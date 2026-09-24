@@ -1,8 +1,13 @@
-import { anchorInView, isDetail, showsBackPill, type Pt } from "@golai/domain";
-import { useMemo } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { anchorInView, isDetail, showsBackPill, type PinTone, type Pt } from "@golai/domain";
+import { useCallback, useMemo, type ReactNode } from "react";
+import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  type AnimatedStyle,
+} from "react-native-reanimated";
 import { radius, space } from "../../theme";
 import { OVERLAY, type FrameChrome } from "../../theme-floor-plan";
 import { Text } from "../ui";
@@ -23,11 +28,10 @@ import type { ViewBoxEngine } from "./use-viewbox";
  *
  * Positions and visibility are animated styles, so nothing here re-renders during a pan.
  *
- * **Pins carry no readings yet.** Wiring real sources is LFP-4. Until then a pin shows the
- * location's name and WHICH source it will report from — both true, both configured by the
- * property — and no value at all. Not "No reading yet" either: that is a statement about
- * the data, and with nothing wired it would be asserted over chillers that have in fact
- * been read this morning. Saying nothing is the only claim this phase can stand behind.
+ * **A pin says what the domain worded for it and nothing else.** The figure came from one
+ * server read over the zone's subtree, the words came from `zonePin`/`dockPin`/`gatePin`
+ * in `@golai/domain`, and this file places them. It adds nothing up, compares nothing to a
+ * limit, and colours nothing that the words do not already say.
  */
 
 type Engine = Pick<ViewBoxEngine, "vx" | "vy" | "vw" | "fit" | "viewW">;
@@ -97,6 +101,46 @@ export function RoomPlate({
   onPress: (roomId: string) => void;
 }) {
   const anchored = useAnchorStyle(engine, anchor, "plate", true);
+  const press = useCallback(() => onPress(roomId), [onPress, roomId]);
+
+  return (
+    <Animated.View pointerEvents="box-none" style={[styles.anchor, anchored]}>
+      {/* Bottom edge 9px BELOW the anchor: the pointer's tip lands on the corridor spot. */}
+      <View pointerEvents="box-none" style={[styles.row, { bottom: -9 }]}>
+        <MapTap onPress={press} accessibilityLabel={`Look inside ${name || "this room"}`}>
+          {(feedback) => (
+            <Animated.View style={[styles.plate, feedback]} testID="floor-plan-plate">
+              <View style={styles.plateDot} />
+              <Text role="overline" tone="onBrand" lines={1}>
+                {name || "Untitled room"}
+              </Text>
+            </Animated.View>
+          )}
+        </MapTap>
+        <View style={styles.platePointer} />
+      </View>
+    </Animated.View>
+  );
+}
+
+/**
+ * The press mechanism a plate and a pin share: a gesture-handler tap nested inside the
+ * map's detector (see `RoomPlate` for why that and not a `Pressable`), a 44px target
+ * around a 22px pill, press feedback on the UI thread, and a pointer-deaf `Pressable`
+ * inside it for the keyboard and the screen reader.
+ *
+ * The target is grown by padding cancelled with an equal negative margin, so the pill is
+ * drawn exactly where it always was and only the area that answers a finger has changed.
+ */
+function MapTap({
+  onPress,
+  accessibilityLabel,
+  children,
+}: {
+  onPress: () => void;
+  accessibilityLabel: string;
+  children: (feedback: AnimatedStyle<ViewStyle>) => ReactNode;
+}) {
   const pressed = useSharedValue(0);
   const tap = useMemo(
     () =>
@@ -106,84 +150,103 @@ export function RoomPlate({
           pressed.value = 1;
         })
         .onEnd((_e, success) => {
-          if (success) runOnJS(onPress)(roomId);
+          if (success) runOnJS(onPress)();
         })
         .onFinalize(() => {
           pressed.value = 0;
         }),
-    [onPress, pressed, roomId],
+    [onPress, pressed],
   );
   const feedback = useAnimatedStyle(() => ({ opacity: pressed.value ? 0.85 : 1 }));
 
   return (
-    <Animated.View pointerEvents="box-none" style={[styles.anchor, anchored]}>
-      {/* Bottom edge 9px BELOW the anchor: the pointer's tip lands on the corridor spot. */}
-      <View pointerEvents="box-none" style={[styles.row, { bottom: -9 }]}>
-        <GestureDetector gesture={tap}>
-          {/* The target is 44px tall around a 22px pill: the padding is cancelled by an equal
-              negative margin, so the plate is drawn where it always was and only the area
-              that answers a finger has grown. */}
-          <View style={styles.plateTarget} collapsable={false}>
-            <Animated.View style={[styles.plate, feedback]} testID="floor-plan-plate">
-              <Pressable
-                pointerEvents="none"
-                onPress={() => onPress(roomId)}
-                accessibilityRole="button"
-                accessibilityLabel={`Look inside ${name || "this room"}`}
-                style={styles.plateLabel}
-              >
-                <View style={styles.plateDot} />
-                <Text role="overline" tone="onBrand" lines={1}>
-                  {name || "Untitled room"}
-                </Text>
-              </Pressable>
-            </Animated.View>
-          </View>
-        </GestureDetector>
-        <View style={styles.platePointer} />
+    <GestureDetector gesture={tap}>
+      <View style={styles.tapTarget} collapsable={false}>
+        <Pressable
+          pointerEvents="none"
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+        >
+          {children(feedback)}
+        </Pressable>
       </View>
-    </Animated.View>
+    </GestureDetector>
   );
 }
 
 /**
- * A pin standing over a location. Not pressable in this phase — drill-down is LFP-4 — so
- * it takes no pointer events at all, and a drag that begins on a pin still pans the map.
+ * A pin standing over a location: its name, and what its source says.
+ *
+ * Pressable when it has somewhere to go — every location pin, and the dock — through the
+ * same `MapTap` as a plate, so a drag that begins on a pin still pans the map. The gate
+ * pin has no target in this phase (there is no gate log to land on) and takes no pointer
+ * events at all; its accessibility label says so.
+ *
+ * The tone dot is one of two colours, and it never encodes a threshold: attention means
+ * "not read today" or "past the date you promised", both facts the rows hold.
  */
 export function ReadingPin({
   engine,
   anchor,
   label,
-  source,
+  value,
+  tone,
+  caption,
   enabled,
+  onPress,
+  accessibilityLabel,
 }: {
   engine: Engine;
   anchor: Pt;
   label: string;
-  /** Which real source this pin will report from. Configuration, not telemetry. */
-  source: string;
+  /** What the pin's source says, already worded by the domain. */
+  value: string;
+  tone: PinTone;
+  /** "property-wide" when the figure is the property's rather than this location's. */
+  caption?: string | undefined;
   enabled: boolean;
+  /** Stable across renders. Absent means the pin is not tappable. */
+  onPress?: (() => void) | undefined;
+  accessibilityLabel: string;
 }) {
   const anchored = useAnchorStyle(engine, anchor, "pin", enabled);
   // The demo's truncation: past fifteen characters a name crowds its neighbours' pins.
   const short = label.length > 15 ? `${label.slice(0, 14)}…` : label;
+  const body = (feedback?: AnimatedStyle<ViewStyle>) => (
+    <Animated.View style={[styles.pinHalo, feedback ?? null]}>
+      <View style={styles.pin} testID="floor-plan-pin" {...(onPress ? {} : { accessibilityLabel })}>
+        <View
+          style={[styles.pinTone, tone === "attention" ? styles.pinToneAttention : null]}
+          testID={`floor-plan-pin-tone-${tone}`}
+        />
+        <Text role="overline" tone="onBrand" lines={1}>
+          {short}
+        </Text>
+        <Text role="overline" tone="brassOnBrand" lines={1}>
+          {value}
+        </Text>
+        {caption ? (
+          <Text role="overline" tone="onBrandMuted" lines={1}>
+            {caption}
+          </Text>
+        ) : null}
+      </View>
+    </Animated.View>
+  );
   return (
-    <Animated.View pointerEvents="none" style={[styles.anchor, anchored]}>
-      <View style={styles.stem} />
-      <View style={styles.stemDot} />
+    <Animated.View pointerEvents={onPress ? "box-none" : "none"} style={[styles.anchor, anchored]}>
+      <View pointerEvents="none" style={styles.stem} />
+      <View pointerEvents="none" style={styles.stemDot} />
       {/* The pill's bottom edge sits 13px above the anchor, at the top of the stem. */}
-      <View style={[styles.row, { bottom: 13 }]}>
-        <View style={styles.pinHalo}>
-          <View style={styles.pin} testID="floor-plan-pin">
-            <View style={styles.pinTone} />
-            <Text role="overline" tone="onBrand" lines={1}>
-              {short}
-            </Text>
-            <Text role="overline" tone="onBrandMuted" lines={1}>
-              {source}
-            </Text>
-          </View>
-        </View>
+      <View pointerEvents="box-none" style={[styles.row, { bottom: 13 }]}>
+        {onPress ? (
+          <MapTap onPress={onPress} accessibilityLabel={accessibilityLabel}>
+            {body}
+          </MapTap>
+        ) : (
+          body()
+        )}
       </View>
     </Animated.View>
   );
@@ -292,17 +355,17 @@ const styles = StyleSheet.create({
   },
   // What answers a finger: the pill plus 11px above and below (44px in all) and 8px either
   // side. The negative margins give the space back, so nothing around it moves.
-  plateTarget: {
+  tapTarget: {
     paddingVertical: 11,
     marginVertical: -11,
     paddingHorizontal: 8,
     marginHorizontal: -8,
     cursor: "pointer",
   },
-  plateLabel: { flexDirection: "row", alignItems: "center", gap: 7 },
   plate: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 7,
     height: 22,
     paddingLeft: 9,
     paddingRight: 12,
@@ -365,6 +428,7 @@ const styles = StyleSheet.create({
     backgroundColor: OVERLAY.pinBg,
   },
   pinTone: { width: 6, height: 6, borderRadius: 3, backgroundColor: OVERLAY.toneNeutral },
+  pinToneAttention: { backgroundColor: OVERLAY.toneAttention },
   backPillSlot: { position: "absolute", top: space.md, left: space.md },
   backPill: {
     height: 34,

@@ -1,15 +1,24 @@
 import {
+  DOCK_DRILL_DOWN,
+  dockPin,
+  drillDownFor,
   focusDimPath,
+  gatePin,
   iso,
   locationType,
   plateAnchor,
   resolveBehavior,
+  zonePin,
+  type DrillDown,
   type LayoutLocationInput,
   type LayoutRoomInput,
+  type PinText,
   type PlanDataBehavior,
+  type PropertyReading,
   type Pt,
+  type ZoneReading,
 } from "@golai/domain";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated, { useAnimatedProps } from "react-native-reanimated";
@@ -36,8 +45,10 @@ import { FLOOR_Z } from "./visuals";
  *     anchors through the same shared values. They inherit no scale, because there is
  *     none to inherit — that is the mechanical form of "labels never scale with the world".
  *
- * What this phase deliberately does not do: pins carry no readings (LFP-4), tapping a pin
- * goes nowhere (LFP-4), and the plan is not on the dashboard (LFP-5).
+ * The pins say what the property's data says (LFP-4): the figures arrive from one server
+ * read and the words from the domain, and this component only places them. A tap on a
+ * pin is reported to the host as a drill-down target; the host owns the navigation. The
+ * gate pin has no target and takes no tap. What is still not here: the dashboard (LFP-5).
  */
 
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -45,21 +56,22 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 /** A location as the plan is handed it: the packer's input, plus what its pin reports. */
 export type FloorPlanLocation = LayoutLocationInput & {
   behavior?: PlanDataBehavior | null;
+  /** The location's code, which the drill-down hands to the screen it lands on. */
+  code?: string;
 };
+
+/** The pins' figures, as `loadFloorPlanReadings` returns them. Null until they arrive. */
+export interface FloorPlanReadingsInput {
+  zones: ReadonlyMap<string, ZoneReading>;
+  property: PropertyReading | null;
+}
 export type FloorPlanRoom = Omit<LayoutRoomInput, "locations"> & {
   locations: FloorPlanLocation[];
 };
 
-/**
- * What a pin says it will report, in the property's words. Configuration, not telemetry:
- * it changes when the "Readings come from" selector does, and at no other time.
- */
-const SOURCE_LABEL: Record<PlanDataBehavior, string> = {
-  TEMPERATURE: "temperature",
-  COUNT: "stock lines",
-  DWELL: "dwell time",
-  RETURNABLE: "returnables",
-};
+/** "09:40", in the device's locale. The DATE decision — read today or not — is the server's. */
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
 export interface FloorPlanViewProps {
   rooms: FloorPlanRoom[];
@@ -79,6 +91,10 @@ export interface FloorPlanViewProps {
   flyToRoomId?: string | null;
   /** A location tapped at detail zoom. At overview a tap flies to its room instead. */
   onSelectLocation?: (locationId: string) => void;
+  /** What the pins show. Omit or pass null and every pin says "No reading yet". */
+  readings?: FloorPlanReadingsInput | null;
+  /** A pin was pressed. The host navigates; this component does not know the routes. */
+  onDrillDown?: (target: DrillDown) => void;
 }
 
 export function FloorPlanView({
@@ -89,6 +105,8 @@ export function FloorPlanView({
   showReadings = true,
   flyToRoomId = null,
   onSelectLocation,
+  readings = null,
+  onDrillDown,
 }: FloorPlanViewProps) {
   /*
     The SURFACE is measured, not the frame.
@@ -173,27 +191,70 @@ export function FloorPlanView({
     ? (geometry.rooms.find((r) => r.id === engine.focusedRoomId) ?? null)
     : null;
 
-  const behaviorOf = useMemo(() => {
-    const map = new Map<string, PlanDataBehavior | null | undefined>();
-    for (const r of rooms) for (const l of r.locations) map.set(l.id, l.behavior);
+  const inputOf = useMemo(() => {
+    const map = new Map<string, FloorPlanLocation>();
+    for (const r of rooms) for (const l of r.locations) map.set(l.id, l);
     return map;
   }, [rooms]);
 
+  // One press handler for every pin, keyed by target, so each pin's gesture is built once
+  // and not rebuilt under a live touch when the readings refresh.
+  const drill = useRef(onDrillDown);
+  drill.current = onDrillDown;
+  const pressers = useRef(new Map<string, () => void>());
+  const presserFor = useCallback((key: string, target: DrillDown) => {
+    let fn = pressers.current.get(key);
+    if (!fn) {
+      fn = () => drill.current?.(target);
+      pressers.current.set(key, fn);
+    }
+    return fn;
+  }, []);
+
   const pins = useMemo(() => {
-    const out: { id: string; anchor: Pt; label: string; source: string }[] = [];
+    const out: {
+      id: string;
+      anchor: Pt;
+      label: string;
+      text: PinText;
+      onPress: () => void;
+      a11y: string;
+    }[] = [];
     for (const r of geometry.rooms) {
       for (const l of r.locations) {
         const entry = locationType(l.visual);
+        const input = inputOf.get(l.id);
+        const behavior = resolveBehavior(l.visual, input?.behavior);
+        const text = zonePin(
+          behavior,
+          readings?.zones.get(l.id) ?? null,
+          readings?.property ?? null,
+          formatTime,
+        );
+        const label = l.name || entry.label;
+        const target = drillDownFor(behavior, input?.code ?? l.id);
         out.push({
           id: l.id,
           anchor: iso(l.x + l.w / 2, l.y + l.d / 2, FLOOR_Z + entry.pinZ),
-          label: l.name || entry.label,
-          source: SOURCE_LABEL[resolveBehavior(l.visual, behaviorOf.get(l.id))],
+          label,
+          text,
+          onPress: presserFor(`${behavior}:${l.id}`, target),
+          a11y: `${label}: ${text.value}${text.caption ? `, ${text.caption}` : ""}. Open ${
+            target.screen === "registers"
+              ? "the temperature register"
+              : target.screen === "stock"
+                ? "what is in the store"
+                : "the returnables register"
+          }.`,
         });
       }
     }
     return out;
-  }, [geometry.rooms, behaviorOf]);
+  }, [geometry.rooms, inputOf, readings, presserFor]);
+
+  const gate = gatePin();
+  const dock = dockPin(readings?.property ?? null);
+  const dockPress = presserFor("dock", DOCK_DRILL_DOWN);
 
   const empty = rooms.length === 0;
   const fit = engine.fitBox;
@@ -234,7 +295,8 @@ export function FloorPlanView({
                 that lands on a plate or a pin bubbles to the map, so a pan or a pinch can
                 start anywhere, and it falls under the map's `touch-action: none`, so the
                 browser does not take the touch away to scroll the page. `box-none`: the
-                layer itself answers nothing; pins answer nothing; plates answer a tap.
+                layer itself answers nothing; plates and pins answer a tap; the gate pin
+                answers nothing.
               */}
               <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
                 {geometry.rooms.map((r) => (
@@ -253,23 +315,34 @@ export function FloorPlanView({
                     engine={engine}
                     anchor={p.anchor}
                     label={p.label}
-                    source={p.source}
+                    value={p.text.value}
+                    tone={p.text.tone}
+                    caption={p.text.caption}
                     enabled={showReadings}
+                    onPress={p.onPress}
+                    accessibilityLabel={p.a11y}
                   />
                 ))}
+                {/* No target: there is no gate log to land on, and no on-site count until
+                    something records a vehicle leaving. Deaf to pointers, and says so. */}
                 <ReadingPin
                   engine={engine}
                   anchor={geometry.anchors.gate}
                   label="Gate"
-                  source="open entries"
+                  value={gate.value}
+                  tone={gate.tone}
                   enabled={showReadings}
+                  accessibilityLabel="Gate: no reading yet. Vehicles on site cannot be counted until departures are recorded."
                 />
                 <ReadingPin
                   engine={engine}
                   anchor={geometry.anchors.dock}
                   label="Dock"
-                  source="receiving"
+                  value={dock.value}
+                  tone={dock.tone}
                   enabled={showReadings}
+                  onPress={dockPress}
+                  accessibilityLabel={`Dock: ${dock.value}. Open receiving.`}
                 />
               </View>
             </Animated.View>

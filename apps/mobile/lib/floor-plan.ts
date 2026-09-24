@@ -5,7 +5,13 @@ import type {
   PlanSize,
   StorageRegime,
 } from "@golai/db";
-import { planZone, resolveVisual } from "@golai/domain";
+import {
+  planZone,
+  resolveVisual,
+  type DrillDown,
+  type PropertyReading,
+  type ZoneReading,
+} from "@golai/domain";
 import { requireSupabase } from "./supabase";
 
 /**
@@ -267,6 +273,73 @@ export async function createPlanLocation(
 /** The visual to draw, given what the property chose and what their regime implies. */
 export function visualFor(location: PlanLocation): string {
   return resolveVisual(location.visual, "ZONE", location.regime);
+}
+
+/** Everything the pins show, from one read. */
+export interface FloorPlanReadings {
+  zones: Map<string, ZoneReading>;
+  property: PropertyReading | null;
+}
+
+/**
+ * The pins' figures (LFP-4), one round trip. Counted on the server over each zone's
+ * subtree — stock sits in bins, and a reading may be against a bin — so nothing here
+ * adds anything up. See LFP4_PIN_DATA_CONTRACT.md.
+ *
+ * An older database without the function answers PGRST202; the plan then draws without
+ * readings and says so, rather than failing the whole screen for the sake of the pins.
+ */
+export async function loadFloorPlanReadings(propertyId: string): Promise<FloorPlanReadings> {
+  const { data, error } = await requireSupabase().rpc("floor_plan_readings", {
+    p_property_id: propertyId,
+  });
+  if (error) throw new Error(friendlyReadings(error.code, error.message));
+
+  const zones = new Map<string, ZoneReading>();
+  let property: PropertyReading | null = null;
+  for (const r of data ?? []) {
+    if (r.scope === "PROPERTY") {
+      property = {
+        receivingOpen: r.receiving_open ?? 0,
+        quarantineMaxHours: r.quarantine_max_hours,
+        returnablesOutstanding: r.returnables_outstanding ?? 0,
+        returnablesOverdue: r.returnables_overdue ?? 0,
+      };
+    } else if (r.location_id) {
+      zones.set(r.location_id, {
+        stockLines: r.stock_lines ?? 0,
+        latestTempC: r.latest_temp_c,
+        latestTempAt: r.latest_temp_at,
+        tempReadToday: r.temp_read_today,
+        dwellMinutes: r.dwell_minutes,
+      });
+    }
+  }
+  return { zones, property };
+}
+
+/**
+ * The route for a pin's drill-down. The domain says which screen and what to hand it;
+ * the URLs are the app's. Each parameter is one an existing screen reads — no screen was
+ * added for this, and none takes a parameter it did not need anyway.
+ */
+export function hrefFor(target: DrillDown): string {
+  switch (target.screen) {
+    case "registers":
+      return `/registers?tab=${target.tab}&location=${encodeURIComponent(target.location)}`;
+    case "stock":
+      return `/stock?q=${encodeURIComponent(target.query)}`;
+    case "returnables":
+      return "/returnables";
+    case "receive":
+      return "/receive";
+  }
+}
+
+function friendlyReadings(code: string | undefined, message: string): string {
+  if (code === "PGRST202")
+    return "This build is talking to a database that cannot read the floor plan's pins yet. The migration has not been deployed.";
+  return message;
 }
 
 const DENIED =

@@ -392,12 +392,41 @@ rather than refusing, because the regime is the part that carries the consequenc
 `plan_data_behavior`, never the picture, so a chiller-shaped box can legitimately report a
 stock count. There is no placeholder value and no fallback to another location's reading —
 an empty pin is information, and a Food Safety Officer needs to see that this chiller has
-not been read today. **No source is wired yet**, so today a pin carries the location's name
-and which source it is configured to report — temperature, stock lines, dwell time,
-returnables — and no value at all. Not "No reading yet" either, which is what an empty
-source will say once LFP-4 lands: with nothing wired, that sentence would be asserted over
-chillers that have in fact been read this morning. The source caption is configuration, and
-true; a reading would be telemetry, and there is none to show.
+not been read today. The full rules, source by source, are the
+[pin data contract](ui-redesign/living-floor-plan/LFP4_PIN_DATA_CONTRACT.md); what follows
+is the short form.
+
+**What each pin says.** All the figures come from one read, `floor_plan_readings`, which
+is `SECURITY INVOKER` like every other read here: it counts the rows the caller may see,
+and RLS decides which. **Every zone's figure is over its subtree** — stock sits in bins,
+not zones, and a temperature round may read a bin — so a cold room's pin shows its newest
+reading wherever in the room it was taken, and the zone itself is included because
+opening stock may be recorded straight against one. A temperature pin shows the value and
+the time; a count pin shows lots, and `0 lines` is a reading, not a gap; a dwell pin shows
+the longest-standing lot's wait, and an empty staging area says `Empty`; a returnables pin
+shows the property's register **and says "property-wide"**, because the register cannot
+tell which keg store a crate left from — a property with two keg stores sees the same
+figure on both (the contract records this as a known limitation). The dock shows receipts
+in progress and the longest quarantine dwell at Terminal 1. The words are formed in
+[`readings.ts`](../packages/domain/src/floorplan/readings.ts), which adds nothing up; the
+client never computes a figure.
+
+**Colour is a fact, never a judgement.** A pin's dot is neutral or attention, and attention
+marks only a state the rows can prove: a temperature **not read today**, in the property's
+own timezone, or a returnable **past the date the property itself promised**. It is never
+keyed to a threshold — whether a temperature is safe, whether a dwell is too long — because
+every threshold ships `RECORD_ONLY` with no UI to change it, and a colour the property
+cannot turn off would be an enforcement by the back door. The pin's words always say what
+the attention is for.
+
+**Where a tap lands.** A pin is pressable and opens the screen behind its figure, with a
+parameter that screen already reads: temperature to the FSSAI registers on the Storage tab
+filtered to the location (`/registers?tab=STORAGE&location=`), counts and dwell to the
+stock screen searched by the zone's code (`/stock?q=`, which finds its bins too, because
+bin codes are generated from the zone's), returnables to the returnables register, the dock
+to receiving. No screen was added for this. **The gate pin says "No reading yet" and is
+not tappable**: an on-site count needs `gate_entry.timestamp_out`, nothing writes it, and
+there is no gate log to land on (see the product gaps below).
 
 **The setup screen creates zones**, through the same OWNER/ADMIN policy the zones screen
 uses, because a property typing its store in and watching the plan assemble is the point
@@ -451,8 +480,9 @@ flight.
 **One pointer system.** A plate is part of the map's gesture arbitration, not a button laid
 over it: its press fires on release, and the moment that touch becomes a drag, or a second
 finger lands, the map takes it. At the overview the plates are the largest things on a
-phone's screen, so a pan that starts on one has to pan. Pins answer no pointer at all in
-this phase.
+phone's screen, so a pan that starts on one has to pan. A pin is pressed the same way, so
+a pan that starts on a pin pans too; the gate pin, which has nowhere to go, answers no
+pointer at all.
 
 **Where it departs from the demo**, which is otherwise ported decision for decision.
 Focus is released on zooming out; the demo, checked in a browser, leaves the dim drawn
@@ -465,18 +495,31 @@ cannot know it is not the first half of a double-tap; the demo acts on the first
 and then zooms on the second as well. Plates do not wait — a plate is a button, and
 answers at once. And the demo's full-screen button is not ported.
 
-**Deliberately not built yet.** LFP-1 to LFP-3 exist: the data, the CRUD, the setup screen,
-the world, and moving around it. **No pin reads live data** and **tapping a pin goes
-nowhere** — both are LFP-4; tapping a location at detail zoom selects its card on the setup
-screen and does nothing else. **Nothing is on the dashboard** (LFP-5): the plan exists only
-as the setup screen's preview. **It has been verified in a browser, with a mouse and with
-synthetic touch, and has not yet run on a native build** — the gesture code is written
-against the library's cross-platform API, and the two places its web build surprised us
-(a pinch's focal point, and the order its callbacks arrive in) are handled in ways that do
-not depend on the platform, but no phone has held it. While the
-cursor is over the plan the wheel belongs to the plan and the page does not scroll, which
-is the demo's trade and is kept. The plan caps at 4 rooms and 10 locations, enforced in the
-UI and not in the database, because raising it is layout work rather than a migration.
+**Product gaps the plan made visible.** Three states the schema allows for and nothing in
+the product can produce. They are roadmap, not part of any LFP phase, and are listed here
+so a reader does not assume the control exists. **A vehicle cannot be recorded as
+leaving**: `gate_entry.timestamp_out` is the one column Security may write, by policy and
+by trigger, and no screen, RPC or sync mapping writes it — a resort gatehouse has no way to
+say the truck has gone, and the gate pin has no on-site count until one does. **An FSO
+cannot place stock on hold**: `BLOCKED` is in the stock state enum and nothing writes it.
+**Returnables have no source location**: the register hangs off the dispatch note, whose
+origin is always Terminal 2.
+
+**Deliberately not built yet.** LFP-1 to LFP-4 exist: the data, the CRUD, the setup screen,
+the world, moving around it, and the pins' readings and drill-down. **Nothing is on the
+dashboard** (LFP-5): the plan exists only as the setup screen's preview, and its readings
+load with that screen and refresh with it, not live. Tapping a location's shape at detail
+zoom still selects its card on the setup screen; tapping its pin is what opens the screen
+behind the figure. **A temperature pin shows no recorder's name** — there is no
+client-readable join from auth ids to names; the register has the same gap and states it.
+**It has been verified in a browser, with a mouse and with synthetic touch, and has not
+yet run on a native build** — the gesture code is written against the library's
+cross-platform API, and the two places its web build surprised us (a pinch's focal point,
+and the order its callbacks arrive in) are handled in ways that do not depend on the
+platform, but no phone has held it. While the cursor is over the plan the wheel belongs to
+the plan and the page does not scroll, which is the demo's trade and is kept. The plan caps
+at 4 rooms and 10 locations, enforced in the UI and not in the database, because raising
+it is layout work rather than a migration.
 
 ---
 
