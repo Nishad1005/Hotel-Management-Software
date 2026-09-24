@@ -13,7 +13,7 @@
 -- let them find it.
 
 begin;
-select plan(16);
+select plan(17);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -234,11 +234,20 @@ select cmp_ok(
   'and the lot at Terminal 1 has stood there nine hours'
 );
 
+-- Compared as numbers, not as text: `outstanding` is a numeric(14,4) subtraction, so its
+-- text form is '3.0000' — CI said so on the first push, where a '3/1' string comparison
+-- failed with everything else green.
 select is(
-  (select r.returnables_outstanding || '/' || r.returnables_overdue
+  (select r.returnables_outstanding
      from public.floor_plan_readings((select prop from ctx)) r where r.scope = 'PROPERTY'),
-  '3/1',
-  'three returnables still out, on one promise that is overdue'
+  3::numeric,
+  'three returnables still out'
+);
+select is(
+  (select r.returnables_overdue
+     from public.floor_plan_readings((select prop from ctx)) r where r.scope = 'PROPERTY'),
+  1,
+  'on one promise that is overdue'
 );
 
 -- ---------------------------------------------------------------------------
